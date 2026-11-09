@@ -10,12 +10,12 @@
 
 ## Phase 2: App Shell & Auth (IN PROGRESS)
 - [x] Build MainShell bottom island (S-04).
-- [ ] Build Stats empty-state screen (S-06).
-- [ ] Build Profile screen & logout (S-07).
-- [ ] Connect Supabase Auth: Magic Link & Social (S-01, S-02, S-03).
-- [ ] Build UILab debug storyboard (S-13).
+- [x] Build Stats empty-state screen (S-06).
+- [x] Build Profile screen & logout (S-07).
+- [x] Connect Supabase Auth: Native Google Sign-In (S-01, S-02, S-03).
+- [x] Build UILab debug storyboard (S-13).
 
-## Phase 3: Game Porting (One by One)
+## Phase 3: Game Engine (IN PROGRESS)
 - [ ] Add Burst (S-08) — bubble sum physics.
 - [ ] Mad Burst (S-09) — bubble product physics.
 - [ ] Math Burst (S-10) — custom numpad, fast-fire arithmetic.

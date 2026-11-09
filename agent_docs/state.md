@@ -9,11 +9,12 @@
 - **Docs:** UI_SYSTEM.md, SCREENS.md, ACCEPTANCE_CRITERIA.md (14 files, 614 items), PROJECT_CONTEXT.md, architecture.md.
 - **Theme:** Split tokens in `lib/core/theme/tokens/` (colors, spacing, radius, sizes, text styles, motion). Single import point in `app_theme.dart`.
 - **Core UI:** `GameCard` fully rewritten to contract (no shadow, radius 12, border, 48x48 icon, press state, haptics).
-- **Screens:** `HomeScreen`, `ComingSoonScreen`, `MainShell` (floating island, S-04), and stubs for Stats/Profile.
+- **Screens:** `MainShell`, `HomeScreen`, `StatsScreen`, `ProfileScreen`, and `UILabScreen` (S-13).
+- **Auth:** Supabase initialized, native Google Sign-In (v7) wired for iOS/Android, AuthGate handling sessions.
 - **Platform:** iOS folder generated, `.gitignore` correct. Android ready.
 
 ## Active Task (Next up)
-- Build Stats empty-state screen (S-06).
+- Build Add Burst game engine (S-08).
 
 ## Blockers / Notes
 - No blocking issues.

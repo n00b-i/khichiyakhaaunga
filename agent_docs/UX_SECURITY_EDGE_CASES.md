@@ -24,3 +24,10 @@ This file documents critical UX and security edge cases that must be handled in 
 - **Pitfall:** Flutter's default deep linking can intercept the URL before `supabase_flutter`'s internal `app_links` package can handle it.
 - **Fix:** Set `FlutterDeepLinkingEnabled` to `false` in `Info.plist`.
 - **Allow List:** The redirect URL (`comebak.in://login-callback`) must be explicitly added to the Supabase Dashboard's Redirect URLs allow list.
+### 1.3 iOS Google Sign-In Nonce (Critical)
+- **Issue:** The native iOS Google Sign-In K adds a hashed nonce to the ID token but does not return the raw nonce, causing Supabase to reject it with: .
+- **Resolution:** Enable the "Skip nonce check" option in the Supabase Dashboard under Authentication -> Providers -> Google.
+- **Package Note:**  v7+ uses a singleton (), NOT a constructor.
+
+## 4. Layout Mechanics
+- **FloatingNavBar:** When placed inside , wrapping it in  causes it to float to the middle of the screen. Always use .
