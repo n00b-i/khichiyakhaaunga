@@ -3,17 +3,18 @@ import '../../../core/theme/app_theme.dart';
 
 class FloatingNavBar extends StatelessWidget {
   final int currentIndex;
+  final int tabCount;
   final ValueChanged<int> onTabSelected;
 
   const FloatingNavBar({
     super.key,
     required this.currentIndex,
+    required this.tabCount,
     required this.onTabSelected,
   });
 
   @override
   Widget build(BuildContext context) {
-    // S-04 V1/V2: Floating pill UI centered at the bottom.
     return Center(
       child: Container(
         height: AppSizes.islandHeight,
@@ -26,7 +27,6 @@ class FloatingNavBar extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // S-04 V3/V4: 3 tabs for release (no debug UI tab here).
             _NavItem(
               icon: Icons.home_outlined,
               activeIcon: Icons.home,
@@ -48,6 +48,15 @@ class FloatingNavBar extends StatelessWidget {
               isActive: currentIndex == 2,
               onTap: () => onTabSelected(2),
             ),
+            // S-04 V4: Only render the 4th UI tab if tabCount is 4
+            if (tabCount == 4)
+              _NavItem(
+                icon: Icons.science_outlined,
+                activeIcon: Icons.science,
+                label: 'UI',
+                isActive: currentIndex == 3,
+                onTap: () => onTabSelected(3),
+              ),
           ],
         ),
       ),
@@ -72,14 +81,12 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // S-04 V5/V6: Active uses Groww Green, Inactive uses 60% opacity text.
     final color = isActive
         ? AppColors.primary
         : AppColors.textPrimary.withValues(alpha: 0.6);
 
     return GestureDetector(
       onTap: onTap,
-      // Ensures the entire 48x48 tap target is clickable (S-04 I1).
       behavior: HitTestBehavior.opaque,
       child: Semantics(
         button: true,
@@ -87,7 +94,7 @@ class _NavItem extends StatelessWidget {
         selected: isActive,
         child: Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
+            horizontal: AppSpacing.sm,
             vertical: AppSpacing.xs,
           ),
           child: Column(
@@ -103,7 +110,7 @@ class _NavItem extends StatelessWidget {
                 label,
                 style: AppTextStyles.body.copyWith(
                   color: color,
-                  fontSize: 12, // Slightly smaller to fit the pill
+                  fontSize: 12,
                 ),
               ),
             ],
