@@ -1,0 +1,8 @@
+.DS_Store
+.env
+*.iml
+.idea/
+.vscode/
+build/
+.dart_tool/
+Development/
