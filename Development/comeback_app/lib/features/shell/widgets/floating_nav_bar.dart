@@ -15,51 +15,55 @@ class FloatingNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(alignment: Alignment.bottomCenter,
-      child: Container(
-        height: AppSizes.islandHeight,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _NavItem(
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home,
-              label: 'Home',
-              isActive: currentIndex == 0,
-              onTap: () => onTabSelected(0),
-            ),
-            _NavItem(
-              icon: Icons.bar_chart_outlined,
-              activeIcon: Icons.bar_chart,
-              label: 'Stats',
-              isActive: currentIndex == 1,
-              onTap: () => onTabSelected(1),
-            ),
-            _NavItem(
-              icon: Icons.person_outline,
-              activeIcon: Icons.person,
-              label: 'Profile',
-              isActive: currentIndex == 2,
-              onTap: () => onTabSelected(2),
-            ),
-            // S-04 V4: Only render the 4th UI tab if tabCount is 4
-            if (tabCount == 4)
+    // We use a Row with MainAxisAlignment.center so the bar floats in the middle
+    // but does NOT expand vertically to fill the entire screen.
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          height: AppSizes.islandHeight,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               _NavItem(
-                icon: Icons.science_outlined,
-                activeIcon: Icons.science,
-                label: 'UI',
-                isActive: currentIndex == 3,
-                onTap: () => onTabSelected(3),
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home,
+                label: 'Home',
+                isActive: currentIndex == 0,
+                onTap: () => onTabSelected(0),
               ),
-          ],
+              _NavItem(
+                icon: Icons.bar_chart_outlined,
+                activeIcon: Icons.bar_chart,
+                label: 'Stats',
+                isActive: currentIndex == 1,
+                onTap: () => onTabSelected(1),
+              ),
+              _NavItem(
+                icon: Icons.person_outline,
+                activeIcon: Icons.person,
+                label: 'Profile',
+                isActive: currentIndex == 2,
+                onTap: () => onTabSelected(2),
+              ),
+              if (tabCount == 4)
+                _NavItem(
+                  icon: Icons.science_outlined,
+                  activeIcon: Icons.science,
+                  label: 'UI',
+                  isActive: currentIndex == 3,
+                  onTap: () => onTabSelected(3),
+                ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

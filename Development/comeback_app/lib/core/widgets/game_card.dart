@@ -82,19 +82,17 @@ class _GameCardState extends State<GameCard> {
                       Text(
                         widget.title,
                         style: AppTextStyles.body,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
                       ),
                       if (widget.description != null) ...[
                         SizedBox(height: AppSpacing.xxs),
                         Text(
                           widget.description!,
                           style: AppTextStyles.body.copyWith(
-                            color: AppColors.textPrimary
-                                .withValues(alpha: 0.6),
+                            color: AppColors.textPrimary.withValues(alpha: 0.6),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          // Removed maxLines: 1 and overflow to allow wrapping
+                          softWrap: true,
                         ),
                       ],
                     ],

@@ -8,7 +8,7 @@
 - [x] Home shell & GameCard built cleanly (0 analyze issues).
 - [x] iOS platform generated, google_fonts removed.
 
-## Phase 2: App Shell & Auth (IN PROGRESS)
+## Phase 2: App Shell & Auth (DONE)
 - [x] Build MainShell bottom island (S-04).
 - [x] Build Stats empty-state screen (S-06).
 - [x] Build Profile screen & logout (S-07).
