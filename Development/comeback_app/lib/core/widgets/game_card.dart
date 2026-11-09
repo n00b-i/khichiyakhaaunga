@@ -81,7 +81,11 @@ class _GameCardState extends State<GameCard> {
                     children: [
                       Text(
                         widget.title,
-                        style: AppTextStyles.body,
+                        // APPLY ACCENT COLOR TO TITLE HERE
+                        style: AppTextStyles.body.copyWith(
+                          color: widget.accentColor,
+                          fontWeight: FontWeight.w700,
+                        ),
                         softWrap: true,
                       ),
                       if (widget.description != null) ...[
@@ -91,7 +95,6 @@ class _GameCardState extends State<GameCard> {
                           style: AppTextStyles.body.copyWith(
                             color: AppColors.textPrimary.withValues(alpha: 0.6),
                           ),
-                          // Removed maxLines: 1 and overflow to allow wrapping
                           softWrap: true,
                         ),
                       ],

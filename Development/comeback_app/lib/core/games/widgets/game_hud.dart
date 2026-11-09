@@ -6,6 +6,7 @@ class GameHud extends StatelessWidget {
   final int maxTime;
   final int target;
   final int score;
+  final String operationPrefix; // '+' for Add, 'x' for Mad, '=' for Math
 
   const GameHud({
     super.key,
@@ -13,6 +14,7 @@ class GameHud extends StatelessWidget {
     required this.maxTime,
     required this.target,
     required this.score,
+    this.operationPrefix = '', // Default is empty
   });
 
   @override
@@ -22,7 +24,6 @@ class GameHud extends StatelessWidget {
 
     return Column(
       children: [
-        // 1. Time, Target, Score (Row above the bar)
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -51,7 +52,7 @@ class GameHud extends StatelessWidget {
             Column(
               children: [
                 Text(
-                  target.toString(),
+                  '$operationPrefix$target', // <--- PREFIX APPLIED HERE
                   style: AppTextStyles.display.copyWith(
                     color: AppColors.primary,
                     fontSize: 48,
@@ -90,7 +91,7 @@ class GameHud extends StatelessWidget {
         
         const SizedBox(height: AppSpacing.sm),
 
-        // 2. The Gradient Timer Bar (Fixed to show Red->Purple->Green properly)
+        // Gradient Timer Bar
         ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.pill),
           child: Container(
@@ -99,7 +100,6 @@ class GameHud extends StatelessWidget {
             color: AppColors.surface,
             child: Stack(
               children: [
-                // The full gradient background
                 Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
@@ -112,7 +112,6 @@ class GameHud extends StatelessWidget {
                     ),
                   ),
                 ),
-                // The "mask" that covers the depleted portion
                 Align(
                   alignment: Alignment.centerRight,
                   child: FractionallySizedBox(

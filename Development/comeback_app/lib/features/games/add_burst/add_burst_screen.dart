@@ -33,7 +33,6 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
   bool _isFrozen = false;
   double _exactTimeLeft = 60.0;
   
-  // Countdown state
   int _countdown = 3;
   bool _showCountdown = true;
   Timer? _countdownTimer;
@@ -43,15 +42,12 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
   final List<Particle> _particles = [];
   Bubble? _selectedBubble;
 
-  // Play area size, set by LayoutBuilder
   Size _playAreaSize = Size.zero;
 
   @override
   void initState() {
     super.initState();
     _ticker = createTicker(_onTick)..start();
-    
-    // Start the countdown immediately
     _startCountdown();
   }
 
@@ -72,9 +68,41 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
 
   void _spawnInitialBubbles() {
     for (int i = 0; i < 6; i++) {
-      _spawnBubble();
+      _bubbles.add(_generateBubbleData());
     }
-    _generateNewTarget();
+    _target = _calculateTarget(_bubbles);
+  }
+
+  // Generates a bubble in memory without adding it to the active list
+  Bubble _generateBubbleData() {
+    int value;
+    do {
+      value = _random.nextInt(9) + 1;
+    } while (_bubbles.any((b) => b.value == value) && _bubbles.length < 9);
+
+    final radius = 40.0;
+    final bottomBound = _playAreaSize.height;
+    final pos = Offset(
+      radius + 20 + _random.nextDouble() * (_playAreaSize.width - radius * 2 - 40),
+      radius + 10 + _random.nextDouble() * (bottomBound - radius * 2 - 20),
+    );
+    
+    final vel = Offset(
+      (_random.nextDouble() - 0.5) * 150,
+      (_random.nextDouble() - 0.5) * 150,
+    );
+
+    return Bubble(value: value, position: pos, velocity: vel, radius: radius);
+  }
+
+  int _calculateTarget(List<Bubble> board) {
+    if (board.length < 2) return 10;
+    final b1 = board[_random.nextInt(board.length)];
+    Bubble b2;
+    do {
+      b2 = board[_random.nextInt(board.length)];
+    } while (b2.id == b1.id);
+    return b1.value + b2.value; // ADDITION
   }
 
   void _onTick(Duration elapsed) {
@@ -93,56 +121,23 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
       return;
     }
 
-    if (!_isFrozen) {
-      setState(() {
-        _exactTimeLeft = remaining;
-        
-        // The play area size is already set by LayoutBuilder
+    setState(() {
+      _exactTimeLeft = remaining;
+      
+      if (!_isFrozen) {
         final bottomBound = _playAreaSize.height;
-
         for (var b in _bubbles) {
           b.update(dt, _playAreaSize, 0, bottomBound);
         }
         resolveBubbleCollisions(_bubbles);
+      }
 
-        _floatingTexts.removeWhere((t) => t.opacity <= 0);
-        for (var t in _floatingTexts) { t.update(dt); }
-        
-        _particles.removeWhere((p) => p.opacity <= 0);
-        for (var p in _particles) { p.update(dt); }
-      });
-    }
-  }
-
-  void _spawnBubble() {
-    int value;
-    do {
-      value = _random.nextInt(9) + 1; 
-    } while (_bubbles.any((b) => b.value == value) && _bubbles.length < 9);
-
-    final radius = 40.0;
-    final bottomBound = _playAreaSize.height;
-
-    // Spawn strictly inside the play area
-    final pos = Offset(
-      radius + 20 + _random.nextDouble() * (_playAreaSize.width - radius * 2 - 40),
-      radius + 10 + _random.nextDouble() * (bottomBound - radius * 2 - 20),
-    );
-    
-    final vel = Offset(
-      (_random.nextDouble() - 0.5) * 150,
-      (_random.nextDouble() - 0.5) * 150,
-    );
-
-    _bubbles.add(Bubble(value: value, position: pos, velocity: vel, radius: radius));
-  }
-
-  void _generateNewTarget() {
-    if (_bubbles.length >= 2) {
-      final b1 = _bubbles[_random.nextInt(_bubbles.length)];
-      final b2 = _bubbles[_random.nextInt(_bubbles.length)];
-      _target = b1.value + b2.value;
-    }
+      _floatingTexts.removeWhere((t) => t.opacity <= 0);
+      for (var t in _floatingTexts) { t.update(dt); }
+      
+      _particles.removeWhere((p) => p.opacity <= 0);
+      for (var p in _particles) { p.update(dt); }
+    });
   }
 
   void _handleTap(TapDownDetails details) {
@@ -180,25 +175,36 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
           _score += points;
           
           SystemSound.play(SystemSoundType.click);
-          
           _addFx(activeTapped.position, '+$points', AppColors.primary, true);
           
-          // Remove bubbles
-          _bubbles.removeWhere((b) => b.id == activeSelected.id || b.id == activeTapped.id);
+          // --- ADVANCED PRE-COMPUTATION ---
+          // 1. Calculate survivors
+          final survivors = _bubbles.where((b) => b.id != activeSelected.id && b.id != activeTapped.id).toList();
+          
+          // 2. Pre-generate next bubbles
+          final nextBubble1 = _generateBubbleData();
+          final nextBubble2 = _generateBubbleData();
+          
+          // 3. Pre-calculate the next target using survivors + new bubbles
+          final nextBoardState = [...survivors, nextBubble1, nextBubble2];
+          final nextTarget = _calculateTarget(nextBoardState);
+          
+          // 4. Atomic Swap
+          _bubbles.clear();
+          _bubbles.addAll(nextBoardState);
+          _target = nextTarget;
           _selectedBubble = null;
           
-          // Spawn new bubbles FIRST to ensure target is solvable
-          _spawnBubble();
-          _spawnBubble();
-          
-          // Then generate the new target
-          _generateNewTarget();
-          
-          // Freeze game for 180ms
+          // 5. Cognitive Freeze
           _isFrozen = true;
+          _ticker.muted = true;
           Future.delayed(const Duration(milliseconds: 180), () {
-            if (mounted) setState(() => _isFrozen = false);
+            if (mounted) {
+              setState(() => _isFrozen = false);
+              _ticker.muted = false;
+            }
           });
+          // --------------------------------
         } else {
           _misses++;
           _combo = 0;
@@ -265,17 +271,14 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // Calculate play area size
-            // HUD takes ~105px, Hint Text ~60px
             _playAreaSize = Size(
               constraints.maxWidth,
-              constraints.maxHeight - 165, // 105 + 60
+              constraints.maxHeight - 165, 
             );
 
             return Stack(
               fit: StackFit.expand,
               children: [
-                // 1. Play Area (Bubbles)
                 Positioned(
                   top: 105,
                   bottom: 60,
@@ -293,8 +296,6 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
                     ),
                   ),
                 ),
-
-                // 2. HUD (Top)
                 Positioned(
                   top: AppSpacing.md,
                   left: AppSpacing.md,
@@ -304,10 +305,9 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
                     maxTime: 60,
                     target: _target,
                     score: _score,
+                    operationPrefix: '+',
                   ),
                 ),
-
-                // 3. Hint Text (Bottom Left)
                 Positioned(
                   bottom: AppSpacing.xl,
                   left: AppSpacing.lg,
@@ -319,8 +319,6 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
                     ),
                   ),
                 ),
-
-                // 4. Countdown Overlay
                 if (_showCountdown)
                   Positioned.fill(
                     child: Container(
@@ -334,15 +332,9 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
                               style: AppTextStyles.display.copyWith(fontSize: 100),
                             ),
                             SizedBox(height: AppSpacing.lg),
-                            Text(
-                              'Add Burst',
-                              style: AppTextStyles.hud,
-                            ),
+                            Text('Add Burst', style: AppTextStyles.hud.copyWith(color: AppColors.vibrantGreen)),
                             SizedBox(height: AppSpacing.md),
-                            Text(
-                              'Add two numbers to hit the target.',
-                              style: AppTextStyles.body,
-                            ),
+                            Text('Add two numbers to hit the target.', style: AppTextStyles.body),
                           ],
                         ),
                       ),

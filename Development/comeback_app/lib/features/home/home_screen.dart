@@ -3,6 +3,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/game_card.dart';
 import '../common/coming_soon_screen.dart';
 import '../games/add_burst/add_burst_screen.dart';
+import '../games/mad_burst/mad_burst_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final String? userName;
@@ -72,7 +73,11 @@ class HomeScreen extends StatelessWidget {
                 description: 'Multiply two numbers to hit the target.',
                 icon: Icons.close,
                 accentColor: AppColors.vibrantOrange,
-                onTap: () => _openComingSoon(context, 'Mad Burst'),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const MadBurstScreen()),
+                  );
+                },
               ),
               SizedBox(height: AppSpacing.sm),
               
