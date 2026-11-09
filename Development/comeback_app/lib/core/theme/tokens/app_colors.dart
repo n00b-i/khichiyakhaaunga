@@ -19,10 +19,4 @@ class AppColors {
   static const Color vibrantPink = Color(0xFFFF4081);
 
   static const Color saitanGrid = Color(0xFF0A0A0A);
-
-  @Deprecated('Use textPrimary with withValues(alpha: 0.6). Removed in step 2b cleanup.')
-  static const Color textMuted = Color(0x99F5F5F5);
-
-  @Deprecated('Use a vibrant token explicitly. Removed in step 2b cleanup.')
-  static const Color secondary = vibrantYellow;
 }
