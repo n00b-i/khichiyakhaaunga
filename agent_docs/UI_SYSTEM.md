@@ -92,3 +92,12 @@ These are the **only** shared shell components. Do not create new custom shell c
 - Gradients, glows, or shadows >15% opacity.
 - New shared components without explicit approval.
 - Native keyboard in Math Burst — custom in-app numpad only.
+
+## 8. Game Canvas Exception — Memory of Saitan
+
+Memory of Saitan uses a pitch-black play grid. This is the **only** permitted deviation from the no-pure-black rule.
+
+- Grid canvas: `#0A0A0A` (near-black). **Never** `#000000`.
+- Everything else on the screen still obeys §§1–7: chrome, HUD, Light Toggle button, text, borders.
+- Only the grid cells may use `#0A0A0A`. No other screen may adopt this value.
+- If `#0A0A0A` is ever needed elsewhere, it must be added here first with an explicit reason.
