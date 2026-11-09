@@ -101,3 +101,29 @@ Memory of Saitan uses a pitch-black play grid. This is the **only** permitted de
 - Everything else on the screen still obeys §§1–7: chrome, HUD, Light Toggle button, text, borders.
 - Only the grid cells may use `#0A0A0A`. No other screen may adopt this value.
 - If `#0A0A0A` is ever needed elsewhere, it must be added here first with an explicit reason.
+
+## 9. Token Discipline
+
+No hardcoded values anywhere in lib/. Every color, spacing, radius, duration, font size, and component dimension resolves to a token defined in lib/core/theme/app_theme.dart. If a value is missing, add the token first, then use it.
+
+### Token classes (all in app_theme.dart)
+
+- AppColors        - all colors. No Color(0x...) literal outside this file.
+- AppSpacing       - all gaps and padding. Scale: xxs=4, xs=8, sm=12, md=16, lg=24, xl=32. No other values.
+- AppRadius        - all corner radii. card=12, sheet=16, pill=999.
+- AppSizes         - component dimensions: iconSm=24, iconMd=32, iconLg=48, avatar=64, islandHeight=64, tabIcon=24.
+- AppTextStyles    - all typography. Each style uses native system font, per §2.
+- AppMotion        - all durations and curves: correctMs=180, wrongMs=80, transitionMinMs=180, transitionMaxMs=220, curve=easeOut.
+
+### Enforcement rules
+
+- Color(0x...) literal outside app_theme.dart -> reject.
+- EdgeInsets.all(16) with literal 16 -> use EdgeInsets.all(AppSpacing.md).
+- BorderRadius.circular(12) -> use BorderRadius.circular(AppRadius.card).
+- Duration(milliseconds: 180) -> use Duration(milliseconds: AppMotion.correctMs).
+- fontSize: 16 literal -> use AppTextStyles.body.
+- SizedBox(height: 40) -> use SizedBox(height: AppSpacing.xl). If a value is not on scale, the layout is wrong; fix the layout, do not add a token.
+
+### Rationale
+
+Single source of truth. Any drift from UI_SYSTEM.md becomes visible in the UILab screen, which reads tokens at runtime. Designers and developers change tokens once, everywhere updates.
