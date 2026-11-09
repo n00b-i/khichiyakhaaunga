@@ -48,7 +48,7 @@ class _MainShellState extends State<MainShell> {
             ? null
             : Padding(
                 padding: EdgeInsets.only(
-                  bottom: bottomInset > 0 ? bottomInset : AppSpacing.xs,
+                  bottom: bottomInset > 0 ? bottomInset : AppSpacing.md,
                 ),
                 child: FloatingNavBar(
                   currentIndex: _currentIndex,

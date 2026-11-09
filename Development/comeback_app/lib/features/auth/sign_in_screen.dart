@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/primary_button.dart';
 import 'magic_link_sent_screen.dart';
@@ -42,7 +43,6 @@ class _SignInScreenState extends State<SignInScreen> {
         );
       }
     } on AuthException catch (e) {
-      // Catches Supabase specific errors (e.g., Rate Limit)
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -59,18 +59,43 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  Future<void> _signInWithProvider(OAuthProvider provider) async {
+    Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
     try {
-      await Supabase.instance.client.auth.signInWithOAuth(
-        provider,
-        redirectTo: 'comebak.in://login-callback',
+      const webClientId = '836171717498-un6j40aatbi1622u1h686ijejrhc5dvt.apps.googleusercontent.com';
+      const iosClientId = '836171717498-e2gq4g3219o0en1un4slfmpt2kc786f4.apps.googleusercontent.com';
+
+      // 1. Initialize the GoogleSignIn singleton (Required in v7)
+      await GoogleSignIn.instance.initialize(
+        clientId: Platform.isIOS ? iosClientId : null,
+        serverClientId: webClientId,
       );
+
+      // 2. Authenticate (Replaces signIn() in v7)
+      final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
+
+      // 3. Get the ID token (synchronously)
+      final String? idToken = googleUser.authentication.idToken;
+
+      if (idToken == null) {
+        throw 'No ID Token found.';
+      }
+
+      // 4. Sign in to Supabase
+      // Note: We omit accessToken since it's no longer returned by default
+      await Supabase.instance.client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+      );
+      
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('OAuth Error: $e')),
+          SnackBar(content: Text('Google Sign-In Error: $e')),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -82,7 +107,6 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. GestureDetector dismisses keyboard when tapping outside
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
@@ -150,9 +174,9 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xl),
 
-                // Social Buttons
+                // Google Button
                 GestureDetector(
-                  onTap: () => _signInWithProvider(OAuthProvider.google),
+                  onTap: _isLoading ? null : _signInWithGoogle,
                   child: Container(
                     height: 52,
                     width: double.infinity,
@@ -162,15 +186,29 @@ class _SignInScreenState extends State<SignInScreen> {
                       border: Border.all(color: AppColors.border),
                     ),
                     alignment: Alignment.center,
-                    child: const Text('Continue with Google', style: AppTextStyles.body),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text('Continue with Google', style: AppTextStyles.body),
                   ),
                 ),
                 
-                // 2. Only show Apple Sign in on iOS
+                // Apple Sign in (iOS only)
                 if (Platform.isIOS) ...[
                   const SizedBox(height: AppSpacing.sm),
                   GestureDetector(
-                    onTap: () => _signInWithProvider(OAuthProvider.apple),
+                    onTap: () {
+                      // Apple Sign-In requires Apple Developer setup
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Apple Sign-In coming soon.')),
+                      );
+                    },
                     child: Container(
                       height: 52,
                       width: double.infinity,

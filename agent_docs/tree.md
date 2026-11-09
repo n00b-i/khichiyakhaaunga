@@ -17,7 +17,7 @@ comebak/
 |       |-- ...
 |       `-- S-14-coming-soon.md
 |-- Development/
-|   `-- comeback_app/
+|   `-- comebak_app/
 |       |-- lib/
 |       |   |-- app/
 |       |   |   `-- app.dart            # MaterialApp composition root

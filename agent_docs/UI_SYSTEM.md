@@ -1,4 +1,4 @@
-# UI System — comeback.in
+# UI System — comebak.in
 
 Locked contract. No pure white (#FFFFFF) or pure black (#000000).  
 No colours outside this file. No glows/shadows above 15% opacity.

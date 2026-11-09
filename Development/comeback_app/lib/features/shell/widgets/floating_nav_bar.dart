@@ -15,7 +15,7 @@ class FloatingNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return Align(alignment: Alignment.bottomCenter,
       child: Container(
         height: AppSizes.islandHeight,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),

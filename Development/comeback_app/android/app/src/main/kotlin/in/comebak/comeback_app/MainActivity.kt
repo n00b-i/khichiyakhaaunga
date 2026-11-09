@@ -1,4 +1,4 @@
-package `in`.comebak.comeback_app
+package `in`.comebak.comebak_app
 
 import io.flutter.embedding.android.FlutterActivity
 

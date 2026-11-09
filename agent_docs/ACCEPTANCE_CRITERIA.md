@@ -1,4 +1,4 @@
-# Acceptance Criteria - comeback.in (Index)
+# Acceptance Criteria - comebak.in (Index)
 
 Per-screen acceptance criteria live in one file per screen under agent_docs/ac/.
 This file is the index: legend, conventions, and per-screen counts.

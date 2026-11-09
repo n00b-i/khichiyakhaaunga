@@ -1,4 +1,4 @@
-# Architecture — comeback.in
+# Architecture — comebak.in
 
 Read PROJECT_CONTEXT.md first; this file builds on it.
 
@@ -22,7 +22,7 @@ comebak/
 |   |-- prompts.md          how to instruct the agent
 |   `-- roadmap.md          MVP phases
 |-- Development/
-|   `-- comeback_app/
+|   `-- comebak_app/
 |       |-- lib/
 |       |   |-- app/            composition root (MaterialApp)
 |         |-- core/
@@ -64,7 +64,7 @@ We adopt the same principles.
 
 ### 3.1 Control surface separation
 - Contract / instructions (Human): PROJECT_CONTEXT.md, UI_SYSTEM.md, SCREENS.md, AC files.
-- Edit surface (Agent): Everything under Development/comeback_app/lib/.
+- Edit surface (Agent): Everything under Development/comebak_app/lib/.
 - Verification (Tool): flutter analyze, AC count checks, git diff.
 
 The agent never modifies contract docs without explicit human approval.

@@ -1,9 +1,9 @@
-# AI Prompting Rules for comeback.in
+# AI Prompting Rules for comebak.in
 
 When asking the Agent to write or refactor code, use this exact structure.
 
 [CONTEXT]
-We are building a Flutter module for comeback.in. Read PROJECT_CONTEXT.md,
+We are building a Flutter module for comebak.in. Read PROJECT_CONTEXT.md,
 UI_SYSTEM.md, and SCREENS.md before writing any code. We use the modular
 feature-first architecture defined in architecture.md.
 

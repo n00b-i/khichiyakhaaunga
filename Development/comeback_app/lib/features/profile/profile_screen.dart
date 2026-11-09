@@ -37,7 +37,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           title: const Text('Log out?', style: AppTextStyles.hud),
           content: Text(
-            'Are you sure you want to log out of comeback.in?',
+            'Are you sure you want to log out of comebak.in?',
             style: AppTextStyles.body.copyWith(
               color: AppColors.textPrimary.withValues(alpha: 0.6),
             ),

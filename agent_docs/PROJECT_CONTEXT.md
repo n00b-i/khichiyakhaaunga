@@ -1,10 +1,10 @@
-# Project Context — comeback.in
+# Project Context — comebak.in
 
 This file is the anchor. Every agent session reads this first.
 It mirrors the locked initialization contract. Do not modify without explicit human approval.
 
 ## 1. Project Identity
-- Name: comeback.in
+- Name: comebak.in
 - Philosophy: Self-improvement, cognitive training, zero friction.
   No social pressure, no leaderboards, no ranks for the MVP.
 - Design ethos: "Absolute Clean". Premium dark mode, generous negative space,
@@ -16,7 +16,7 @@ It mirrors the locked initialization contract. Do not modify without explicit hu
 - Backend: Supabase (Auth, PostgreSQL).
 - Repo: github.com/n00b-i/khichiyakhaaunga
 - Local root: /Users/user1/main/comebak/
-- Flutter source: /Development/comeback_app
+- Flutter source: /Development/comebak_app
 - Docs: /agent_docs
 - Future backend: /src
 
