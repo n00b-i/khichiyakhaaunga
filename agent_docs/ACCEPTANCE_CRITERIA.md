@@ -21,29 +21,23 @@ This file is the index: legend, conventions, and per-screen counts.
 
 ## Files and counts
 
-| Screen ID | Name                | File                          | V  | B | I  | E  | N  | Total |
-|-----------|---------------------|-------------------------------|----|---|----|----|----|-------|
-| S-04      | MainShell           | ac/S-04-main-shell.md         | 10 | 6 | 11 | 5  | 6  | 38    |
-| S-05      | HomeScreen          | ac/S-05-home.md               | 11 | 8 | 10 | 9  | 10 | 48    |
-| S-06      | StatsScreen         | ac/S-06-stats.md              | 11 | 8 | 9  | 10 | 8  | 46    |
-| S-07      | ProfileScreen       | ac/S-07-profile.md            | 10 | 7 | 10 | 10 | 10 | 47    |
-
-Total items defined: 179.
-
-## Pending screens (files not yet created)
-
-| Screen ID | Name                       | Status  |
-|-----------|----------------------------|---------|
-| S-01      | SplashScreen               | pending |
-| S-02      | SignInScreen               | pending |
-| S-03      | MagicLinkSentScreen        | pending |
-| S-08      | AddBurstGameScreen         | pending |
-| S-09      | MadBurstGameScreen         | pending |
-| S-10      | MathBurstGameScreen        | pending |
-| S-11      | MemoryOfSaitanGameScreen   | pending |
-| S-12      | GameResultScreen           | pending |
-| S-13      | UILabScreen (debug only)   | pending |
-| S-14      | ComingSoonScreen           | pending |
+| Screen ID | Name                       | File                          | V  | B  | I  | E  | N  | Total |
+|-----------|----------------------------|-------------------------------|----|----|----|----|----|-------|
+| S-01      | SplashScreen               | ac/S-01-splash.md             | 6  | 6  | 8  | 6  | 6  | 32    |
+| S-02      | SignInScreen               | ac/S-02-sign-in.md            | 11 | 8  | 12 | 12 | 10 | 53    |
+| S-03      | MagicLinkSentScreen        | ac/S-03-magic-link-sent.md    | 10 | 6  | 8  | 10 | 7  | 41    |
+| S-04      | MainShell                  | ac/S-04-main-shell.md         | 10 | 6  | 11 | 5  | 6  | 38    |
+| S-05      | HomeScreen                 | ac/S-05-home.md               | 11 | 8  | 10 | 9  | 10 | 48    |
+| S-06      | StatsScreen                | ac/S-06-stats.md              | 11 | 8  | 9  | 10 | 8  | 46    |
+| S-07      | ProfileScreen              | ac/S-07-profile.md            | 10 | 7  | 10 | 10 | 10 | 47    |
+| S-08      | AddBurstGameScreen         | ac/S-08-add-burst.md          | 10 | 12 | 10 | 10 | 8  | 50    |
+| S-09      | MadBurstGameScreen         | ac/S-09-mad-burst.md          | 10 | 12 | 10 | 10 | 8  | 50    |
+| S-10      | MathBurstGameScreen        | ac/S-10-math-burst.md         | 12 | 11 | 12 | 11 | 8  | 54    |
+| S-11      | MemoryOfSaitanGameScreen   | ac/S-11-memory-of-saitan.md   | 10 | 10 | 10 | 10 | 8  | 48    |
+| S-12      | GameResultScreen           | ac/S-12-game-result.md        | 11 | 7  | 9  | 8  | 8  | 43    |
+| S-13      | UILabScreen (debug only)   | ac/S-13-ui-lab.md             | 10 | 6  | 8  | 5  | 6  | 35    |
+| S-14      | ComingSoonScreen           | ac/S-14-coming-soon.md        | 7  | 5  | 6  | 5  | 6  | 29    |
+| Total     | 14 screens                 |                               | 139 | 112 | 133 | 121 | 109 | 614 |
 
 ## Verification command
 
