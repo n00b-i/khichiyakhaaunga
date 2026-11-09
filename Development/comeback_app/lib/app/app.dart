@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
-import '../features/shell/main_shell.dart';
+import '../features/auth/splash_screen.dart';
 
 class ComebakApp extends StatelessWidget {
   const ComebakApp({super.key});
@@ -11,7 +11,9 @@ class ComebakApp extends StatelessWidget {
       title: 'comebak',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const MainShell(),
+      // We now start at the SplashScreen. 
+      // Once Auth is fully wired, Splash will route to MainShell if logged in.
+      home: const SplashScreen(),
     );
   }
 }
