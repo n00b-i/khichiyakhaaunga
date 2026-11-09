@@ -9,7 +9,7 @@
 - [x] iOS platform generated, google_fonts removed.
 
 ## Phase 2: App Shell & Auth (IN PROGRESS)
-- [ ] Build MainShell bottom island (S-04).
+- [x] Build MainShell bottom island (S-04).
 - [ ] Build Stats empty-state screen (S-06).
 - [ ] Build Profile screen & logout (S-07).
 - [ ] Connect Supabase Auth: Magic Link & Social (S-01, S-02, S-03).

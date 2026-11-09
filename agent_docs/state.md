@@ -9,11 +9,11 @@
 - **Docs:** UI_SYSTEM.md, SCREENS.md, ACCEPTANCE_CRITERIA.md (14 files, 614 items), PROJECT_CONTEXT.md, architecture.md.
 - **Theme:** Split tokens in `lib/core/theme/tokens/` (colors, spacing, radius, sizes, text styles, motion). Single import point in `app_theme.dart`.
 - **Core UI:** `GameCard` fully rewritten to contract (no shadow, radius 12, border, 48x48 icon, press state, haptics).
-- **Screens:** `HomeScreen` (greeting, tagline, 4 GameCards), `ComingSoonScreen`, `ComebakApp` (composition root).
+- **Screens:** `HomeScreen`, `ComingSoonScreen`, `MainShell` (floating island, S-04), and stubs for Stats/Profile.
 - **Platform:** iOS folder generated, `.gitignore` correct. Android ready.
 
 ## Active Task (Next up)
-- Build `MainShell` (S-04) — bottom island with Home / Stats / Profile (+ debug UI tab).
+- Build Stats empty-state screen (S-06).
 
 ## Blockers / Notes
 - No blocking issues.
