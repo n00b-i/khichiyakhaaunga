@@ -16,8 +16,8 @@
 - [x] Build UILab debug storyboard (S-13).
 
 ## Phase 3: Game Engine (IN PROGRESS)
-- [ ] Add Burst (S-08) — bubble sum physics.
-- [ ] Mad Burst (S-09) — bubble product physics.
+- [x] Add Burst (S-08) — bubble sum physics.
+- [x] Mad Burst (S-09) — bubble product physics.
 - [ ] Math Burst (S-10) — custom numpad, fast-fire arithmetic.
 - [ ] Memory of Saitan (S-11) — flashlight grid.
 - [ ] Game Result Screen (S-12) — score submission & PB check.
