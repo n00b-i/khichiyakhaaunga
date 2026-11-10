@@ -1,10 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/stats/stats_repository.dart';
 
-class StatsScreen extends StatelessWidget {
+class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
 
-  // S-06 E4: Time format rules (0s -> "0s", <60s -> "{n}s", <60min -> "{m}m {s}s", >=60min -> "{h}h {m}m")
+  @override
+  State<StatsScreen> createState() => _StatsScreenState();
+}
+
+class _StatsScreenState extends State<StatsScreen> {
+  late StatsRepository _statsRepo;
+  Future<Map<String, dynamic>?>? _statsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // [UI-1] Initialize repository and fetch stats on mount
+    _statsRepo = StatsRepository(Supabase.instance.client);
+    _statsFuture = _statsRepo.getUserStats();
+  }
+
+  // AC (S-06 E4): Time format rules
   String _formatTime(int seconds) {
     if (seconds == 0) return '0s';
     if (seconds < 60) return '${seconds}s';
@@ -15,7 +33,7 @@ class StatsScreen extends StatelessWidget {
     return '${h}h ${m % 60}m';
   }
 
-  // S-06 E3/E5: Thousands separator for large numbers (e.g., 10,000)
+  // AC (S-06 E3/E5): Thousands separator
   String _formatNumber(int num) {
     return num.toString().replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
@@ -25,63 +43,87 @@ class StatsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Note: For now, this uses the empty-state hardcoded values to match S-06 E1.
-    // Later, these will be wired to Supabase.
-    const int totalGames = 0;
-    const int totalTimeSeconds = 0;
-    final Map<String, int?> pbs = {
-      'Add Burst': null,
-      'Mad Burst': null,
-      'Math Burst': null,
-      'Memory of Saitan': null,
-    };
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: AppSpacing.lg),
-              const Text('Your Stats', style: AppTextStyles.display),
-              const SizedBox(height: AppSpacing.xl),
+        child: FutureBuilder<Map<String, dynamic>?>(
+          future: _statsFuture,
+          builder: (context, snapshot) {
+            // [UI-2] Loading State (S-06 B4)
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              );
+            }
 
-              // S-06 V5: Total Games and Total Time side-by-side
-              Row(
+            // [UI-3] Error or No Data State
+            if (snapshot.hasError || snapshot.data == null) {
+              return Center(
+                child: Text(
+                  'Unable to load stats.',
+                  style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
+                ),
+              );
+            }
+
+            final data = snapshot.data!;
+            
+            // [UI-4] Safely parse data from the SQL View
+            final int totalGames = data['total_games'] ?? 0;
+            final int totalTime = data['total_time_seconds'] ?? 0;
+            
+            // Map the SQL view columns to the UI Personal Bests
+            final Map<String, int?> pbs = {
+              'Add Burst': data['add_burst_pb'],
+              'Mad Burst': data['mad_burst_pb'],
+              'BODMAS Burst': data['bodmas_burst_pb'],
+              'Small Burst': data['small_burst_pb'],
+              'Saitan +': data['saitan_add_pb'],
+              'Saitan X': data['saitan_mul_pb'],
+            };
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: _StatTile(
-                      label: 'Total Games',
-                      value: _formatNumber(totalGames),
-                    ),
+                  const SizedBox(height: AppSpacing.lg),
+                  const Text('Your Stats', style: AppTextStyles.display),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // [UI-5] Total Games and Total Time
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatTile(
+                          label: 'Total Games',
+                          value: _formatNumber(totalGames),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: _StatTile(
+                          label: 'Total Time',
+                          value: _formatTime(totalTime),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: _StatTile(
-                      label: 'Total Time',
-                      value: _formatTime(totalTimeSeconds),
-                    ),
-                  ),
+                  
+                  const SizedBox(height: AppSpacing.xl),
+                  const Text('Personal Bests', style: AppTextStyles.body),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // [UI-6] List of Personal Bests
+                  ...pbs.entries.map((entry) => _PbRow(
+                        gameTitle: entry.key,
+                        bestScore: entry.value,
+                        formatNumber: _formatNumber,
+                      )),
                 ],
               ),
-              
-              const SizedBox(height: AppSpacing.xl),
-              const Text(
-                'Personal Bests',
-                style: AppTextStyles.body,
-              ),
-              const SizedBox(height: AppSpacing.md),
-
-              // S-06 V6/V7: Personal bests (4 rows)
-              ...pbs.entries.map((entry) => _PbRow(
-                    gameTitle: entry.key,
-                    bestScore: entry.value,
-                    formatNumber: _formatNumber,
-                  )),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -96,8 +138,6 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // S-06 V2: Surface fill, border, radius 12.
-    // S-06 I3: Screen reader announces as one node.
     return Semantics(
       label: '$label: $value',
       excludeSemantics: true,
@@ -139,7 +179,7 @@ class _PbRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // S-06 V8: Empty values render as "—" (never blank).
+    // AC (S-06 V8): Empty values render as "—"
     final displayScore = bestScore != null ? formatNumber(bestScore!) : '—';
 
     return Container(
@@ -154,7 +194,13 @@ class _PbRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(gameTitle, style: AppTextStyles.body),
-          Text(displayScore, style: AppTextStyles.hud.copyWith(fontSize: 24)),
+          Text(
+            displayScore, 
+            style: AppTextStyles.hud.copyWith(
+              fontSize: 24,
+              color: bestScore != null ? AppColors.textPrimary : AppColors.border,
+            ),
+          ),
         ],
       ),
     );
