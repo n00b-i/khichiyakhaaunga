@@ -48,6 +48,13 @@ class AppColors {
   static const Color warning = Color(0xFFFBBF24);
   static const Color info = Color(0xFF60A5FA);
 
+  // Game Palette
+  static const Color gameMath = Color(0xFFF97316);
+  static const Color gameSaitan = Color(0xFFA78BFA);
+  static const Color gameMemory = Color(0xFF38BDF8);
+  static const Color gameFocus = Color(0xFFF472B6);
+  static const Color gameLogic = Color(0xFF4ADE80);
+
   // Legacy aliases
   static const Color background = canvas;
   static const Color surface = surfaceElevated;
@@ -57,7 +64,7 @@ class AppColors {
   static const Color vibrantGreen = success;
   static const Color vibrantOrange = warning;
   static const Color vibrantBlue = info;
-  static const Color vibrantPurple = Color(0xFFB388FF);
+  static const Color vibrantPurple = gameSaitan;
   static const Color vibrantYellow = Color(0xFFFFD600);
   static const Color vibrantPink = Color(0xFFFF4081);
   static const Color saitanGrid = Color(0xFF0A0A0A);
