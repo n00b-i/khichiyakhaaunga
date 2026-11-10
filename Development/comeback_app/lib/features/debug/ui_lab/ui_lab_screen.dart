@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/ui/components/comebak_button.dart';
 import '../../../core/ui/components/game_card.dart';
+import '../../../core/ui/components/section_header.dart';
+import '../../../core/ui/components/stat_block.dart';
+import '../../../core/ui/components/empty_state.dart';
+import '../../../core/ui/components/progress_ring.dart';
 
 class UiLabScreen extends StatelessWidget {
   const UiLabScreen({super.key});
@@ -17,11 +21,7 @@ class UiLabScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Component Gallery', style: AppTextStyles.display),
-              const SizedBox(height: AppSpacing.space32),
-
-              // 1. Buttons
-              const Text('BUTTONS', style: AppTextStyles.labelSmall),
-              const SizedBox(height: AppSpacing.space12),
+              const SectionHeader('Buttons'),
               ComebakButton(text: 'Primary Button', onPressed: () {}),
               const SizedBox(height: AppSpacing.space8),
               ComebakButton(
@@ -31,27 +31,12 @@ class UiLabScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.space8),
               ComebakButton(
-                text: 'Ghost Button',
-                variant: ComebakButtonVariant.ghost,
-                onPressed: () {},
-              ),
-              const SizedBox(height: AppSpacing.space8),
-              ComebakButton(
                 text: 'Danger Button',
                 variant: ComebakButtonVariant.danger,
                 onPressed: () {},
               ),
-              const SizedBox(height: AppSpacing.space8),
-              ComebakButton(
-                text: 'Loading',
-                isLoading: true,
-                onPressed: () {},
-              ),
-              const SizedBox(height: AppSpacing.space32),
 
-              // 2. Game Cards
-              const Text('GAME CARDS', style: AppTextStyles.labelSmall),
-              const SizedBox(height: AppSpacing.space12),
+              const SectionHeader('Game Cards'),
               GameCard(
                 title: 'Add Burst',
                 description: 'Add two numbers to hit the target.',
@@ -67,7 +52,44 @@ class UiLabScreen extends StatelessWidget {
                 accentColor: AppColors.gameSaitan,
                 onTap: () {},
               ),
-              const SizedBox(height: AppSpacing.space32),
+
+              const SectionHeader('Stats'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const StatBlock(
+                    label: 'Total Games',
+                    value: '128',
+                    delta: '+12%',
+                    isPositiveDelta: true,
+                  ),
+                  const StatBlock(
+                    label: 'Accuracy',
+                    value: '84%',
+                    delta: '-2%',
+                    isPositiveDelta: false,
+                  ),
+                ],
+              ),
+
+              const SectionHeader('Progress'),
+              Row(
+                children: [
+                  ProgressRing(value: 0.25),
+                  const SizedBox(width: AppSpacing.space16),
+                  ProgressRing(value: 0.75),
+                  const SizedBox(width: AppSpacing.space16),
+                  ProgressRing(value: 1.0, color: AppColors.success),
+                ],
+              ),
+
+              const SectionHeader('Empty State'),
+              const EmptyState(
+                icon: Icons.bar_chart,
+                title: 'No stats yet',
+                subtitle: 'Play a game to see your stats here.',
+              ),
+              const SizedBox(height: AppSpacing.space48),
             ],
           ),
         ),
