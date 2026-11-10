@@ -28,3 +28,11 @@ Rejected: Push everything instantly.
 Why: Google requires separate client IDs for iOS and Android, each with its own package + SHA-1.
 Impact: Android client uses `in.comebak.comebak_app` + SHA-1. iOS client uses `in.comebak.comebakApp`. Web client is `serverClientId`.
 Rejected: Single client ID (not possible).
+
+---
+
+2026-11-10 [DB] Temporarily dropped `matches_session_id_fkey` constraint.
+Why: To validate Issue #10 (offline match sync). When offline, matches reference session_ids that don't exist in `user_sessions` yet.
+Impact: Orphan matches can exist if never synced. Stats queries joining on session_id will silently drop these rows.
+Rejected: Fixing offline session queuing first (time-consuming; testing needed to validate the approach).
+RESTORE: See GitHub issue #[P0][DB]: Restore matches_session_id_fkey constraint.
