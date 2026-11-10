@@ -1,25 +1,19 @@
-# Current Project State
+# State — comeback.in
+> Updated: 2026-11-10 17:00 IST
+> Source of truth for active context. Max 15 lines. Never list completed features. The code is the truth of what works.
 
-## Overall Status
-- Foundation, docs, and design system are locked.
-- App shell (Theme + GameCard + Home) is built and building cleanly.
-- Zero `flutter analyze` issues.
+## Active Phase
+Phase 2: DB Integration → Merged. 
+Next: Phase 3 MVP Polish (Profile Edit, PB Badges).
 
-## What is Built
-- **Docs:** UI_SYSTEM.md, SCREENS.md, ACCEPTANCE_CRITERIA.md (14 files, 614 items), PROJECT_CONTEXT.md, architecture.md.
-- **Theme:** Split tokens in `lib/core/theme/tokens/` (colors, spacing, radius, sizes, text styles, motion). Single import point in `app_theme.dart`.
-- **Core UI:** `GameCard` fully rewritten to contract (no shadow, radius 12, border, 48x48 icon, press state, haptics).
-- **Screens:** `MainShell`, `HomeScreen`, `StatsScreen`, `ProfileScreen`, `UILabScreen` (S-13).
-- **Games:** Add Burst (S-08) and Mad Burstfully playable.
-- **Auth:** Supabase initialized, native Google Sign-In (v7) wired for iOS/Android, AuthGate handling sessions.
-- **Platform:** iOS folder generated, `.gitignore` correct. Android ready.
+## Current Task
+Merge feature/db-integration to main.
 
-## Active Task (Next up)
-- Build Math Burst game engine (S-10).
+## What's Blocked
+None.
 
-## Blockers / Notes
-- No blocking issues.
--arget is Android APK **and** iOS (not Android-only).
-- Never use `google_fonts`. Native system fonts only.
-- Game rule: wrong answers subtract points but NEVER pause, lock, or restrict the user. The 60s timer is the only stop.
-- No glowing orbs. Glows/shadows must be under 15% opacity. Absolute Clean ethos.
+## Recent Gotchas (The "Never Again" List)
+1. Package names: Android = `in.comebak.comebak_app` (underscore). iOS = `in.comebak.comebakApp` (camelCase). Never assume they match.
+2. Logs: Use `debugPrint`, NOT `developer.log`. `developer.log` does not show in `flutter logs`.
+3. Schema drift: Always run `SELECT column_name FROM information_schema.columns` before assuming a column exists. `events` was missing `session_id`.
+4. SharedPreferences: Must be `SharedPreferences?` (nullable) in singletons to avoid `LateInitializationError`.

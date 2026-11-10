@@ -59,3 +59,7 @@ Aggregates data for the Stats Screen (S-06).
 - All tables have Row Level Security enabled.
 - Users can only SELECT, INSERT, and UPDATE rows where `auth.uid() = user_id` (or `id` for profiles).
 - If a user is blocked in `profiles`, RLS will reject their inserts (handled via App error trapping).
+
+### Future Schema Updates (Parked)
+- `user_sessions`: Add `is_rooted`, `is_jailbroken`, `is_emulator`, `is_debugger_attached`, `is_hooked`, `is_installed_from_store` (See GitHub Issue #[Your Issue Number]).
+- `profiles`: Add `username_last_updated` (TIMESTAMPTZ) for the 24-hour username change cooldown.
