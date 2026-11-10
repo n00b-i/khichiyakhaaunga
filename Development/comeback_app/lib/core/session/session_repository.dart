@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/foundation.dart'; // [1] Added for debugPrint
+import 'package:flutter/foundation.dart';
 
 class SessionRepository {
   final SupabaseClient _supabase;
@@ -35,6 +35,19 @@ class SessionRepository {
     } catch (e) {
       debugPrint('[SessionRepository] Failed to push events: $e');
       return false; 
+    }
+  }
+
+  // [ISSUE-10] Push queued offline matches using UPSERT.
+  Future<void> pushMatches(List<Map<String, dynamic>> matches) async {
+    if (matches.isEmpty) return;
+    try {
+      // Upsert handles both 'in_progress' inserts and 'completed' updates
+      await _supabase.from('matches').upsert(matches);
+      debugPrint('[SessionRepository] Pushed ${matches.length} offline matches to Supabase.');
+    } catch (e) {
+      debugPrint('[SessionRepository] Failed to push offline matches: $e');
+      rethrow; // Throw so SessionManager knows to keep them in the queue
     }
   }
 }
