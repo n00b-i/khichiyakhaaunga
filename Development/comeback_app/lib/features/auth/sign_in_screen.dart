@@ -15,47 +15,63 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _isLoading = false;
 
   Future<void> _signInWithGoogle() async {
+    if (_isLoading) return;
     setState(() => _isLoading = true);
+    
     try {
-      // ─────────────────────────────────────────────────────────────────────
-      // FIX: Pass BOTH clientId and serverClientId for Android.
-      // The v7 plugin needs the Android client ID to verify the SHA-1.
-      // ─────────────────────────────────────────────────────────────────────
-      
       const webClientId = '836171717498-un6j40aatbi1622u1h686ijejrhc5dvt.apps.googleusercontent.com';
       const iosClientId = '836171717498-e2gq4g3219o0en1un4slfmpt2kc786f4.apps.googleusercontent.com';
       const androidClientId = '836171717498-2939anjueefjtd7ohc5jjs28gbr4e2ib.apps.googleusercontent.com';
 
       await GoogleSignIn.instance.initialize(
-        // On Android, we MUST pass the Android client ID here.
-        // On iOS, we pass the iOS client ID.
         clientId: Platform.isIOS ? iosClientId : androidClientId,
-        
-        // The serverClientId is ALWAYS the Web client ID.
         serverClientId: webClientId,
       );
 
       final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
       final String? idToken = googleUser.authentication.idToken;
 
-      if (idToken == null) {
-        throw 'No ID Token found.';
-      }
+      if (idToken == null) throw 'No ID Token found.';
 
       await Supabase.instance.client.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: idToken,
       );
       
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Google Sign-In Error: $e')),
-        );
+    } on GoogleSignInException catch (e) {
+      // [ISSUE-11] Map specific v7 error codes to friendly messages.
+      debugPrint('[Auth] GoogleSignInException: ${e.code.name} — ${e.description}');
+      
+      switch (e.code.name) {
+        case 'canceled':
+        case 'interrupted':
+          break; // Silent reset. User cancelled.
+        case 'clientConfigurationError':
+        case 'providerConfigurationError':
+          _showError('Unable to sign in. Please try again.'); // Hide technical SHA-1 errors
+          break;
+        default:
+          _showError('No internet connection. Please connect and try again.');
+          break;
       }
+    } catch (e) {
+      // [ISSUE-11] Catch-all for network drops during Supabase exchange.
+      debugPrint('[Auth] Sign-In Error: $e');
+      if (mounted) _showError('Something went wrong. Please check your internet.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: AppTextStyles.body),
+        backgroundColor: AppColors.surface,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -69,14 +85,8 @@ class _SignInScreenState extends State<SignInScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'comebak', 
-                style: AppTextStyles.display,
-                textAlign: TextAlign.center,
-              ),
+              const Text('comebak', style: AppTextStyles.display, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.xl * 3),
-
-              // Google Button
               GestureDetector(
                 onTap: _isLoading ? null : _signInWithGoogle,
                 child: Container(
@@ -88,10 +98,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   alignment: Alignment.center,
                   child: _isLoading
-                      ? const SizedBox(
-                          width: 20, height: 20,
-                          child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
-                        )
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
                       : const Text('Continue with Google', style: AppTextStyles.body),
                 ),
               ),

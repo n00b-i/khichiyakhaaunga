@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 
 class ProfileRepository {
   final SupabaseClient _supabase;
@@ -18,11 +18,30 @@ class ProfileRepository {
           .eq('id', userId)
           .maybeSingle();
           
-      developer.log('[ProfileRepository] Fetched profile: $response', name: 'ProfileRepository');
+      debugPrint('[ProfileRepository] Fetched profile: $response');
       return response;
     } catch (e) {
-      developer.log('[ProfileRepository] Failed to fetch profile: $e', name: 'ProfileRepository');
+      debugPrint('[ProfileRepository] Failed to fetch profile: $e');
       return null;
+    }
+  }
+
+  /// [DB-2] Updates the username and sets the cooldown timestamp to NOW.
+  Future<bool> updateUsername(String newUsername) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return false;
+
+    try {
+      await _supabase.from('profiles').update({
+        'username': newUsername,
+        'username_last_updated': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', userId);
+      
+      debugPrint('[ProfileRepository] Username updated successfully: $newUsername');
+      return true;
+    } catch (e) {
+      debugPrint('[ProfileRepository] Failed to update username: $e');
+      return false;
     }
   }
 }

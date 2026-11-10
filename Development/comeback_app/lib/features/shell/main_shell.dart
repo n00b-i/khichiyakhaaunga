@@ -16,9 +16,10 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
-  
-  // [1] Dev mode state (Defaults to true in debug, false in release)
   late bool _isDevMode;
+  
+  // [ISSUE-9] A notifier to tell the StatsScreen to refresh when the tab is tapped.
+  final ValueNotifier<int> _statsRefreshTrigger = ValueNotifier(0);
 
   @override
   void initState() {
@@ -26,15 +27,25 @@ class _MainShellState extends State<MainShell> {
     _isDevMode = kDebugMode;
   }
 
-  // [2] Toggle handler for the Profile screen switch
+  @override
+  void dispose() {
+    _statsRefreshTrigger.dispose();
+    super.dispose();
+  }
+
   void _toggleDevMode(bool value) {
     setState(() {
       _isDevMode = value;
-      // If turning off dev mode while on the UI tab, kick back to Home
-      if (!_isDevMode && _currentIndex == 3) {
-        _currentIndex = 0;
-      }
+      if (!_isDevMode && _currentIndex == 3) _currentIndex = 0;
     });
+  }
+
+  void _onTabTapped(int index) {
+    setState(() => _currentIndex = index);
+    // [ISSUE-9] If user taps Stats tab, trigger a refresh.
+    if (index == 1) {
+      _statsRefreshTrigger.value++;
+    }
   }
 
   @override
@@ -42,44 +53,33 @@ class _MainShellState extends State<MainShell> {
     final isKeyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
-    // [3] Build tabs dynamically based on Dev Mode
     final tabs = [
       const HomeScreen(),
-      const StatsScreen(),
+      StatsScreen(refreshTrigger: _statsRefreshTrigger), // [ISSUE-9] Passed here
       ProfileScreen(
         isDevMode: _isDevMode,
         onToggleDevMode: _toggleDevMode,
       ),
-      // UI tab only exists if in Debug AND Dev Mode is toggled ON
       if (kDebugMode && _isDevMode) const UiLabScreen(),
     ];
 
     return PopScope(
       canPop: _currentIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && _currentIndex != 0) {
-          setState(() => _currentIndex = 0);
-        }
+        if (!didPop && _currentIndex != 0) setState(() => _currentIndex = 0);
       },
       child: Scaffold(
         extendBody: true,
         backgroundColor: AppColors.background,
-        body: IndexedStack(
-          index: _currentIndex,
-          children: tabs,
-        ),
+        body: IndexedStack(index: _currentIndex, children: tabs),
         bottomNavigationBar: isKeyboardOpen
             ? null
             : Padding(
-                padding: EdgeInsets.only(
-                  bottom: bottomInset > 0 ? bottomInset : AppSpacing.xs,
-                ),
+                padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset : AppSpacing.xs),
                 child: FloatingNavBar(
                   currentIndex: _currentIndex,
                   tabCount: tabs.length,
-                  onTabSelected: (index) {
-                    setState(() => _currentIndex = index);
-                  },
+                  onTabSelected: _onTabTapped, // [ISSUE-9] Using new method
                 ),
               ),
       ),
