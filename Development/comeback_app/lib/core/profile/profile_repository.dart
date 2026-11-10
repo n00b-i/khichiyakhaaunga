@@ -7,6 +7,7 @@ class ProfileRepository {
   ProfileRepository(this._supabase);
 
   /// [DB-1] Fetches the user's profile from the `profiles` table.
+  /// Returns the row including `username` and `username_last_updated`.
   Future<Map<String, dynamic>?> getProfile() async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return null;
@@ -17,7 +18,7 @@ class ProfileRepository {
           .select()
           .eq('id', userId)
           .maybeSingle();
-          
+
       debugPrint('[ProfileRepository] Fetched profile: $response');
       return response;
     } catch (e) {
@@ -26,7 +27,8 @@ class ProfileRepository {
     }
   }
 
-  /// [DB-2] Updates the username and sets the cooldown timestamp to NOW.
+  /// [ISSUE-13] Updates the username and sets the cooldown timestamp to NOW.
+  /// Returns true on success, false on network or RLS failure.
   Future<bool> updateUsername(String newUsername) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return false;
@@ -36,8 +38,8 @@ class ProfileRepository {
         'username': newUsername,
         'username_last_updated': DateTime.now().toUtc().toIso8601String(),
       }).eq('id', userId);
-      
-      debugPrint('[ProfileRepository] Username updated successfully: $newUsername');
+
+      debugPrint('[ProfileRepository] Username updated: $newUsername');
       return true;
     } catch (e) {
       debugPrint('[ProfileRepository] Failed to update username: $e');

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:fossui/fossui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/widgets/primary_button.dart';
+import '../../core/theme/app_dialog_style.dart';
 import '../../core/profile/profile_repository.dart';
 import '../../core/session/session_manager.dart';
 
+// [ISSUE-13] Profile screen with username edit and 24h cooldown.
+// [ARCHITECTURE] Uses FossDialog (centered) for edit and FossAlertDialog (centered) for logout.
 class ProfileScreen extends StatefulWidget {
   final bool isDevMode;
   final ValueChanged<bool> onToggleDevMode;
@@ -23,8 +26,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late ProfileRepository _profileRepo;
   Future<Map<String, dynamic>?>? _profileFuture;
-  
-  // Local cache for offline cooldown enforcement
   SharedPreferences? _prefs;
 
   @override
@@ -51,9 +52,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return '—';
   }
 
-  // [UI-1] Edit Username Flow
+  // [ISSUE-13] Edit username flow with 24h cooldown.
   void _handleEditUsername(String? currentUsername, String? lastUpdatedStr) async {
-    // 1. Check Cooldown (Prioritize DB timestamp, fallback to local cache)
     DateTime? lastUpdated;
     if (lastUpdatedStr != null) {
       lastUpdated = DateTime.parse(lastUpdatedStr).toLocal();
@@ -66,108 +66,114 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final hoursSinceUpdate = DateTime.now().difference(lastUpdated).inHours;
       if (hoursSinceUpdate < 24) {
         final hoursLeft = 24 - hoursSinceUpdate;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('You can change your name again in $hoursLeft hours.')),
+        if (!mounted) return;
+        showFossToast(
+          context,
+          FossToast(
+            title: Text('You can change your name again in $hoursLeft hours.'),
+            variant: FossToastVariant.warning,
+          ),
         );
-        return; // Abort
+        return;
       }
     }
 
-    // 2. Show Edit Dialog
     final TextEditingController controller = TextEditingController(text: currentUsername);
-    final String? newName = await showDialog<String>(
+    
+    // [FIX: OVERFLOW BUG] Removed Flexible. Added centered presentation and AppDialogWidth.compact.
+    // This constrains the internal Row to 340px, preventing overflow.
+    final String? newName = await showFossDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.sheet),
-          side: const BorderSide(color: AppColors.border),
-        ),
-        title: const Text('Edit Name', style: AppTextStyles.hud),
-        content: TextField(
+      presentation: FossDialogPresentation.centered,
+      barrierDismissible: false,
+      builder: (context) => FossDialog(
+        style: const FossDialogStyle(maxWidth: AppDialogWidth.compact),
+        title: const Text('Edit name'),
+        description: const Text('Choose a new display name.'),
+        content: FossTextField(
           controller: controller,
-          maxLength: 20,
-          style: AppTextStyles.body,
-          decoration: InputDecoration(
-            hintText: 'Enter new name',
-            hintStyle: AppTextStyles.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.3)),
-            counterText: "", // Hides the 0/20 counter
-          ),
+          label: 'New name',
+          hintText: 'deevanshu_guru',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel', style: AppTextStyles.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.6))),
+          FossButton(
+            variant: FossButtonVariant.ghost,
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: Text('Save', style: AppTextStyles.body.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+          FossButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Save'),
           ),
         ],
       ),
     );
 
-    // 3. Save to DB and Local Cache
     if (newName != null && newName.isNotEmpty && newName != currentUsername) {
       final success = await _profileRepo.updateUsername(newName);
-      
+
       if (success) {
         final nowStr = DateTime.now().toUtc().toIso8601String();
         await _prefs?.setString('username_last_updated', nowStr);
-        
+
         setState(() {
-          _profileFuture = _profileRepo.getProfile(); // Refresh UI
+          _profileFuture = _profileRepo.getProfile();
         });
+
+        if (!mounted) return;
+        showFossToast(
+          context,
+          const FossToast(
+            title: Text('Name updated'),
+            variant: FossToastVariant.success,
+          ),
+        );
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to update name. Try again.')),
-          );
-        }
+        if (!mounted) return;
+        showFossToast(
+          context,
+          const FossToast(
+            title: Text('Could not update name. Try again.'),
+            variant: FossToastVariant.error,
+          ),
+        );
       }
     }
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
+  // [LOGOUT] Confirmation dialog using FossAlertDialog (centered).
+  void _showLogoutDialog(BuildContext context) async {
+    final confirmed = await showFossAlertDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.sheet),
-            side: const BorderSide(color: AppColors.border),
+      presentation: FossDialogPresentation.centered,
+      builder: (context) => FossAlertDialog(
+        style: const FossAlertDialogStyle(maxWidth: AppDialogWidth.compact),
+        title: const Text('Log out?'),
+        description: const Text('Are you sure you want to log out?'),
+        actions: [
+          FossButton(
+            variant: FossButtonVariant.ghost,
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
           ),
-          title: const Text('Log out?', style: AppTextStyles.hud),
-          content: Text(
-            'Are you sure you want to log out of comeback.in?',
-            style: AppTextStyles.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.6)),
+          FossButton(
+            variant: FossButtonVariant.destructive,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Logout'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel', style: AppTextStyles.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.6))),
-            ),
-            SizedBox(
-              width: 120,
-              child: PrimaryButton(
-                text: 'Logout',
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  try {
-                    await SessionManager().logout();
-                    await Supabase.instance.client.auth.signOut();
-                  } catch (e) {
-                    debugPrint('[ProfileScreen] Logout error: $e');
-                    await Supabase.instance.client.auth.signOut();
-                  }
-                },
-              ),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
     );
+
+    if (confirmed == true) {
+      try {
+        await SessionManager().logout();
+        await Supabase.instance.client.auth.signOut();
+      } catch (e) {
+        debugPrint('[ProfileScreen] Logout error: $e');
+        await Supabase.instance.client.auth.signOut();
+      }
+    }
   }
 
   @override
@@ -188,36 +194,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: AppSpacing.xl),
-                  
-                  // Avatar
-                  Container(
-                    width: AppSizes.avatar,
-                    height: AppSizes.avatar,
-                    decoration: const BoxDecoration(
-                      color: AppColors.surface,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _getInitial(username, email),
-                      style: AppTextStyles.hud.copyWith(color: AppColors.primary, fontSize: 32),
-                    ),
+                  FossAvatar(
+                    fallback: Text(_getInitial(username, email)),
+                    size: FossAvatarSize.xl2,
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  
-                  // Username with Edit Icon [AC-1]
                   GestureDetector(
                     onTap: () => _handleEditUsername(username, lastUpdated),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Flexible(
-                          child: Text(
+                          child: FossText(
                             _getDisplayName(username, email),
-                            style: AppTextStyles.display,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
+                            size: FossTextSize.xl2,
+                            weight: FossTextWeight.bold,
                           ),
                         ),
                         const SizedBox(width: AppSpacing.xs),
@@ -230,18 +221,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
-                  
-                  // Email
-                  SelectableText(
+                  FossText(
                     email ?? '—',
-                    style: AppTextStyles.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.6)),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
+                    size: FossTextSize.base,
+                    color: FossTextColor.mutedForeground,
                   ),
-                  
                   const SizedBox(height: AppSpacing.xl * 2),
-                  
-                  // Developer Mode Toggle
                   Container(
                     decoration: BoxDecoration(
                       color: AppColors.surface,
@@ -252,10 +237,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.transparent,
                       borderRadius: BorderRadius.circular(AppRadius.card),
                       child: SwitchListTile(
-                        title: Text('Developer Mode', style: AppTextStyles.body),
-                        subtitle: Text(
+                        title: FossText('Developer Mode', size: FossTextSize.base),
+                        subtitle: FossText(
                           'Toggle UILab tab visibility',
-                          style: AppTextStyles.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.6), fontSize: 12),
+                          size: FossTextSize.xs,
+                          color: FossTextColor.mutedForeground,
                         ),
                         value: widget.isDevMode,
                         activeThumbColor: AppColors.primary,
@@ -263,12 +249,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: AppSpacing.xl),
-                  
-                  PrimaryButton(
-                    text: 'Logout',
-                    onPressed: () => _showLogoutDialog(context),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FossButton(
+                      variant: FossButtonVariant.destructive,
+                      onPressed: () => _showLogoutDialog(context),
+                      child: const Text('Logout'),
+                    ),
                   ),
                 ],
               ),
