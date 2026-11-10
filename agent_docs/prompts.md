@@ -23,3 +23,28 @@ Criteria IDs being implemented (e.g., S-05 V1, B3, I2).
 
 [FEEDBACK]
 (Provide specific UI feedback or bug reports here if iterating).
+
+
+## UI / dependency investigation requirements
+
+Before changing UI code:
+
+- Read the applicable screen AC and `UI_SYSTEM.md`.
+- Inspect the current implementation and existing shared tokens/components before proposing new abstractions.
+- Identify the exact resolved package version in `pubspec.lock`; inspect that version's source/API before using a property or assuming behavior.
+- Distinguish verified package behavior from assumptions. Do not claim a widget wraps, scrolls, stacks, or handles keyboard insets unless verified.
+- Keep feature behavior in the feature. Reuse app tokens. Do not introduce new shared shell components without approval.
+- For dialogs, follow UI_SYSTEM.md §10: correct FossUI primitive, dedicated header/content/actions regions, no footer actions inside content, tokenized width, content-driven height, and explicit dismissal/loading/error behavior.
+
+## Git safety and local work
+
+- Never create or switch branches unless the user explicitly asks.
+- Never run `git reset`, `git clean`, `git stash`, force-push, or destructive checkout as a convenience.
+- Before editing, inspect `git status --short` and the relevant diff. Treat every pre-existing modification and untracked file as user-owned.
+- Do not overwrite a modified file without first reading and preserving the user's changes.
+- Do not commit or push unless explicitly authorized.
+- Keep documentation edits separate from unrelated Dart/business-logic changes.
+
+## Completion report
+
+At the end, report exact files changed, commands/tests run, results, known limitations and anything the user must verify on-device. Never claim a test passed unless it was actually run.
