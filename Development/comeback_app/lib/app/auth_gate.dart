@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme/app_theme.dart';
+import '../core/session/session_manager.dart';
 import '../features/auth/sign_in_screen.dart';
 import '../features/shell/main_shell.dart';
 
@@ -15,13 +16,16 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
-    _cleanupAbandonedMatches();
+    _initialize();
   }
 
-  // Janitor Logic: If a user closed the app mid-game, mark it as abandoned
-  Future<void> _cleanupAbandonedMatches() async {
+  Future<void> _initialize() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
+      // 1. Start Session
+      await SessionManager().init(user.id);
+      
+      // 2. Cleanup abandoned matches
       try {
         await Supabase.instance.client
             .from('matches')
@@ -36,28 +40,22 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
-    // Listen to Supabase Auth state changes globally
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
-        // 1. While waiting for the initial session check, show a loading spinner
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             backgroundColor: AppColors.background,
-            body: Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
+            body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
           );
         }
 
-        // 2. If session exists, go to Main App
         final session = snapshot.hasData ? snapshot.data!.session : null;
         
         if (session != null) {
           return const MainShell();
         }
 
-        // 3. If no session, go to Sign In
         return const SignInScreen();
       },
     );
