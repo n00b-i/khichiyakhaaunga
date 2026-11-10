@@ -80,8 +80,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final TextEditingController controller = TextEditingController(text: currentUsername);
     
-    // [FIX: OVERFLOW BUG] Removed Flexible. Added centered presentation and AppDialogWidth.compact.
-    // This constrains the internal Row to 340px, preventing overflow.
+    // [FIX: OVERFLOW BUG] Keep actions inside the constrained content area.
+    // FossDialog's footer is a fixed Row and does not wrap on narrow screens.
+    // Wrap keeps Cancel and Save responsive without placing Flexible in actions.
     final String? newName = await showFossDialog<String>(
       context: context,
       presentation: FossDialogPresentation.centered,
@@ -90,22 +91,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
         style: const FossDialogStyle(maxWidth: AppDialogWidth.compact),
         title: const Text('Edit name'),
         description: const Text('Choose a new display name.'),
-        content: FossTextField(
-          controller: controller,
-          label: 'New name',
-          hintText: 'deevanshu_guru',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FossTextField(
+              controller: controller,
+              label: 'New name',
+              hintText: 'deevanshu_guru',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                FossButton(
+                  variant: FossButtonVariant.ghost,
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                FossButton(
+                  onPressed: () =>
+                      Navigator.pop(context, controller.text.trim()),
+                  child: const Text('Save'),
+                ),
+              ],
+            ),
+          ],
         ),
-        actions: [
-          FossButton(
-            variant: FossButtonVariant.ghost,
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FossButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
+        actions: const [],
       ),
     );
 
