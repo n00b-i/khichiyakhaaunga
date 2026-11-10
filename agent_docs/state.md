@@ -7,12 +7,13 @@ Phase 2: DB Integration → Merged.
 Next: Phase 3 MVP Polish (Profile Edit, PB Badges).
 
 ## Current Task
-Issue #13: Username Edit with 24h cooldown. (Issue #10 offline matches complete; P0 follow-up = restore FK constraint.)
+Issue #14: New PB Badge on GameResultScreen.
 
 ## What's Blocked
 None.
 
 ## Recent Gotchas (The "Never Again" List)
+1. Postgres privileges are additive. `REVOKE UPDATE (column)` does not override table-level `GRANT UPDATE`. Rely on triggers for column-level security.
 1. Package names: Android = `in.comebak.comebak_app` (underscore). iOS = `in.comebak.comebakApp` (camelCase). Never assume they match.
 2. Logs: Use `debugPrint`, NOT `developer.log`. `developer.log` does not show in `flutter logs`.
 3. Schema drift: Always run `SELECT column_name FROM information_schema.columns` before assuming a column exists. `events` was missing `session_id`.
