@@ -98,7 +98,14 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   alignment: Alignment.center,
                   child: _isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
+                      ? const SizedBox(
+                    width: AppSizes.iconSm,
+                    height: AppSizes.iconSm,
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                      strokeWidth: 2,
+                    ),
+                  )
                       : const Text('Continue with Google', style: AppTextStyles.body),
                 ),
               ),

@@ -481,7 +481,7 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
                                       color: (isCorrect || isWrong) 
                                           ? AppColors.background 
                                           : AppColors.primary,
-                                      fontWeight: FontWeight.w900,
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
                                 );
@@ -520,7 +520,7 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
                         style: AppTextStyles.display.copyWith(
                           fontSize: 72,
                           color: widget.accentColor,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w800,
                           letterSpacing: 2.0,
                         ),
                       ),
