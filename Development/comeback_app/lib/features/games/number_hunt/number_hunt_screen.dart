@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // [1] Supabase import
 import 'package:vibration/vibration.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/games/models/bubble.dart';
@@ -11,6 +12,7 @@ import '../../../core/games/widgets/bubble_painter.dart';
 import '../../../core/games/widgets/game_hud.dart';
 import '../../../core/games/utils/game_diagnostics.dart';
 import '../game_result_screen.dart';
+import '../../../core/games/repository/game_repository.dart'; // [2] Repository import
 
 class NumberHuntScreen extends StatefulWidget {
   final Color accentColor;
@@ -24,6 +26,10 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
   late Ticker _ticker;
   Duration _lastElapsed = Duration.zero;
   final Random _random = Random();
+
+  // [3] DB Match Tracking Variables
+  late GameRepository _gameRepo;
+  String? _currentMatchId;
 
   int _score = 0;
   int _combo = 0;
@@ -49,6 +55,10 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
     super.initState();
     _ticker = createTicker(_onTick)..start();
     _startCountdown();
+
+    // [4] Initialize DB Match
+    _gameRepo = GameRepository(Supabase.instance.client);
+    _gameRepo.startMatch('small_burst').then((id) => _currentMatchId = id);
   }
 
   void _startCountdown() {
@@ -180,9 +190,23 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
   void _endGame() {
     _ticker.stop();
     final totalTaps = _hits + _misses;
-    final accuracy = totalTaps == 0 ? 0 : ((_hits / totalTaps) * 100).round();
+    final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
+
+    // [5] Save Match to DB
+    if (_currentMatchId != null) {
+      _gameRepo.endMatch(
+        matchId: _currentMatchId!,
+        gameId: 'small_burst',
+        score: _score,
+        accuracy: accuracy,
+        durationSeconds: 60,
+      );
+    }
+
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => GameResultScreen(
-      score: _score, accuracy: accuracy, bestCombo: _bestCombo, 
+      score: _score, 
+      accuracy: accuracy.round(), 
+      bestCombo: _bestCombo, 
       gameBuilder: () => NumberHuntScreen(accentColor: widget.accentColor)
     )));
   }

@@ -3,24 +3,33 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/games/widgets/game_hud.dart';
 import '../game_result_screen.dart';
 import 'widgets/custom_numpad.dart';
+import '../../../core/games/repository/game_repository.dart';
 
-class MathBurstScreen extends StatefulWidget {
+// Renamed from MathBurstScreen to BodmasBurstScreen to match the UI and Category
+class BodmasBurstScreen extends StatefulWidget {
   final Color accentColor;
-  const MathBurstScreen({super.key, required this.accentColor});
+  const BodmasBurstScreen({super.key, required this.accentColor});
 
   @override
-  State<MathBurstScreen> createState() => _MathBurstScreenState();
+  State<BodmasBurstScreen> createState() => _BodmasBurstScreenState();
 }
 
-class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProviderStateMixin {
+class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTickerProviderStateMixin {
   late Ticker _ticker;
   Duration _lastElapsed = Duration.zero;
   final Random _random = Random();
+
+  // --- DATABASE INTEGRATION ---
+  // [DB-1] Repository initialized to handle Supabase inserts
+  late GameRepository _gameRepo;
+  // [DB-2] Holds the UUID for the 'in_progress' match created on game start
+  String? _currentMatchId;
 
   int _score = 0;
   int _combo = 0;
@@ -44,9 +53,15 @@ class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProv
     super.initState();
     _ticker = createTicker(_onTick)..start();
     _startCountdown();
+
+    // [DB-3] AC19: Start match in DB. 
+    // We use 'bodmas_burst' as the strict game_id mapping for the Stats View.
+    _gameRepo = GameRepository(Supabase.instance.client);
+    _gameRepo.startMatch('bodmas_burst').then((id) => _currentMatchId = id);
   }
 
   void _startCountdown() {
+    // AC (General): 3-second countdown before game starts
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       setState(() {
@@ -62,6 +77,12 @@ class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProv
   }
 
   void _generateNewEquation() {
+    // AC (S-10): Progression logic based on current score.
+    // 0-50: Basic Addition/Subtraction
+    // 50-150: Multiplication
+    // 150-250: BODMAS (a + b * c)
+    // 250+: BODMAS (a * b - c ensuring positive)
+    
     if (_score < 50) {
       final isAddition = _random.nextBool();
       if (isAddition) {
@@ -100,11 +121,12 @@ class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProv
   }
 
   void _onTick(Duration elapsed) {
+    // AC (General): Smooth 60fps timer calculation
     if (!mounted || !_gameStarted || _showCountdown) return;
     
     final dt = (elapsed - _lastElapsed).inMicroseconds / 1000000.0;
     _lastElapsed = elapsed;
-    if (dt > 0.1) return; 
+    if (dt > 0.1) return; // Clamp to prevent jumps on background/resume
 
     final currentElapsed = elapsed.inMilliseconds / 1000.0;
     final remaining = 60.0 - currentElapsed;
@@ -121,6 +143,7 @@ class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProv
   }
 
   void _handleDigitTap(int digit) {
+    // AC (S-10): Native keyboard is blocked; max 3 digits allowed
     if (!_gameStarted || _showCountdown || _isWrongFlash) return;
     if (_input.length >= 3) return; 
     
@@ -128,6 +151,7 @@ class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProv
       _input += digit.toString();
     });
 
+    // AC (S-10): Auto-validation when input length matches answer length
     if (_input.length == _correctAnswer.toString().length) {
       _validateAnswer();
     }
@@ -153,7 +177,7 @@ class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProv
     } else {
       _misses++;
       _combo = 0;
-      _score -= 5;
+      _score -= 5; // AC: Wrong answers deduct points
       
       Vibration.vibrate(duration: 100, amplitude: 255);
       HapticFeedback.heavyImpact();
@@ -166,7 +190,7 @@ class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProv
         if (mounted) {
           setState(() {
             _isWrongFlash = false;
-            _input = '';
+            _input = ''; // Clear input after wrong flash
           });
         }
       });
@@ -192,15 +216,26 @@ class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProv
   void _endGame() {
     _ticker.stop();
     final totalTaps = _hits + _misses;
-    final accuracy = totalTaps == 0 ? 0 : ((_hits / totalTaps) * 100).round();
+    final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
+
+    // [DB-4] AC20: Save to DB. We fire-and-forget so the user instantly goes to Result Screen.
+    if (_currentMatchId != null) {
+      _gameRepo.endMatch(
+        matchId: _currentMatchId!,
+        gameId: 'bodmas_burst', // Mapping strictly to the Stats View
+        score: _score,
+        accuracy: accuracy,
+        durationSeconds: 60,
+      );
+    }
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => GameResultScreen(
           score: _score,
-          accuracy: accuracy,
+          accuracy: accuracy.round(),
           bestCombo: _bestCombo,
-          gameBuilder: () => MathBurstScreen(accentColor: widget.accentColor),
+          gameBuilder: () => BodmasBurstScreen(accentColor: widget.accentColor),
         ),
       ),
     );
@@ -222,6 +257,7 @@ class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProv
           children: [
             Column(
               children: [
+                // [UI-1] GameHud with showTarget: false (BODMAS doesn't use target pill)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                   child: GameHud(
@@ -232,6 +268,7 @@ class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProv
                     showTarget: false, 
                   ),
                 ),
+                // [UI-2] Equation Area
                 Expanded(
                   child: Center(
                     child: Column(
@@ -256,6 +293,7 @@ class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProv
                     ),
                   ),
                 ),
+                // [UI-3] Custom Numpad (No native keyboard)
                 CustomNumpad(
                   onDigitTap: _handleDigitTap,
                   onBackspace: _handleBackspace,
@@ -263,6 +301,7 @@ class _MathBurstScreenState extends State<MathBurstScreen> with SingleTickerProv
                 ),
               ],
             ),
+            // [UI-4] 3-Second Countdown Overlay
             if (_showCountdown)
               Positioned.fill(
                 child: Container(

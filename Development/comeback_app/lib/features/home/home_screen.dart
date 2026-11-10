@@ -3,7 +3,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/game_card.dart';
 import '../games/add_burst/add_burst_screen.dart';
 import '../games/mad_burst/mad_burst_screen.dart';
-import '../games/math_burst/math_burst_screen.dart';
+import '../games/bodmas_burst/bodmas_burst_screen.dart';
 import '../games/number_hunt/number_hunt_screen.dart';
 import '../games/memory_of_saitan/memory_of_saitan_screen.dart';
 
@@ -66,7 +66,7 @@ class HomeScreen extends StatelessWidget {
                 description: 'Solve maximum BODMAS problems.',
                 icon: Icons.calculate_outlined,
                 accentColor: AppColors.vibrantOrange,
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MathBurstScreen(accentColor: AppColors.vibrantOrange))),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BodmasBurstScreen(accentColor: AppColors.vibrantOrange))),
               ),
               SizedBox(height: AppSpacing.sm),
               

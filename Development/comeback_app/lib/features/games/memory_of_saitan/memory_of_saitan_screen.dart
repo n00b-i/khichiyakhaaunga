@@ -3,11 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // [1] Supabase import
 import 'package:vibration/vibration.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/games/widgets/game_hud.dart';
 import '../../../core/games/utils/game_diagnostics.dart';
 import '../game_result_screen.dart';
+import '../../../core/games/repository/game_repository.dart'; // [2] Repository import
 
 class MemoryOfSaitanScreen extends StatefulWidget {
   final bool isMultiplication;
@@ -27,6 +29,10 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
   late Ticker _ticker;
   Duration _lastElapsed = Duration.zero;
   final Random _random = Random();
+
+  // [3] DB Match Tracking Variables
+  late GameRepository _gameRepo;
+  String? _currentMatchId;
 
   int _score = 0; 
   int _combo = 0; 
@@ -64,6 +70,11 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
     WidgetsBinding.instance.addObserver(this);
     _ticker = createTicker(_onTick)..start();
     _startCountdown();
+
+    // [4] Initialize DB Match
+    _gameRepo = GameRepository(Supabase.instance.client);
+    final gameId = widget.isMultiplication ? 'saitan_mul' : 'saitan_add';
+    _gameRepo.startMatch(gameId).then((id) => _currentMatchId = id);
   }
 
   @override
@@ -127,7 +138,7 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
     
     _pickNewTarget();
 
-    // 👈 DYNAMIC MEMORIZE TIME: Base 500ms + 200ms per level
+    // Dynamic memorize time: Base 500ms + 200ms per level
     final revealDuration = 500 + (_level * 200);
     
     Future.delayed(Duration(milliseconds: revealDuration), () {
@@ -271,10 +282,24 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
   void _endGame() {
     _ticker.stop();
     final totalTaps = _hits + _misses;
-    final accuracy = totalTaps == 0 ? 0 : ((_hits / totalTaps) * 100).round();
+    final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
+
+    // [5] Save Match to DB
+    if (_currentMatchId != null) {
+      final gameId = widget.isMultiplication ? 'saitan_mul' : 'saitan_add';
+      _gameRepo.endMatch(
+        matchId: _currentMatchId!,
+        gameId: gameId,
+        score: _score,
+        accuracy: accuracy,
+        durationSeconds: 60,
+      );
+    }
     
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => GameResultScreen(
-      score: _score, accuracy: accuracy, bestCombo: _bestCombo, 
+      score: _score, 
+      accuracy: accuracy.round(), 
+      bestCombo: _bestCombo, 
       gameBuilder: () => MemoryOfSaitanScreen(
         isMultiplication: widget.isMultiplication,
         accentColor: widget.accentColor,
@@ -301,7 +326,6 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
           children: [
             Column(
               children: [
-                // HUD
                 ValueListenableBuilder<double>(
                   valueListenable: _timeNotifier,
                   builder: (context, timeLeft, child) {
@@ -314,8 +338,6 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
                     );
                   },
                 ),
-                
-                // Play Area
                 Expanded(
                   child: Listener(
                     onPointerDown: _onPointerDown,
@@ -474,7 +496,6 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
               ],
             ),
 
-            // Instruction Text
             Positioned(
               bottom: AppSpacing.xl,
               left: AppSpacing.lg,
