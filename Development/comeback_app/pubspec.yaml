@@ -45,6 +45,7 @@ dependencies:
   device_info_plus: ^13.3.0
   android_id: ^0.6.0
   connectivity_plus: ^7.3.2
+  fossui: ^0.1.2
 
 dev_dependencies:
   flutter_test:
