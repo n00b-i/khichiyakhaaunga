@@ -187,24 +187,27 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
     }
   }
 
-  void _endGame() {
+  void _endGame() async {
     _ticker.stop();
     final totalTaps = _hits + _misses;
     final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
 
     // [5] Save Match to DB
+    bool isNewPB = false;
     if (_currentMatchId != null) {
-      _gameRepo.endMatch(
+      isNewPB = await _gameRepo.endMatch(
         matchId: _currentMatchId!,
-        gameId: 'small_burst',
+        gameId: 'small_burst', // Placeholder to be replaced
         score: _score,
-        accuracy: accuracy,
+        accuracy: (totalTaps == 0 ? 0.0 : (_hits / totalTaps) * 100.0),
         durationSeconds: 60,
       );
     }
 
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => GameResultScreen(
-      score: _score, 
+      score: _score,
+          isNewPB: isNewPB, 
       accuracy: accuracy.round(), 
       bestCombo: _bestCombo, 
       gameBuilder: () => NumberHuntScreen(accentColor: widget.accentColor)

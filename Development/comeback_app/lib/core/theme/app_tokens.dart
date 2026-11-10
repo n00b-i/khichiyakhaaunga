@@ -34,10 +34,12 @@ class AppColors {
   static const Color textSecondary = Color(0xFFA0A0A0);
   static const Color textMuted = Color(0xFF6B7280);
   static const Color primaryAccent = Color(0xFF00B386);
+  static const Color neon = Color(0xFFFFD60A);
   static const Color onPrimary = Color(0xFF0B0F19);
   static const Color danger = Color(0xFFFF4D4D);
   static const Color success = Color(0xFF34D399);
   static const Color warning = Color(0xFFFBBF24);
+  static const Color info = Color(0xFF60A5FA);
 
   // Legacy aliases
   static const Color background = canvas;
@@ -96,6 +98,12 @@ class AppTextStyles {
   static const TextStyle titleMedium = TextStyle(
     fontFamily: fontFamily, fontSize: 18, fontWeight: FontWeight.w600, height: 1.3, color: AppColors.textPrimary,
   );
+  static const TextStyle hudLarge = TextStyle(
+    fontFamily: fontFamily, fontSize: 48, fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontFeatures: [FontFeature.tabularFigures()],
+  );
+  static const TextStyle hudMedium = TextStyle(
+    fontFamily: fontFamily, fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontFeatures: [FontFeature.tabularFigures()],
+  );
   static const TextStyle hud = TextStyle(
     fontFamily: fontFamily, fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.textPrimary, fontFeatures: [FontFeature.tabularFigures()],
   );
@@ -121,6 +129,8 @@ class AppMotion {
   static const Duration durationNormal = Duration(milliseconds: 250);
   static const Duration durationSlow = Duration(milliseconds: 400);
   static const Duration durationCelebration = Duration(milliseconds: 1200);
+  static const Duration durationCelebrationSlow = Duration(milliseconds: 2500);
+  static const Duration durationRollup = Duration(milliseconds: 1000);
   static const Curve curvePress = Curves.easeOutCubic;
   static const Curve curveEnter = Curves.easeOutBack;
   static const Curve curveProgress = Curves.easeOutExpo;

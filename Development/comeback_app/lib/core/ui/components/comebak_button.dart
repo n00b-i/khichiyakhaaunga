@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../dev/dev_haptics.dart';
 import '../../theme/app_tokens.dart';
 
 enum ComebakButtonVariant { primary, secondary, ghost, danger }
@@ -28,7 +28,7 @@ class _ComebakButtonState extends State<ComebakButton> {
   void _handleTapDown(TapDownDetails details) {
     if (widget.onPressed == null || widget.isLoading) return;
     setState(() => _isPressed = true);
-    HapticFeedback.selectionClick();
+    DevHaptics.selectionClick(source: 'ComebakButton');
   }
 
   void _handleTapUp(TapUpDetails details) {

@@ -213,26 +213,29 @@ class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTicker
     }
   }
 
-  void _endGame() {
+  void _endGame() async {
     _ticker.stop();
     final totalTaps = _hits + _misses;
     final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
 
     // [DB-4] AC20: Save to DB. We fire-and-forget so the user instantly goes to Result Screen.
+    bool isNewPB = true;
     if (_currentMatchId != null) {
-      _gameRepo.endMatch(
+      isNewPB = await _gameRepo.endMatch(
         matchId: _currentMatchId!,
-        gameId: 'bodmas_burst', // Mapping strictly to the Stats View
+        gameId: 'bodmas_burst', // Placeholder to be replaced
         score: _score,
-        accuracy: accuracy,
+        accuracy: (totalTaps == 0 ? 0.0 : (_hits / totalTaps) * 100.0),
         durationSeconds: 60,
       );
     }
 
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => GameResultScreen(
           score: _score,
+          isNewPB: isNewPB,
           accuracy: accuracy.round(),
           bestCombo: _bestCombo,
           gameBuilder: () => BodmasBurstScreen(accentColor: widget.accentColor),

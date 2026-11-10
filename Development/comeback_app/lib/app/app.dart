@@ -1,10 +1,14 @@
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fossui/fossui.dart';
 
 import '../core/theme/app_theme.dart';
 import '../core/theme/foss_theme.dart';
 import 'auth_gate.dart';
+import '../core/dev/dev_harness_pill.dart';
+import '../core/dev/dev_states_page.dart';
+import '../core/dev/dev_harness_shell.dart';
 
 /// Root application widget for Comebak.
 ///
@@ -48,15 +52,23 @@ class ComebakApp extends StatelessWidget {
         // Placing it here gives the toaster access to the
         // MaterialApp-provided widget environment.
         builder: (context, child) {
+          final wrapped = child ?? const SizedBox.shrink();
+          if (!kDebugMode) return FossToaster(child: wrapped);
           return FossToaster(
-            child: child ?? const SizedBox.shrink(),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                DevHarnessShell(child: wrapped),
+                const SizedBox.shrink(),
+              ],
+            ),
           );
         },
 
         // Authentication determines the initial application flow.
         // AuthGate handles the transition between authenticated
         // and unauthenticated application states.
-        home: const AuthGate(),
+        home: const DevStatesPage(),
       ),
     );
   }

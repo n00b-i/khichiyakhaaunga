@@ -279,15 +279,16 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
     });
   }
 
-  void _endGame() {
+  void _endGame() async {
     _ticker.stop();
     final totalTaps = _hits + _misses;
     final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
 
+    bool isNewPB = false;
     // [5] Save Match to DB
     if (_currentMatchId != null) {
       final gameId = widget.isMultiplication ? 'saitan_mul' : 'saitan_add';
-      _gameRepo.endMatch(
+      isNewPB = await _gameRepo.endMatch(
         matchId: _currentMatchId!,
         gameId: gameId,
         score: _score,
@@ -296,10 +297,12 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
       );
     }
     
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => GameResultScreen(
       score: _score, 
       accuracy: accuracy.round(), 
       bestCombo: _bestCombo, 
+      isNewPB: isNewPB,
       gameBuilder: () => MemoryOfSaitanScreen(
         isMultiplication: widget.isMultiplication,
         accentColor: widget.accentColor,
