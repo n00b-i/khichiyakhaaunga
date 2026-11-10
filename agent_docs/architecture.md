@@ -125,3 +125,48 @@ Wrong tap = point deduction (-5, floor 0) + subtle visual feedback.
 The game loop continues until the 60s timer ends. Time end is the ONLY
 stop condition. This rule is repeated in PROJECT_CONTEXT.md section 5
 and must be cited whenever a game-screen AC is implemented.
+
+
+## 7. UI component ownership and composition
+
+### 7.1 Three layers
+
+1. **FossUI primitives:** reusable low-level controls and interaction patterns (for example dialogs, alert dialogs and buttons).
+2. **Comeback theme/tokens:** the single source of truth in `lib/core/theme/app_theme.dart`. App-owned styling must resolve through these tokens.
+3. **Feature composition:** screens compose primitives, provide content and implement feature behavior. Feature-specific widgets stay inside their feature unless the 3+ feature reuse rule is met.
+
+Do not create an app-level wrapper that only renames or forwards a FossUI widget. Introduce a shared abstraction only for repeated application policy/behavior that the dependency does not provide, and obtain human approval as required by UI_SYSTEM.md.
+
+### 7.2 Dialog composition rules
+
+- Use `FossDialog` for standard informational/form/task dialogs.
+- Use `FossAlertDialog` for focused confirmations.
+- Put title/description in the header API, task UI in content, and actions in the dedicated actions API.
+- Never put Cancel/Save/Confirm buttons inside content to simulate a footer.
+- Use the existing `AppDialogWidth` tokens/definitions. Do not create screen-specific width constants.
+- FossUI 0.1.2's action footer is a trailing-aligned horizontal row; validate narrow widths and long labels. Do not assume automatic wrapping.
+- Keep dialog height content-driven and content scrollable where needed. Do not introduce fixed heights as a visual patch.
+- Explicitly specify dismissal, loading, error, repeat-submit, focus and keyboard behavior.
+
+### 7.3 Dependency source of truth
+
+The resolved package version in the Flutter lockfile is authoritative for runtime behavior. A caret constraint in pubspec.yaml is not proof of the version currently resolved. When investigating a package:
+
+1. Read the resolved version from pubspec.lock.
+2. Inspect the matching package source/API.
+3. Check whether the proposed property exists in that version.
+4. Add a focused widget test or UI Lab case for any behavior relied upon.
+5. Document limitations before adding application workarounds.
+
+### 7.4 UI change verification
+
+For UI/dialog changes, run from the Flutter package directory:
+
+- `flutter pub get` only when dependency metadata changed.
+- `flutter analyze`.
+- Relevant widget tests.
+- Manual checks on a narrow device and a typical device.
+- Text scaling, keyboard-open, loading/error and dismissal scenarios.
+- `git diff --check` and review the complete diff.
+
+A successful analyzer run does not replace visual or interaction testing.
