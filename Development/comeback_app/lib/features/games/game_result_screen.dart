@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:fossui/fossui.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/widgets/primary_button.dart';
 
 class GameResultScreen extends StatelessWidget {
   final int score;
   final int accuracy;
   final int bestCombo;
-  // Dynamic builder ensures we don't hardcode which game restarts
+  final bool isNewPB; // [ISSUE-14] Added parameter
   final Widget Function() gameBuilder;
 
   const GameResultScreen({
@@ -14,6 +14,7 @@ class GameResultScreen extends StatelessWidget {
     required this.score,
     required this.accuracy,
     required this.bestCombo,
+    this.isNewPB = false, // Defaults to false
     required this.gameBuilder,
   });
 
@@ -28,7 +29,18 @@ class GameResultScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text('Time\'s Up', style: AppTextStyles.display),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
+              
+              // [ISSUE-14] Display PB Badge
+              if (isNewPB)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: FossBadge(
+                    label: const Text('New Personal Best!'),
+                    variant: FossBadgeVariant.success,
+                  ),
+                ),
+
               Text(
                 score.toString(),
                 style: AppTextStyles.hud.copyWith(
@@ -47,13 +59,13 @@ class GameResultScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.xl * 3),
-              PrimaryButton(
-                text: 'Play Again',
+              FossButton(
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => gameBuilder()),
                   );
                 },
+                child: const Text('Play Again'),
               ),
               const SizedBox(height: AppSpacing.md),
               TextButton(

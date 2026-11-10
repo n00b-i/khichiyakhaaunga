@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // 👈 Added for Supabase.instance
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/games/models/bubble.dart';
@@ -11,7 +11,7 @@ import '../../../core/games/models/game_fx.dart';
 import '../../../core/games/widgets/bubble_painter.dart';
 import '../../../core/games/widgets/game_hud.dart';
 import '../game_result_screen.dart';
-import '../../../core/games/repository/game_repository.dart'; // 👈 Added for GameRepository
+import '../../../core/games/repository/game_repository.dart';
 
 class AddBurstScreen extends StatefulWidget {
   final Color accentColor;
@@ -25,8 +25,6 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
   late Ticker _ticker;
   Duration _lastElapsed = Duration.zero;
   final Random _random = Random();
-  
-  // 👈 ADDED: Repository and Match ID
   late GameRepository _gameRepo;
   String? _currentMatchId;
 
@@ -56,12 +54,8 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
     super.initState();
     _ticker = createTicker(_onTick)..start();
     _startCountdown();
-
-    // 👈 ADDED: Initialize Repository and Start Match asynchronously
     _gameRepo = GameRepository(Supabase.instance.client);
-    _gameRepo.startMatch('add_burst').then((id) {
-      _currentMatchId = id;
-    });
+    _gameRepo.startMatch('add_burst').then((id) => _currentMatchId = id);
   }
 
   void _startCountdown() {
@@ -244,14 +238,15 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
     }
   }
 
-  void _endGame() {
+  void _endGame() async {
     _ticker.stop();
     final totalTaps = _hits + _misses;
     final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
 
-    // 👈 ADDED: Save Match to Supabase (Fire and forget, don't block navigation)
+    // [ISSUE-14] Await the PB check
+    bool isNewPB = false;
     if (_currentMatchId != null) {
-      _gameRepo.endMatch(
+      isNewPB = await _gameRepo.endMatch(
         matchId: _currentMatchId!,
         gameId: 'add_burst',
         score: _score,
@@ -260,12 +255,15 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
       );
     }
 
+    if (!mounted) return;
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => GameResultScreen(
           score: _score,
-          accuracy: accuracy.round(), // Passing int to UI as expected
+          accuracy: accuracy.round(),
           bestCombo: _bestCombo,
+          isNewPB: isNewPB, // Pass the flag
           gameBuilder: () => AddBurstScreen(accentColor: widget.accentColor),
         ),
       ),

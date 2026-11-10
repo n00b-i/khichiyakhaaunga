@@ -14,8 +14,6 @@ class GameRepository {
   // [ISSUE-10] Start a match. Generates a UUID locally first.
   Future<String?> startMatch(String gameId) async {
     final userId = _supabase.auth.currentUser?.id;
-    
-    // [FIX] Properly import SessionManager to get the active session ID.
     final sessionId = SessionManager().currentSessionId;
     
     if (userId == null || sessionId == null) return null;
@@ -33,16 +31,14 @@ class GameRepository {
       });
       debugPrint('[GameRepository] Match started online: $matchId');
     } catch (e) {
-      // [ISSUE-10] Offline fallback: Ignore the network error. 
-      // The game continues with the local matchId and we queue it on completion.
       debugPrint('[GameRepository] Offline start. Match will be queued on completion: $e');
     }
     
     return matchId;
   }
 
-  // [ISSUE-10] End a match. Queues the payload if offline.
-  Future<void> endMatch({
+  // [ISSUE-14] End a match. Returns true if it's a new PB.
+  Future<bool> endMatch({
     required String matchId,
     required String gameId,
     required int score,
@@ -51,7 +47,26 @@ class GameRepository {
   }) async {
     final userId = _supabase.auth.currentUser?.id;
     final sessionId = SessionManager().currentSessionId;
-    if (userId == null) return;
+    if (userId == null) return false;
+
+    bool isNewPB = false;
+
+    // [ISSUE-14] Fetch current PB before saving the new score
+    try {
+      final statsRes = await _supabase
+          .from('user_stats')
+          .select('${gameId}_pb')
+          .eq('user_id', userId)
+          .maybeSingle();
+          
+      final int? oldPb = statsRes?['${gameId}_pb'] as int?;
+      
+      // It's a new PB if there was no PB before, or if the new score is strictly higher
+      isNewPB = oldPb == null || score > oldPb;
+      debugPrint('[GameRepository] Old PB: $oldPb | New Score: $score | isNewPB: $isNewPB');
+    } catch (e) {
+      debugPrint('[GameRepository] Failed to fetch PB: $e');
+    }
 
     final endedAt = DateTime.now().toUtc().toIso8601String();
     
@@ -66,7 +81,6 @@ class GameRepository {
       
       debugPrint('[GameRepository] Match completed online: $matchId');
     } catch (e) {
-      // [ISSUE-10] Offline fallback: Queue the entire match object.
       debugPrint('[GameRepository] Network failed on match end. Queuing for sync: $e');
       
       final prefs = await SharedPreferences.getInstance();
@@ -89,5 +103,7 @@ class GameRepository {
       pendingMatches.add(payload);
       await prefs.setString('pending_matches', jsonEncode(pendingMatches));
     }
+
+    return isNewPB;
   }
 }
