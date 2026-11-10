@@ -56,21 +56,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _handleEditUsername(String? currentUsername, String? lastUpdatedStr) async {
     DateTime? lastUpdated;
     if (lastUpdatedStr != null) {
-      lastUpdated = DateTime.parse(lastUpdatedStr).toLocal();
+      lastUpdated = DateTime.tryParse(lastUpdatedStr)?.toLocal();
     } else if (_prefs != null) {
       final cachedStr = _prefs!.getString('username_last_updated');
-      if (cachedStr != null) lastUpdated = DateTime.parse(cachedStr).toLocal();
+      if (cachedStr != null) {
+        lastUpdated = DateTime.tryParse(cachedStr)?.toLocal();
+      }
     }
 
     if (lastUpdated != null) {
-      final hoursSinceUpdate = DateTime.now().difference(lastUpdated).inHours;
-      if (hoursSinceUpdate < 24) {
-        final hoursLeft = 24 - hoursSinceUpdate;
+      final remaining = const Duration(hours: 24) - DateTime.now().difference(lastUpdated);
+      if (remaining > Duration.zero) {
+        final hoursLeft = remaining.inHours;
+        final minutesLeft = remaining.inMinutes.remainder(60);
+        final timeString = hoursLeft > 0 ? '${hoursLeft}h ${minutesLeft}m' : '${minutesLeft}m';
+
         if (!mounted) return;
         showFossToast(
           context,
           FossToast(
-            title: Text('You can change your name again in $hoursLeft hours.'),
+            title: Text('You can change your name again in $timeString.'),
             variant: FossToastVariant.warning,
           ),
         );
@@ -80,9 +85,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final TextEditingController controller = TextEditingController(text: currentUsername);
     
-    // [FIX: OVERFLOW BUG] Keep actions inside the constrained content area.
-    // FossDialog's footer is a fixed Row and does not wrap on narrow screens.
-    // Wrap keeps Cancel and Save responsive without placing Flexible in actions.
+    // FossUI 0.1.2 renders FossDialog.actions in a non-wrapping Row.
+    // A compact dialog can therefore overflow when multiple buttons share
+    // the footer. Keep the footer empty and stack actions in the scrollable
+    // content, where they can use the full available width on narrow screens.
     final String? newName = await showFossDialog<String>(
       context: context,
       presentation: FossDialogPresentation.centered,
@@ -101,6 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               hintText: 'deevanshu_guru',
             ),
             const SizedBox(height: AppSpacing.md),
+            // Wrap keeps Cancel and Save responsive without placing Flexible in actions.
             Wrap(
               alignment: WrapAlignment.end,
               spacing: AppSpacing.sm,
@@ -112,11 +119,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: const Text('Cancel'),
                 ),
                 FossButton(
-                  onPressed: () =>
-                      Navigator.pop(context, controller.text.trim()),
+                  onPressed: () => Navigator.pop(context, controller.text.trim()),
                   child: const Text('Save'),
                 ),
               ],
+            ),
+          ],
+        ),
+        // Intentionally empty: see the FossUI footer layout explanation above.
+        actions: const [],
+      ),
+    );
+
+    // The modal has finished using the controller, so release it now.
+    controller.dispose();
+
+    // [FIX: TYPE SAFETY] Check for null before trimming to avoid analyzer warnings.
+    if (newName == null || newName.trim().isEmpty) return;
+    
+    final normalizedNew = newName.trim();
+    final normalizedCurrent = currentUsername?.trim() ?? '';
+
+    if (normalizedNew == normalizedCurrent) return;
+
+    if (normalizedNew.length > 20) {
+      if (!mounted) return;
+      showFossToast(
+        context,
+        const FossToast(title: Text('Name must be 20 characters or less.'), variant: FossToastVariant.error),
+      );
+      return;
+    }
+
+    // [FIX: BOOL RETURN] Repository returns true/false, not a string.
+    final success = await _profileRepo.updateUsername(normalizedNew);
+
+    if (!mounted) return;
+
+    if (success) {
+      setState(() {
+        _profileFuture = _profileRepo.getProfile();
+      });
+      showFossToast(
+        context,
+        const FossToast(title: Text('Name updated'), variant: FossToastVariant.success),
+      );
+    } else {
+      showFossToast(
+        context,
+        const FossToast(title: Text('Could not update name. Try again.'), variant: FossToastVariant.error),
+      );
+    }
+  }
+
+  // [LOGOUT] Confirmation dialog using FossAlertDialog (centered).
+  void _showLogoutDialog(BuildContext context) async {
+    final confirmed = await showFossDialog<bool>(
+      context: context,
+      presentation: FossDialogPresentation.centered,
+      builder: (context) => FossDialog(
+        style: const FossDialogStyle(maxWidth: AppDialogWidth.compact),
+        title: const Text('Log out?'),
+        description: const Text('Are you sure you want to log out?'),
+        // Stacked full-width buttons for destructive action.
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: FossButton(
+                variant: FossButtonVariant.ghost,
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            SizedBox(
+              width: double.infinity,
+              child: FossButton(
+                variant: FossButtonVariant.destructive,
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Logout'),
+              ),
             ),
           ],
         ),
@@ -124,69 +210,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
 
-    if (newName != null && newName.isNotEmpty && newName != currentUsername) {
-      final success = await _profileRepo.updateUsername(newName);
-
-      if (success) {
-        final nowStr = DateTime.now().toUtc().toIso8601String();
-        await _prefs?.setString('username_last_updated', nowStr);
-
-        setState(() {
-          _profileFuture = _profileRepo.getProfile();
-        });
-
-        if (!mounted) return;
-        showFossToast(
-          context,
-          const FossToast(
-            title: Text('Name updated'),
-            variant: FossToastVariant.success,
-          ),
-        );
-      } else {
-        if (!mounted) return;
-        showFossToast(
-          context,
-          const FossToast(
-            title: Text('Could not update name. Try again.'),
-            variant: FossToastVariant.error,
-          ),
-        );
-      }
-    }
-  }
-
-  // [LOGOUT] Confirmation dialog using FossAlertDialog (centered).
-  void _showLogoutDialog(BuildContext context) async {
-    final confirmed = await showFossAlertDialog<bool>(
-      context: context,
-      presentation: FossDialogPresentation.centered,
-      builder: (context) => FossAlertDialog(
-        style: const FossAlertDialogStyle(maxWidth: AppDialogWidth.compact),
-        title: const Text('Log out?'),
-        description: const Text('Are you sure you want to log out?'),
-        actions: [
-          FossButton(
-            variant: FossButtonVariant.ghost,
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FossButton(
-            variant: FossButtonVariant.destructive,
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
-    );
-
     if (confirmed == true) {
       try {
         await SessionManager().logout();
-        await Supabase.instance.client.auth.signOut();
       } catch (e) {
-        debugPrint('[ProfileScreen] Logout error: $e');
-        await Supabase.instance.client.auth.signOut();
+        debugPrint('[ProfileScreen] SessionManager logout error: $e');
+      } finally {
+        try {
+          await Supabase.instance.client.auth.signOut();
+        } catch (e) {
+          debugPrint('[ProfileScreen] Supabase signOut error: $e');
+        }
       }
     }
   }
