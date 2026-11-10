@@ -4,8 +4,13 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/profile/profile_repository.dart';
 import '../../core/session/session_manager.dart';
-import '../auth/sign_in_screen.dart';
 
+/// **ProfileScreen**
+/// 
+/// **Responsibility:**
+/// - Displays the user's email (from Supabase Auth) and username (from public.profiles).
+/// - Allows the user to toggle Developer Mode (only visible in Debug builds).
+/// - Handles the logout flow gracefully, ensuring session events are flushed.
 class ProfileScreen extends StatefulWidget {
   final bool isDevMode;
   final ValueChanged<bool> onToggleDevMode;
@@ -27,17 +32,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // [UI-1] Fetch profile on mount
+    // [1] Fetch the user's profile row from Supabase on screen mount.
     _profileRepo = ProfileRepository(Supabase.instance.client);
     _profileFuture = _profileRepo.getProfile();
   }
 
+  // [2] Extracts the first letter for the Avatar fallback.
   String _getInitial(String? username, String? email) {
     final name = username ?? email ?? '?';
     if (name.trim().isEmpty) return '?';
     return name.trim().substring(0, 1).toUpperCase();
   }
 
+  // [3] If the user hasn't set a username yet, fallback to the first part of their email.
   String _getDisplayName(String? username, String? email) {
     if (username != null && username.trim().isNotEmpty) return username.trim();
     if (email != null && email.trim().isNotEmpty) return email.split('@').first;
@@ -76,19 +83,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: PrimaryButton(
                 text: 'Logout',
                 onPressed: () async {
+                  // [4] Close the dialog immediately.
                   Navigator.of(context).pop();
                   
-                  // [DB-2] Log logout event and sync pending events before signing out
-                  await SessionManager().logout();
+                  debugPrint('[ProfileScreen] Logout tapped');
                   
-                  // [DB-3] Sign out of Supabase
-                  await Supabase.instance.client.auth.signOut();
-                  
-                  if (context.mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const SignInScreen()),
-                      (route) => false,
-                    );
+                  try {
+                    // [4.1] Log the logout event and flush pending events to Supabase.
+                    await SessionManager().logout();
+                    debugPrint('[ProfileScreen] SessionManager logout done. Signing out of Supabase.');
+                    
+                    // [4.2] Sign out of Supabase. 
+                    // AuthGate will automatically detect this and route to SignInScreen.
+                    await Supabase.instance.client.auth.signOut();
+                    
+                  } catch (e) {
+                    // [4.3] Offline Fallback: If the network fails, we still force local sign-out.
+                    debugPrint('[ProfileScreen] Logout network error: $e');
+                    await Supabase.instance.client.auth.signOut();
                   }
                 },
               ),
@@ -107,10 +119,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: FutureBuilder<Map<String, dynamic>?>(
           future: _profileFuture,
           builder: (context, snapshot) {
-            // Get real email from Supabase Auth
+            // [5] Email comes directly from Supabase Auth.
             final email = Supabase.instance.client.auth.currentUser?.email;
             
-            // Get username from public.profiles table
+            // [6] Username comes from the profiles table.
             final username = snapshot.data?['username'] as String?;
 
             return SingleChildScrollView(
@@ -120,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   const SizedBox(height: AppSpacing.xl),
                   
-                  // Avatar
+                  // [7] Avatar
                   Container(
                     width: AppSizes.avatar,
                     height: AppSizes.avatar,
@@ -139,7 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   
-                  // Username / Display Name
+                  // [8] Display Name
                   Text(
                     _getDisplayName(username, email),
                     style: AppTextStyles.display,
@@ -149,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   
-                  // Email
+                  // [9] Email
                   SelectableText(
                     email ?? '—',
                     style: AppTextStyles.body.copyWith(
@@ -161,31 +173,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   
                   const SizedBox(height: AppSpacing.xl * 2),
                   
-                  // DEV MODE TOGGLE
+                  // [10] Developer Mode Toggle
+                  // [10.1] Wrapped in Material to fix the ListTile ink splash assertion error.
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(AppRadius.card),
                       border: Border.all(color: AppColors.border),
                     ),
-                    child: SwitchListTile(
-                      title: Text('Developer Mode', style: AppTextStyles.body),
-                      subtitle: Text(
-                        'Toggle UILab tab visibility',
-                        style: AppTextStyles.body.copyWith(
-                          color: AppColors.textPrimary.withValues(alpha: 0.6),
-                          fontSize: 12,
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                      child: SwitchListTile(
+                        title: Text('Developer Mode', style: AppTextStyles.body),
+                        subtitle: Text(
+                          'Toggle UILab tab visibility',
+                          style: AppTextStyles.body.copyWith(
+                            color: AppColors.textPrimary.withValues(alpha: 0.6),
+                            fontSize: 12,
+                          ),
                         ),
+                        value: widget.isDevMode,
+                        activeThumbColor: AppColors.primary,
+                        onChanged: widget.onToggleDevMode,
                       ),
-                      value: widget.isDevMode,
-                      activeThumbColor: AppColors.primary,
-                      onChanged: widget.onToggleDevMode,
                     ),
                   ),
 
                   const SizedBox(height: AppSpacing.xl),
                   
+                  // [11] Logout Button
                   PrimaryButton(
                     text: 'Logout',
                     onPressed: () => _showLogoutDialog(context),

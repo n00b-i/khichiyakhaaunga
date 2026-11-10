@@ -1,17 +1,16 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart'; // [1] Added for debugPrint
 
 class SessionRepository {
   final SupabaseClient _supabase;
 
   SessionRepository(this._supabase);
 
-  // [1] Accepts a flexible map for all device/app telemetry
   Future<void> createSession({
     required String sessionId,
     required String userId,
     required String platform,
-    required Map<String, dynamic> deviceData, // [2] New parameter
+    required Map<String, dynamic> deviceData,
   }) async {
     try {
       await _supabase.from('user_sessions').insert({
@@ -19,11 +18,11 @@ class SessionRepository {
         'user_id': userId,
         'started_at': DateTime.now().toUtc().toIso8601String(),
         'platform': platform,
-        ...deviceData, // [3] Spread the telemetry data into the insert
+        ...deviceData,
       });
-      developer.log('Session created successfully: $sessionId', name: 'SessionRepository');
+      debugPrint('[SessionRepository] Session created: $sessionId');
     } catch (e) {
-      developer.log('Failed to create session: $e', name: 'SessionRepository');
+      debugPrint('[SessionRepository] Failed to create session: $e');
     }
   }
 
@@ -31,10 +30,10 @@ class SessionRepository {
     if (events.isEmpty) return true;
     try {
       await _supabase.from('events').insert(events);
-      developer.log('Pushed ${events.length} events to Supabase', name: 'SessionRepository');
+      debugPrint('[SessionRepository] Successfully pushed ${events.length} events to Supabase');
       return true; 
     } catch (e) {
-      developer.log('Failed to push events: $e', name: 'SessionRepository');
+      debugPrint('[SessionRepository] Failed to push events: $e');
       return false; 
     }
   }
