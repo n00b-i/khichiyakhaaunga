@@ -127,3 +127,93 @@ No hardcoded values anywhere in lib/. Every color, spacing, radius, duration, fo
 ### Rationale
 
 Single source of truth. Any drift from UI_SYSTEM.md becomes visible in the UILab screen, which reads tokens at runtime. Designers and developers change tokens once, everywhere updates.
+
+
+## 10. Dialogs & Overlays — Shared Contract
+
+Dialogs are part of the application design system. Feature screens must not invent independent dialog layouts or bypass the dialog component's dedicated regions.
+
+### 10.1 Component ownership
+
+- FossUI owns the underlying dialog primitives and their built-in interaction behavior.
+- Comeback owns visual decisions through the existing app theme and approved design tokens.
+- Feature screens own dialog-specific content, copy, validation and business actions.
+- Do not add a second dialog framework or generic wrapper solely to rename FossUI APIs.
+- A shared application-level dialog helper may be proposed only when at least three real use cases demonstrate duplicated behavior that FossUI does not provide. Approval is required before adding a shared shell component.
+
+### 10.2 Choose the correct primitive
+
+- Use `FossDialog` for informational, form, and task-oriented dialog content.
+- Use `FossAlertDialog` for a focused confirmation or consequential decision.
+- Do not use an alert dialog as a general-purpose form container.
+- Do not recreate a dialog surface with a custom `Dialog`, `Container`, or overlay when the FossUI primitive covers the use case.
+
+### 10.3 Dialog anatomy
+
+Keep responsibilities separate:
+
+1. Header: title, optional description, and dismissal affordance supplied by the primitive.
+2. Content: form fields, explanatory copy, validation feedback, and other task content.
+3. Actions: commit/cancel/confirm actions supplied through the primitive's dedicated actions API.
+
+**Never place footer actions inside the content merely to control their position.** Doing so creates inconsistent spacing, scroll behavior and action alignment. Use the dedicated `actions` slot/API.
+
+### 10.4 Footer and narrow-screen behavior
+
+FossUI 0.1.2 renders dialog actions in a trailing-aligned horizontal row. Do not assume the row automatically wraps or stacks on narrow widths. Its button labels are also constrained to one line and may ellipsize.
+
+- Keep action labels concise and unambiguous.
+- Check the combined intrinsic width of all actions at the app's compact dialog width.
+- If actions do not fit, choose a documented responsive layout at the feature composition level or propose an approved shared solution; do not silently accept clipped or ellipsized critical labels.
+- Test on the smallest supported device width and with text scaling enabled.
+- Preserve accessible tap targets; verify the effective hit region rather than judging only the painted button height.
+
+### 10.5 Width, height and scrolling
+
+- Use the existing `AppDialogWidth` definitions; do not hardcode a width in a feature.
+- Dialog height must be content-driven within the available viewport.
+- Long content belongs in a scrollable content region; the action footer must remain reachable.
+- Account for the on-screen keyboard when editing text.
+- Do not add fixed heights to make one screenshot look correct.
+- Do not assume FossUI exposes a per-dialog height or padding property; verify the exact pinned package API before using a property.
+
+### 10.6 Visual consistency
+
+All dialogs must resolve colors, typography, spacing, radii, borders and motion through the tokens in `lib/core/theme/app_theme.dart`.
+
+- Use the same surface, border and title/body hierarchy across standard and confirmation dialogs.
+- Primary action is visually dominant; secondary action is quieter but still clear.
+- Destructive actions use the approved destructive semantic token/variant; never communicate danger by color alone.
+- Dismiss controls require a meaningful semantic label.
+- Avoid arbitrary spacers, one-off padding and per-screen color overrides.
+
+### 10.7 Interaction and accessibility
+
+For every dialog, define and test:
+
+- Whether backdrop tap dismisses it.
+- Whether system back / Escape dismisses it.
+- What happens on Cancel and on successful completion.
+- Loading, disabled and error states during asynchronous actions.
+- Protection against repeated submissions.
+- Focus order, screen-reader labels, text scaling and keyboard navigation.
+- Whether dismissal is safe for the operation. Consequential actions must not be accidentally committed by backdrop or system-back behavior.
+
+### 10.8 Required review checklist
+
+Before accepting a dialog change:
+
+- [ ] Correct FossUI primitive selected.
+- [ ] Header, content and actions use their intended regions.
+- [ ] No action buttons embedded in content.
+- [ ] Width uses `AppDialogWidth`.
+- [ ] No fixed height or arbitrary layout constants.
+- [ ] Long text and text scaling do not hide critical actions.
+- [ ] Keyboard does not cover fields or actions.
+- [ ] Dismissal behavior is explicit and tested.
+- [ ] Loading, error and repeat-tap behavior are covered.
+- [ ] Visuals use centralized tokens only.
+
+### 10.9 Dependency/API verification
+
+The app pins FossUI `^0.1.2`. Before relying on a dialog or button property, inspect the resolved dependency version and its source/API. Documentation for another release is not sufficient evidence. Record any discovered package limitation here before designing a workaround.
