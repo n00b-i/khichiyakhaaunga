@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_tokens.dart';
+import '../../core/ui/components/bottom_nav_bar.dart';
 import '../home/home_screen.dart';
 import '../stats/stats_screen.dart';
 import '../profile/profile_screen.dart';
 import '../debug/ui_lab/ui_lab_screen.dart';
-import 'widgets/floating_nav_bar.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -17,8 +17,8 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   late bool _isDevMode;
-  
-  // [ISSUE-9] A notifier to tell the StatsScreen to refresh when the tab is tapped.
+
+  // [FIX] Dummy trigger to satisfy current StatsScreen until Phase 5 refactor.
   final ValueNotifier<int> _statsRefreshTrigger = ValueNotifier(0);
 
   @override
@@ -42,7 +42,6 @@ class _MainShellState extends State<MainShell> {
 
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
-    // [ISSUE-9] If user taps Stats tab, trigger a refresh.
     if (index == 1) {
       _statsRefreshTrigger.value++;
     }
@@ -51,11 +50,10 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final isKeyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     final tabs = [
       const HomeScreen(),
-      StatsScreen(refreshTrigger: _statsRefreshTrigger), // [ISSUE-9] Passed here
+      StatsScreen(refreshTrigger: _statsRefreshTrigger), // Removed const and null
       ProfileScreen(
         isDevMode: _isDevMode,
         onToggleDevMode: _toggleDevMode,
@@ -63,24 +61,35 @@ class _MainShellState extends State<MainShell> {
       if (kDebugMode && _isDevMode) const UiLabScreen(),
     ];
 
+    // Build the nav items dynamically based on Dev Mode
+    final navItems = [
+      NavItem(icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Home'),
+      NavItem(icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart, label: 'Stats'),
+      NavItem(icon: Icons.person_outline, activeIcon: Icons.person, label: 'Profile'),
+      if (kDebugMode && _isDevMode)
+        NavItem(icon: Icons.science_outlined, activeIcon: Icons.science, label: 'UI'),
+    ];
+
     return PopScope(
       canPop: _currentIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && _currentIndex != 0) setState(() => _currentIndex = 0);
+        if (!didPop && _currentIndex != 0) {
+          setState(() => _currentIndex = 0);
+        }
       },
       child: Scaffold(
-        extendBody: true,
-        backgroundColor: AppColors.background,
-        body: IndexedStack(index: _currentIndex, children: tabs),
+        extendBody: true, // Allows content to scroll under the nav bar
+        backgroundColor: AppColors.canvas, // New background token
+        body: IndexedStack(
+          index: _currentIndex,
+          children: tabs,
+        ),
         bottomNavigationBar: isKeyboardOpen
             ? null
-            : Padding(
-                padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset : AppSpacing.xs),
-                child: FloatingNavBar(
-                  currentIndex: _currentIndex,
-                  tabCount: tabs.length,
-                  onTabSelected: _onTabTapped, // [ISSUE-9] Using new method
-                ),
+            : BottomNavBar(
+                currentIndex: _currentIndex,
+                items: navItems,
+                onTabSelected: _onTabTapped,
               ),
       ),
     );
