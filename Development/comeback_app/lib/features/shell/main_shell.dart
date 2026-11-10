@@ -4,7 +4,7 @@ import '../../core/theme/app_theme.dart';
 import '../home/home_screen.dart';
 import '../stats/stats_screen.dart';
 import '../profile/profile_screen.dart';
-import '../debug/ui_lab/ui_lab_screen.dart'; // Added for S-13
+import '../debug/ui_lab/ui_lab_screen.dart';
 import 'widgets/floating_nav_bar.dart';
 
 class MainShell extends StatefulWidget {
@@ -16,18 +16,42 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  
+  // [1] Dev mode state (Defaults to true in debug, false in release)
+  late bool _isDevMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDevMode = kDebugMode;
+  }
+
+  // [2] Toggle handler for the Profile screen switch
+  void _toggleDevMode(bool value) {
+    setState(() {
+      _isDevMode = value;
+      // If turning off dev mode while on the UI tab, kick back to Home
+      if (!_isDevMode && _currentIndex == 3) {
+        _currentIndex = 0;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final isKeyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
-    // S-04 V4: Build tabs based on environment. Release has 3, Debug has 4.
+    // [3] Build tabs dynamically based on Dev Mode
     final tabs = [
       const HomeScreen(),
       const StatsScreen(),
-      const ProfileScreen(),
-      if (kDebugMode) const UiLabScreen(), // S-13 V1: Debug only
+      ProfileScreen(
+        isDevMode: _isDevMode,
+        onToggleDevMode: _toggleDevMode,
+      ),
+      // UI tab only exists if in Debug AND Dev Mode is toggled ON
+      if (kDebugMode && _isDevMode) const UiLabScreen(),
     ];
 
     return PopScope(
@@ -48,7 +72,7 @@ class _MainShellState extends State<MainShell> {
             ? null
             : Padding(
                 padding: EdgeInsets.only(
-                  bottom: bottomInset > 0 ? bottomInset : AppSpacing.md,
+                  bottom: bottomInset > 0 ? bottomInset : AppSpacing.xs,
                 ),
                 child: FloatingNavBar(
                   currentIndex: _currentIndex,

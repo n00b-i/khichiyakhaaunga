@@ -1,31 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../core/profile/profile_repository.dart';
+import '../../core/session/session_manager.dart';
 import '../auth/sign_in_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+class ProfileScreen extends StatefulWidget {
+  final bool isDevMode;
+  final ValueChanged<bool> onToggleDevMode;
 
-  // Mock data for now. Will be replaced by Supabase user session.
-  final String? username = 'Agent';
-  final String? email = 'agent@comebak.in';
+  const ProfileScreen({
+    super.key,
+    required this.isDevMode,
+    required this.onToggleDevMode,
+  });
 
-  // S-07 E1/E2/E6/E7: Handles null, empty, emojis, and non-latin characters.
-  String _getInitial() {
-    if (username == null || username!.trim().isEmpty) return '?';
-    final trimmed = username!.trim();
-    // Using substring instead of characters to avoid needing extra imports
-    return trimmed.substring(0, 1).toUpperCase();
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late ProfileRepository _profileRepo;
+  Future<Map<String, dynamic>?>? _profileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // [UI-1] Fetch profile on mount
+    _profileRepo = ProfileRepository(Supabase.instance.client);
+    _profileFuture = _profileRepo.getProfile();
   }
 
-  // S-07 E1/E2: Fallback to em-dash if name is null/empty.
-  String _getDisplayName() {
-    if (username == null || username!.trim().isEmpty) return '—';
-    return username!.trim();
+  String _getInitial(String? username, String? email) {
+    final name = username ?? email ?? '?';
+    if (name.trim().isEmpty) return '?';
+    return name.trim().substring(0, 1).toUpperCase();
+  }
+
+  String _getDisplayName(String? username, String? email) {
+    if (username != null && username.trim().isNotEmpty) return username.trim();
+    if (email != null && email.trim().isNotEmpty) return email.split('@').first;
+    return '—';
   }
 
   void _showLogoutDialog(BuildContext context) {
-    // S-07 B2: Tapping Logout opens a confirmation dialog.
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -37,13 +56,12 @@ class ProfileScreen extends StatelessWidget {
           ),
           title: const Text('Log out?', style: AppTextStyles.hud),
           content: Text(
-            'Are you sure you want to log out of comebak.in?',
+            'Are you sure you want to log out of comeback.in?',
             style: AppTextStyles.body.copyWith(
               color: AppColors.textPrimary.withValues(alpha: 0.6),
             ),
           ),
           actions: [
-            // S-07 B4: Cancel dismisses the dialog with no state change.
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
@@ -57,14 +75,21 @@ class ProfileScreen extends StatelessWidget {
               width: 120,
               child: PrimaryButton(
                 text: 'Logout',
-                onPressed: () {
+                onPressed: () async {
                   Navigator.of(context).pop();
-                  // S-07 B3: Clear session and replace to SignIn.
-                  // pushAndRemoveUntil prevents going "back" into the app.
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const SignInScreen()),
-                    (route) => false,
-                  );
+                  
+                  // [DB-2] Log logout event and sync pending events before signing out
+                  await SessionManager().logout();
+                  
+                  // [DB-3] Sign out of Supabase
+                  await Supabase.instance.client.auth.signOut();
+                  
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const SignInScreen()),
+                      (route) => false,
+                    );
+                  }
                 },
               ),
             ),
@@ -79,63 +104,96 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: AppSpacing.xl),
-              
-              // S-07 V2/V9: Avatar (no border/shadow).
-              Container(
-                width: AppSizes.avatar,
-                height: AppSizes.avatar,
-                decoration: const BoxDecoration(
-                  color: AppColors.surface,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  _getInitial(),
-                  style: AppTextStyles.hud.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 32,
+        child: FutureBuilder<Map<String, dynamic>?>(
+          future: _profileFuture,
+          builder: (context, snapshot) {
+            // Get real email from Supabase Auth
+            final email = Supabase.instance.client.auth.currentUser?.email;
+            
+            // Get username from public.profiles table
+            final username = snapshot.data?['username'] as String?;
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: AppSpacing.xl),
+                  
+                  // Avatar
+                  Container(
+                    width: AppSizes.avatar,
+                    height: AppSizes.avatar,
+                    decoration: const BoxDecoration(
+                      color: AppColors.surface,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _getInitial(username, email),
+                      style: AppTextStyles.hud.copyWith(
+                        color: AppColors.primary,
+                        fontSize: 32,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: AppSpacing.lg),
+                  
+                  // Username / Display Name
+                  Text(
+                    _getDisplayName(username, email),
+                    style: AppTextStyles.display,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  
+                  // Email
+                  SelectableText(
+                    email ?? '—',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textPrimary.withValues(alpha: 0.6),
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                  ),
+                  
+                  const SizedBox(height: AppSpacing.xl * 2),
+                  
+                  // DEV MODE TOGGLE
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: SwitchListTile(
+                      title: Text('Developer Mode', style: AppTextStyles.body),
+                      subtitle: Text(
+                        'Toggle UILab tab visibility',
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.textPrimary.withValues(alpha: 0.6),
+                          fontSize: 12,
+                        ),
+                      ),
+                      value: widget.isDevMode,
+                      activeThumbColor: AppColors.primary,
+                      onChanged: widget.onToggleDevMode,
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.xl),
+                  
+                  PrimaryButton(
+                    text: 'Logout',
+                    onPressed: () => _showLogoutDialog(context),
+                  ),
+                ],
               ),
-              
-              const SizedBox(height: AppSpacing.lg),
-              
-              // S-07 V3/E3: Username (truncates with ellipsis if too long).
-              Text(
-                _getDisplayName(),
-                style: AppTextStyles.display,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-              
-              const SizedBox(height: AppSpacing.xs),
-              
-              // S-07 V4/I7: Email (selectable so users can copy it).
-              SelectableText(
-                email ?? '—',
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.textPrimary.withValues(alpha: 0.6),
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-              ),
-              
-              const SizedBox(height: AppSpacing.xl * 2),
-              
-              // S-07 V5: Logout uses our shared PrimaryButton.
-              PrimaryButton(
-                text: 'Logout',
-                onPressed: () => _showLogoutDialog(context),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
