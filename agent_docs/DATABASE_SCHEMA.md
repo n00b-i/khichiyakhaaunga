@@ -1,6 +1,6 @@
 # Database Schema & Mapping
 
-This document is the single source of truth for the comeback.in database architecture. 
+This document is the single source of truth for the comebak.in database architecture. 
 Any agent or developer should read this before writing data-fetching logic.
 
 ## Entity Relationship Mapping

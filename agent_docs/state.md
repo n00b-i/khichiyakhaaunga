@@ -1,4 +1,4 @@
-# State — comeback.in
+# State — comebak.in
 > Updated: 2026-11-10 17:00 IST
 > Source of truth for active context. Max 15 lines. Never list completed features. The code is the truth of what works.
 

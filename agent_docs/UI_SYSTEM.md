@@ -136,7 +136,7 @@ Dialogs are part of the application design system. Feature screens must not inve
 ### 10.1 Component ownership
 
 - FossUI owns the underlying dialog primitives and their built-in interaction behavior.
-- Comeback owns visual decisions through the existing app theme and approved design tokens.
+- Comebak owns visual decisions through the existing app theme and approved design tokens.
 - Feature screens own dialog-specific content, copy, validation and business actions.
 - Do not add a second dialog framework or generic wrapper solely to rename FossUI APIs.
 - A shared application-level dialog helper may be proposed only when at least three real use cases demonstrate duplicated behavior that FossUI does not provide. Approval is required before adding a shared shell component.

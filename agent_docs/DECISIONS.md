@@ -1,4 +1,4 @@
-# Decision Log — comeback.in
+# Decision Log — comebak.in
 > Append-only. Never delete. Each entry: Date | Tag | Decision | Why | Impact | Alternative rejected.
 > Tags: [ARCH] [DB] [UX] [SEC] [OPS]
 

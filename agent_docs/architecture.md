@@ -132,7 +132,7 @@ and must be cited whenever a game-screen AC is implemented.
 ### 7.1 Three layers
 
 1. **FossUI primitives:** reusable low-level controls and interaction patterns (for example dialogs, alert dialogs and buttons).
-2. **Comeback theme/tokens:** the single source of truth in `lib/core/theme/app_theme.dart`. App-owned styling must resolve through these tokens.
+2. **Comebak theme/tokens:** the single source of truth in `lib/core/theme/app_theme.dart`. App-owned styling must resolve through these tokens.
 3. **Feature composition:** screens compose primitives, provide content and implement feature behavior. Feature-specific widgets stay inside their feature unless the 3+ feature reuse rule is met.
 
 Do not create an app-level wrapper that only renames or forwards a FossUI widget. Introduce a shared abstraction only for repeated application policy/behavior that the dependency does not provide, and obtain human approval as required by UI_SYSTEM.md.

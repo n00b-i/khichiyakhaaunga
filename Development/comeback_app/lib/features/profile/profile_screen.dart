@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:fossui/fossui.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/theme/app_dialog_style.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
+import '../../core/theme/app_tokens.dart';
+import '../../core/ui/components/comebak_avatar.dart';
+import '../../core/ui/components/comebak_button.dart';
+import '../../core/ui/components/comebak_chip.dart';
+import '../../core/ui/components/comebak_list_tile.dart';
+import '../../core/ui/components/section_header.dart';
+import '../../core/ui/utils/comebak_snackbar.dart';
 import '../../core/profile/profile_repository.dart';
 import '../../core/session/session_manager.dart';
 
-// [ISSUE-13] Profile screen with username edit and 24h cooldown.
-// [ARCHITECTURE] Uses FossDialog (centered) for edit and FossAlertDialog (centered) for logout.
 class ProfileScreen extends StatefulWidget {
   final bool isDevMode;
   final ValueChanged<bool> onToggleDevMode;
@@ -32,34 +36,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _profileRepo = ProfileRepository(Supabase.instance.client);
-    _profileFuture = _profileRepo.getProfile();
-    _initPrefs();
+    _profileFuture = _loadProfileAndPrefs();
   }
 
-  Future<void> _initPrefs() async {
+  Future<Map<String, dynamic>?> _loadProfileAndPrefs() async {
     _prefs = await SharedPreferences.getInstance();
+    return await _profileRepo.getProfile();
   }
 
-  String _getInitial(String? username, String? email) {
-    final name = username ?? email ?? '?';
-    if (name.trim().isEmpty) return '?';
-    return name.trim().substring(0, 1).toUpperCase();
-  }
-
-  String _getDisplayName(String? username, String? email) {
-    if (username != null && username.trim().isNotEmpty) return username.trim();
-    if (email != null && email.trim().isNotEmpty) return email.split('@').first;
+  String _getDisplayName(String? name) {
+    if (name != null && name.trim().isNotEmpty) return name.trim();
     return '—';
   }
 
-  // [ISSUE-13] Edit username flow with 24h cooldown.
-  void _handleEditUsername(String? currentUsername, String? lastUpdatedStr) async {
+  void _handleEditName(String? currentName, String? lastUpdatedStr) async {
     DateTime? lastUpdated;
     if (lastUpdatedStr != null) {
       lastUpdated = DateTime.tryParse(lastUpdatedStr)?.toLocal();
     } else if (_prefs != null) {
-      final cachedStr = _prefs!.getString('username_last_updated');
-      if (cachedStr != null) {
+      final cachedStr = _prefs!.getString('name_last_updated');
+    if (cachedStr != null) {
         lastUpdated = DateTime.tryParse(cachedStr)?.toLocal();
       }
     }
@@ -70,143 +66,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final hoursLeft = remaining.inHours;
         final minutesLeft = remaining.inMinutes.remainder(60);
         final timeString = hoursLeft > 0 ? '${hoursLeft}h ${minutesLeft}m' : '${minutesLeft}m';
-
+        
         if (!mounted) return;
-        showFossToast(
-          context,
-          FossToast(
-            title: Text('You can change your name again in $timeString.'),
-            variant: FossToastVariant.warning,
-          ),
-        );
+        showComebakSnackBar(context, 'You can change your name again in $timeString.', isError: true);
         return;
       }
     }
 
-    final TextEditingController controller = TextEditingController(text: currentUsername);
-    
-    // FossUI 0.1.2 renders FossDialog.actions in a non-wrapping Row.
-    // A compact dialog can therefore overflow when multiple buttons share
-    // the footer. Keep the footer empty and stack actions in the scrollable
-    // content, where they can use the full available width on narrow screens.
-    final String? newName = await showFossDialog<String>(
+    final newName = await showDialog<String>(
       context: context,
-      presentation: FossDialogPresentation.centered,
       barrierDismissible: false,
-      builder: (context) => FossDialog(
-        style: const FossDialogStyle(maxWidth: AppDialogWidth.compact),
-        title: const Text('Edit name'),
-        description: const Text('Choose a new display name.'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            FossTextField(
-              controller: controller,
-              label: 'New name',
-              hintText: 'deevanshu_guru',
-            ),
-            const SizedBox(height: AppSpacing.md),
-            // Wrap keeps Cancel and Save responsive without placing Flexible in actions.
-            Wrap(
-              alignment: WrapAlignment.end,
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: [
-                FossButton(
-                  variant: FossButtonVariant.ghost,
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                FossButton(
-                  onPressed: () => Navigator.pop(context, controller.text.trim()),
-                  child: const Text('Save'),
-                ),
-              ],
-            ),
-          ],
-        ),
-        // Intentionally empty: see the FossUI footer layout explanation above.
-        actions: const [],
-      ),
+      builder: (context) => _EditNameDialog(initialName: currentName),
     );
 
-    // The modal has finished using the controller, so release it now.
-    controller.dispose();
+    if (!mounted) return;
+    if (newName == null || newName.isEmpty) return;
+    if (newName == currentName) return;
 
-    // [FIX: TYPE SAFETY] Check for null before trimming to avoid analyzer warnings.
-    if (newName == null || newName.trim().isEmpty) return;
-    
-    final normalizedNew = newName.trim();
-    final normalizedCurrent = currentUsername?.trim() ?? '';
-
-    if (normalizedNew == normalizedCurrent) return;
-
-    if (normalizedNew.length > 20) {
-      if (!mounted) return;
-      showFossToast(
-        context,
-        const FossToast(title: Text('Name must be 20 characters or less.'), variant: FossToastVariant.error),
-      );
-      return;
-    }
-
-    // [FIX: BOOL RETURN] Repository returns true/false, not a string.
-    final success = await _profileRepo.updateUsername(normalizedNew);
+    final success = await _profileRepo.updateUsername(newName);
 
     if (!mounted) return;
 
     if (success) {
+      final nowStr = DateTime.now().toUtc().toIso8601String();
+      await _prefs?.setString('name_last_updated', nowStr);
+      if (!mounted) return;
       setState(() {
-        _profileFuture = _profileRepo.getProfile();
+        _profileFuture = _loadProfileAndPrefs();
       });
-      showFossToast(
-        context,
-        const FossToast(title: Text('Name updated'), variant: FossToastVariant.success),
-      );
+      showComebakSnackBar(context, 'Name updated');
     } else {
-      showFossToast(
-        context,
-        const FossToast(title: Text('Could not update name. Try again.'), variant: FossToastVariant.error),
-      );
+      showComebakSnackBar(context, 'Could not update name. Try again.', isError: true);
     }
   }
 
-  // [LOGOUT] Confirmation dialog using FossAlertDialog (centered).
   void _showLogoutDialog(BuildContext context) async {
-    final confirmed = await showFossDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
-      presentation: FossDialogPresentation.centered,
-      builder: (context) => FossDialog(
-        style: const FossDialogStyle(maxWidth: AppDialogWidth.compact),
-        title: const Text('Log out?'),
-        description: const Text('Are you sure you want to log out?'),
-        // Stacked full-width buttons for destructive action.
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              child: FossButton(
-                variant: FossButtonVariant.ghost,
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            SizedBox(
-              width: double.infinity,
-              child: FossButton(
-                variant: FossButtonVariant.destructive,
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Logout'),
-              ),
-            ),
-          ],
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.radiusLarge),
+          side: const BorderSide(color: AppColors.borderSubtle),
         ),
-        actions: const [],
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 340),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.space24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Log out?', style: AppTextStyles.titleMedium),
+                const SizedBox(height: AppSpacing.space8),
+                Text('Are you sure you want to log out?', style: AppTextStyles.bodyMedium),
+                const SizedBox(height: AppSpacing.space24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ComebakButton(
+                        text: 'Cancel',
+                        variant: ComebakButtonVariant.ghost,
+                        onPressed: () => Navigator.pop(context, false),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.space16),
+                    Expanded(
+                      child: ComebakButton(
+                        text: 'Logout',
+                        variant: ComebakButtonVariant.danger,
+                        onPressed: () => Navigator.pop(context, true),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
 
@@ -228,89 +166,201 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.canvas,
       body: SafeArea(
         child: FutureBuilder<Map<String, dynamic>?>(
           future: _profileFuture,
           builder: (context, snapshot) {
             final email = Supabase.instance.client.auth.currentUser?.email;
-            final username = snapshot.data?['username'] as String?;
-            final lastUpdated = snapshot.data?['username_last_updated'] as String?;
+            final name = snapshot.data?['name'] as String?;
+            final lastUpdated = snapshot.data?['name_last_updated'] as String?;
+            final currentStreak = snapshot.data?['current_streak'] as int? ?? 0;
+            final lastPlayedStr = snapshot.data?['last_played_at'] as String?;
+
+            String streakText = '';
+            bool isStreakActive = false;
+            
+            if (currentStreak > 0) {
+              streakText = '🔥 $currentStreak Day Streak';
+              isStreakActive = true;
+            } else if (lastPlayedStr != null) {
+              final date = DateTime.tryParse(lastPlayedStr);
+              if (date != null) {
+                streakText = 'Last played on ${date.day}/${date.month}/${date.year}';
+              }
+            } else {
+              streakText = 'Welcome! Play your first game.';
+            }
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.all(AppSpacing.space24),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: AppSpacing.xl),
-                  FossAvatar(
-                    fallback: Text(_getInitial(username, email)),
-                    size: FossAvatarSize.xl2,
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  GestureDetector(
-                    onTap: () => _handleEditUsername(username, lastUpdated),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: FossText(
-                            _getDisplayName(username, email),
-                            size: FossTextSize.xl2,
-                            weight: FossTextWeight.bold,
-                          ),
+                crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                  const SizedBox(height: AppSpacing.space32),
+                  
+                  Row(
+                    children: [
+                      ComebakAvatar(name: name),
+                      const SizedBox(width: AppSpacing.space16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(_getDisplayName(name), style: AppTextStyles.titleLarge),
+                            const SizedBox(height: AppSpacing.space4),
+                            Text(
+                              email ?? '—', 
+                              style: AppTextStyles.bodyMedium,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: AppSpacing.space8),
+                            ComebakChip(text: streakText, isActive: isStreakActive),
+                          ],
                         ),
-                        const SizedBox(width: AppSpacing.xs),
-                        Icon(
-                          Icons.edit,
-                          size: 20,
-                          color: AppColors.textPrimary.withValues(alpha: 0.6),
+                      ),
+                    ],
+                  ),
+
+                  const SectionHeader('Account'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceElevated,
+                      borderRadius: BorderRadius.circular(AppRadius.radiusMedium),
+                      border: Border.all(color: AppColors.borderSubtle),
+                    ),
+                    child: Column(
+                      children: [
+                        ComebakListTile(
+                          leading: const Icon(LucideIcons.pencil, size: 24, color: AppColors.textMuted),
+                          title: 'Edit Name',
+                          trailing: const Icon(LucideIcons.chevron_right, size: 20, color: AppColors.textMuted),
+                          onTap: () => _handleEditName(name, lastUpdated),
+                        ),
+                        const Divider(height: 1, color: AppColors.borderSubtle),
+                        ComebakListTile(
+                          leading: const Icon(LucideIcons.settings, size: 24, color: AppColors.textMuted),
+                          title: 'Developer Mode',
+                          trailing: Switch(
+                            value: widget.isDevMode,
+                            onChanged: widget.onToggleDevMode,
+                            activeThumbColor: AppColors.primaryAccent,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xs),
-                  FossText(
-                    email ?? '—',
-                    size: FossTextSize.base,
-                    color: FossTextColor.mutedForeground,
+
+                  const SizedBox(height: AppSpacing.space48),
+                  
+                  ComebakButton(
+                    text: 'Logout',
+                    variant: ComebakButtonVariant.danger,
+                    onPressed: () => _showLogoutDialog(context),
                   ),
-                  const SizedBox(height: AppSpacing.xl * 2),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                      child: SwitchListTile(
-                        title: FossText('Developer Mode', size: FossTextSize.base),
-                        subtitle: FossText(
-                          'Toggle UILab tab visibility',
-                          size: FossTextSize.xs,
-                          color: FossTextColor.mutedForeground,
-                        ),
-                        value: widget.isDevMode,
-                        activeThumbColor: AppColors.primary,
-                        onChanged: widget.onToggleDevMode,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FossButton(
-                      variant: FossButtonVariant.destructive,
-                      onPressed: () => _showLogoutDialog(context),
-                      child: const Text('Logout'),
-                    ),
-                  ),
+                  const SizedBox(height: AppSpacing.space32),
                 ],
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+// [FIX] Extracted Edit Name Dialog to manage its own TextEditingController lifecycle.
+class _EditNameDialog extends StatefulWidget {
+  final String? initialName;
+
+  const _EditNameDialog({this.initialName});
+
+  @override
+  State<_EditNameDialog> createState() => _EditNameDialogState();
+}
+
+class _EditNameDialogState extends State<_EditNameDialog> {
+  late TextEditingController _controller;
+  late bool _isValid;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialName);
+    _isValid = _controller.text.trim().isNotEmpty;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.radiusLarge),
+        side: const BorderSide(color: AppColors.borderSubtle),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 340),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.space24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Edit Name', style: AppTextStyles.titleMedium),
+              const SizedBox(height: AppSpacing.space16),
+              TextField(
+                controller: _controller,
+                style: AppTextStyles.body,
+                inputFormatters: [LengthLimitingTextInputFormatter(30)],
+                onChanged: (val) {
+                  setState(() {
+                    _isValid = val.trim().isNotEmpty;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Your name',
+                  hintStyle: AppTextStyles.body.copyWith(color: AppColors.textMuted),
+                  filled: true,
+                  fillColor: AppColors.surfaceOverlay,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.space16, vertical: AppSpacing.space12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.radiusSmall),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.space24),
+              Row(
+                children: [
+                  Expanded(
+                    child: ComebakButton(
+                      text: 'Cancel',
+                      variant: ComebakButtonVariant.ghost,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.space16),
+                  Expanded(
+                    child: ComebakButton(
+                      text: 'Save',
+                      variant: ComebakButtonVariant.primary,
+                      // [FIX] Button is disabled if input is empty
+                      onPressed: _isValid
+                          ? () => Navigator.pop(context, _controller.text.trim())
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
