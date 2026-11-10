@@ -12,7 +12,8 @@ import '../../../core/games/widgets/game_hud.dart';
 import '../game_result_screen.dart';
 
 class MadBurstScreen extends StatefulWidget {
-  const MadBurstScreen({super.key});
+  final Color accentColor;
+  const MadBurstScreen({super.key, required this.accentColor});
 
   @override
   State<MadBurstScreen> createState() => _MadBurstScreenState();
@@ -101,7 +102,7 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
     do {
       b2 = board[_random.nextInt(board.length)];
     } while (b2.id == b1.id);
-    return b1.value * b2.value; // MULTIPLICATION
+    return b1.value * b2.value;
   }
 
   void _onTick(Duration elapsed) {
@@ -177,10 +178,8 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
           _addFx(activeTapped.position, '+$points', AppColors.primary, true);
           
           final survivors = _bubbles.where((b) => b.id != activeSelected.id && b.id != activeTapped.id).toList();
-          
           final nextBubble1 = _generateBubbleData();
           final nextBubble2 = _generateBubbleData();
-          
           final nextBoardState = [...survivors, nextBubble1, nextBubble2];
           final nextTarget = _calculateTarget(nextBoardState);
           
@@ -244,6 +243,7 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
           score: _score,
           accuracy: accuracy,
           bestCombo: _bestCombo,
+          gameBuilder: () => MadBurstScreen(accentColor: widget.accentColor),
         ),
       ),
     );
@@ -324,7 +324,7 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
                               style: AppTextStyles.display.copyWith(fontSize: 100),
                             ),
                             SizedBox(height: AppSpacing.lg),
-                            Text('Mad Burst', style: AppTextStyles.hud.copyWith(color: AppColors.vibrantOrange)),
+                            Text('Mad Burst', style: AppTextStyles.hud.copyWith(color: widget.accentColor)),
                             SizedBox(height: AppSpacing.md),
                             Text('Multiply two numbers to hit the target.', style: AppTextStyles.body),
                           ],

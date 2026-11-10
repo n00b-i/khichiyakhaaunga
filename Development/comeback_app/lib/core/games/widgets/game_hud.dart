@@ -7,6 +7,7 @@ class GameHud extends StatelessWidget {
   final int target;
   final int score;
   final String operationPrefix; // '+' for Add, 'x' for Mad, '=' for Math
+  final bool showTarget;
 
   const GameHud({
     super.key,
@@ -15,6 +16,7 @@ class GameHud extends StatelessWidget {
     required this.target,
     required this.score,
     this.operationPrefix = '', // Default is empty
+    this.showTarget = true,
   });
 
   @override
@@ -48,26 +50,29 @@ class GameHud extends StatelessWidget {
               ],
             ),
             
-            // Target
-            Column(
-              children: [
-                Text(
-                  '$operationPrefix$target', // <--- PREFIX APPLIED HERE
-                  style: AppTextStyles.display.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 48,
-                    height: 1.0,
+            // Target (Optional)
+            if (showTarget)
+              Column(
+                children: [
+                  Text(
+                    '$operationPrefix$target',
+                    style: AppTextStyles.display.copyWith(
+                      color: AppColors.primary,
+                      fontSize: 48,
+                      height: 1.0,
+                    ),
                   ),
-                ),
-                Text(
-                  'Target',
-                  style: AppTextStyles.body.copyWith(
-                    color: AppColors.textPrimary.withValues(alpha: 0.6),
-                    fontSize: 12,
+                  Text(
+                    'Target',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textPrimary.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              )
+            else
+              const SizedBox(width: 48), // Spacer to keep Time/Score balanced
             
             // Score
             Column(

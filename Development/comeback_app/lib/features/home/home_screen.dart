@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/game_card.dart';
-import '../common/coming_soon_screen.dart';
 import '../games/add_burst/add_burst_screen.dart';
 import '../games/mad_burst/mad_burst_screen.dart';
+import '../games/math_burst/math_burst_screen.dart';
+import '../games/number_hunt/number_hunt_screen.dart';
+import '../games/memory_of_saitan/memory_of_saitan_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final String? userName;
@@ -22,14 +24,6 @@ class HomeScreen extends StatelessWidget {
     return (userName == null || userName!.isEmpty) ? base : '$base, $userName';
   }
 
-  void _openComingSoon(BuildContext context, String gameName) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ComingSoonScreen(gameName: gameName),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,34 +31,24 @@ class HomeScreen extends StatelessWidget {
         child: SingleChildScrollView(
           padding: EdgeInsets.all(AppSpacing.md),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch, // Force full width
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(height: AppSpacing.lg),
-              Text(
-                _greetingWithName(), 
-                style: AppTextStyles.display,
-                softWrap: true,
-              ),
+              Text(_greetingWithName(), style: AppTextStyles.display, softWrap: true),
               SizedBox(height: AppSpacing.xs),
-              Text(
-                'Time to go high and higher',
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.textPrimary.withValues(alpha: 0.6),
-                ),
-                softWrap: true,
-              ),
+              Text('Time to go high and higher', style: AppTextStyles.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.6)), softWrap: true),
               SizedBox(height: AppSpacing.xl),
+
+              // --- CATEGORY 1: MATH BURST ---
+              Text('MATH BURST', style: AppTextStyles.body.copyWith(color: AppColors.vibrantOrange, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
+              SizedBox(height: AppSpacing.sm),
               
               GameCard(
                 title: 'Add Burst',
                 description: 'Add two numbers to hit the target.',
                 icon: Icons.add_circle_outline,
-                accentColor: AppColors.vibrantGreen,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const AddBurstScreen()),
-                  );
-                },
+                accentColor: AppColors.vibrantOrange,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddBurstScreen(accentColor: AppColors.vibrantOrange))),
               ),
               SizedBox(height: AppSpacing.sm),
               
@@ -73,31 +57,51 @@ class HomeScreen extends StatelessWidget {
                 description: 'Multiply two numbers to hit the target.',
                 icon: Icons.close,
                 accentColor: AppColors.vibrantOrange,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const MadBurstScreen()),
-                  );
-                },
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MadBurstScreen(accentColor: AppColors.vibrantOrange))),
               ),
               SizedBox(height: AppSpacing.sm),
               
               GameCard(
-                title: 'Math Burst',
-                description: 'Solve equations fast with the custom numpad.',
+                title: 'BODMAS Burst',
+                description: 'Solve maximum BODMAS problems.',
                 icon: Icons.calculate_outlined,
-                accentColor: AppColors.vibrantBlue,
-                onTap: () => _openComingSoon(context, 'Math Burst'),
+                accentColor: AppColors.vibrantOrange,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MathBurstScreen(accentColor: AppColors.vibrantOrange))),
               ),
               SizedBox(height: AppSpacing.sm),
               
               GameCard(
-                title: 'Memory of Saitan',
-                description: 'Reveal numbers in the dark with a flashlight.',
+                title: 'Small Burst',
+                description: 'Find the smallest number.',
+                icon: Icons.search,
+                accentColor: AppColors.vibrantOrange,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NumberHuntScreen(accentColor: AppColors.vibrantOrange))),
+              ),
+
+              SizedBox(height: AppSpacing.xl),
+
+              // --- CATEGORY 2: SAITAN'S MEMORY ---
+              Text('SAITAN\'S MEMORY', style: AppTextStyles.body.copyWith(color: AppColors.vibrantPurple, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
+              SizedBox(height: AppSpacing.sm),
+
+              GameCard(
+                title: 'Saitan +',
+                description: 'Memorize the grid in the dark. Add to target.',
                 icon: Icons.flashlight_on_outlined,
                 accentColor: AppColors.vibrantPurple,
-                onTap: () => _openComingSoon(context, 'Memory of Saitan'),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MemoryOfSaitanScreen(isMultiplication: false, accentColor: AppColors.vibrantPurple))),
               ),
-              SizedBox(height: AppSpacing.lg),
+              SizedBox(height: AppSpacing.sm),
+
+              GameCard(
+                title: 'Saitan X',
+                description: 'Memorize the grid in the dark. Multiply to target.',
+                icon: Icons.flashlight_on_outlined,
+                accentColor: AppColors.vibrantPurple,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MemoryOfSaitanScreen(isMultiplication: true, accentColor: AppColors.vibrantPurple))),
+              ),
+              
+              SizedBox(height: AppSpacing.lg * 2),
             ],
           ),
         ),

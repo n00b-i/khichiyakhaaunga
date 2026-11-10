@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/primary_button.dart';
-import 'add_burst/add_burst_screen.dart';
 
 class GameResultScreen extends StatelessWidget {
   final int score;
   final int accuracy;
   final int bestCombo;
+  // Dynamic builder ensures we don't hardcode which game restarts
+  final Widget Function() gameBuilder;
 
   const GameResultScreen({
     super.key,
     required this.score,
     required this.accuracy,
     required this.bestCombo,
+    required this.gameBuilder,
   });
 
   @override
@@ -31,7 +33,6 @@ class GameResultScreen extends StatelessWidget {
                 score.toString(),
                 style: AppTextStyles.hud.copyWith(
                   fontSize: 80,
-                  // Show red if score is 0 or negative
                   color: score > 0 ? AppColors.primary : AppColors.vibrantRed,
                 ),
               ),
@@ -50,7 +51,7 @@ class GameResultScreen extends StatelessWidget {
                 text: 'Play Again',
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const AddBurstScreen()),
+                    MaterialPageRoute(builder: (_) => gameBuilder()),
                   );
                 },
               ),

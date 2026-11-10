@@ -12,7 +12,8 @@ import '../../../core/games/widgets/game_hud.dart';
 import '../game_result_screen.dart';
 
 class AddBurstScreen extends StatefulWidget {
-  const AddBurstScreen({super.key});
+  final Color accentColor;
+  const AddBurstScreen({super.key, required this.accentColor});
 
   @override
   State<AddBurstScreen> createState() => _AddBurstScreenState();
@@ -73,7 +74,6 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
     _target = _calculateTarget(_bubbles);
   }
 
-  // Generates a bubble in memory without adding it to the active list
   Bubble _generateBubbleData() {
     int value;
     do {
@@ -102,7 +102,7 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
     do {
       b2 = board[_random.nextInt(board.length)];
     } while (b2.id == b1.id);
-    return b1.value + b2.value; // ADDITION
+    return b1.value + b2.value;
   }
 
   void _onTick(Duration elapsed) {
@@ -177,25 +177,17 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
           SystemSound.play(SystemSoundType.click);
           _addFx(activeTapped.position, '+$points', AppColors.primary, true);
           
-          // --- ADVANCED PRE-COMPUTATION ---
-          // 1. Calculate survivors
           final survivors = _bubbles.where((b) => b.id != activeSelected.id && b.id != activeTapped.id).toList();
-          
-          // 2. Pre-generate next bubbles
           final nextBubble1 = _generateBubbleData();
           final nextBubble2 = _generateBubbleData();
-          
-          // 3. Pre-calculate the next target using survivors + new bubbles
           final nextBoardState = [...survivors, nextBubble1, nextBubble2];
           final nextTarget = _calculateTarget(nextBoardState);
           
-          // 4. Atomic Swap
           _bubbles.clear();
           _bubbles.addAll(nextBoardState);
           _target = nextTarget;
           _selectedBubble = null;
           
-          // 5. Cognitive Freeze
           _isFrozen = true;
           _ticker.muted = true;
           Future.delayed(const Duration(milliseconds: 180), () {
@@ -204,7 +196,6 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
               _ticker.muted = false;
             }
           });
-          // --------------------------------
         } else {
           _misses++;
           _combo = 0;
@@ -252,6 +243,7 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
           score: _score,
           accuracy: accuracy,
           bestCombo: _bestCombo,
+          gameBuilder: () => AddBurstScreen(accentColor: widget.accentColor),
         ),
       ),
     );
@@ -332,7 +324,7 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
                               style: AppTextStyles.display.copyWith(fontSize: 100),
                             ),
                             SizedBox(height: AppSpacing.lg),
-                            Text('Add Burst', style: AppTextStyles.hud.copyWith(color: AppColors.vibrantGreen)),
+                            Text('Add Burst', style: AppTextStyles.hud.copyWith(color: widget.accentColor)),
                             SizedBox(height: AppSpacing.md),
                             Text('Add two numbers to hit the target.', style: AppTextStyles.body),
                           ],
