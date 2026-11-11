@@ -47,6 +47,7 @@ dependencies:
   connectivity_plus: ^7.3.2
   fossui: ^0.1.2
   flutter_lucide: ^1.71.0
+  internet_connection_checker_plus: ^3.1.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
