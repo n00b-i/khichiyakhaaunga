@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "736323387770",
+    "project_id": "comebak-in",
+    "storage_bucket": "comebak-in.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:736323387770:android:540a0895b958df0a21d6c3",
+        "android_client_info": {
+          "package_name": "in.comebak.comebak_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_ZLLoxPAlKT2tIZO39uSUZx4ec_4WpLI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
