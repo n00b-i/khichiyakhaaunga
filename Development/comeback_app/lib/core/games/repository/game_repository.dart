@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 import '../../session/session_manager.dart';
+import '../../stats/stats_repository.dart'; // [ISSUE-9] Import for cache invalidation
 
 class MatchResult {
   final bool isNewPB;
@@ -107,6 +108,10 @@ class GameRepository {
       // [ISSUE-3] Invalidate cached stats so the UI fetches fresh data next time
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('cached_stats');
+
+      // [ISSUE-9] Invalidate in-memory cache so StatsScreen fetches fresh data once.
+      StatsRepository(_supabase).invalidateCache();
+      
     } catch (e) {
       debugPrint('[GameRepository] Network failed on match end. Queuing for sync: $e');
 

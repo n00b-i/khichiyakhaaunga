@@ -39,7 +39,12 @@ mixin GameTimerMixin<T extends StatefulWidget> on State<T>, SingleTickerProvider
 
   void _onLifecycle(AppLifecycleState state) {
     if (!config.pauseOnBackground) return;
-    if (state == AppLifecycleState.paused) {
+    
+    // [ISSUE-15] Pause on 'inactive' (Control Center/Notification Center on iOS), 
+    // 'hidden', or 'paused'. Resume only when fully 'resumed'.
+    if (state == AppLifecycleState.paused || 
+        state == AppLifecycleState.inactive || 
+        state == AppLifecycleState.hidden) {
       _ticker.stop();
     } else if (state == AppLifecycleState.resumed) {
       if (!_ticker.isActive) _ticker.start();
@@ -56,9 +61,7 @@ mixin GameTimerMixin<T extends StatefulWidget> on State<T>, SingleTickerProvider
     
     if (_timeLeft <= Duration.zero) {
       _timeLeft = Duration.zero;
-      // [CRITICAL FIX] Stop the ticker immediately so onTimeUp() only fires ONCE.
-      // Without this, the ticker continues at 60fps, causing onTimeUp to fire 60 times a second,
-      // which triggers multiple Navigator.pushReplacement calls and breaks the slide animation.
+      // [CRITICAL] Stop ticker so onTimeUp fires exactly once, preventing 60fps route push storm.
       _ticker.stop(); 
       onTimerUpdate(Duration.zero);
       onTimeUp();
@@ -70,8 +73,6 @@ mixin GameTimerMixin<T extends StatefulWidget> on State<T>, SingleTickerProvider
   }
 }
 
-// Private observer: inherits default no-op implementations from
-// WidgetsBindingObserver, overrides only didChangeAppLifecycleState.
 class _TimerObserver with WidgetsBindingObserver {
   final void Function(AppLifecycleState) _onLifecycle;
   _TimerObserver(this._onLifecycle);
