@@ -31,3 +31,7 @@ None.
 - **Status:** Complete on 2026-11-11.
 - **Notes:** `StatsRepository` caches to `SharedPreferences` (`cached_stats`). `GameRepository.endMatch()` now invalidates this cache after a successful match update, forcing a fresh fetch on the next stats screen visit.
 - **Related:** Pluralization for "Record broken after X Days" handled in `GameResultScreen`.
+
+## Issue #3 Closed
+- Closed on 2026-11-11 via `gh issue close 3`.
+- See commit `41746b0`.
