@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
@@ -10,19 +9,21 @@ import '../../../core/games/widgets/game_hud.dart';
 import '../game_result_screen.dart';
 import 'widgets/custom_numpad.dart';
 import '../../../core/games/repository/game_repository.dart';
+import '../../../core/games/models/game_config.dart';
+import '../../../core/games/configs/game_configs.dart';
+import '../../../core/games/mixins/game_timer_mixin.dart';
 
 // Renamed from MathBurstScreen to BodmasBurstScreen to match the UI and Category
 class BodmasBurstScreen extends StatefulWidget {
+  final GameConfig config;
   final Color accentColor;
-  const BodmasBurstScreen({super.key, required this.accentColor});
+  const BodmasBurstScreen({super.key, required this.accentColor, this.config = BodmasBurstConfig.standard});
 
   @override
   State<BodmasBurstScreen> createState() => _BodmasBurstScreenState();
 }
 
-class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTickerProviderStateMixin {
-  late Ticker _ticker;
-  Duration _lastElapsed = Duration.zero;
+class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTickerProviderStateMixin, GameTimerMixin {
   final Random _random = Random();
 
   // --- DATABASE INTEGRATION ---
@@ -37,7 +38,6 @@ class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTicker
   int _hits = 0;
   int _misses = 0;
   bool _gameStarted = false;
-  double _exactTimeLeft = 60.0;
   
   int _countdown = 3;
   bool _showCountdown = true;
@@ -49,9 +49,29 @@ class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTicker
   bool _isWrongFlash = false;
 
   @override
+  GameConfig get config => widget.config;
+
+  @override
+  bool get isTimerActive => _gameStarted && !_showCountdown;
+
+  @override
+  void onTimerUpdate(Duration timeLeft) {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void onTimeUp() {
+    _endGame();
+  }
+
+  @override
+  void onTimerTick(double dt) {
+    // BODMAS is timer-only. No physics to update.
+  }
+
+  @override
   void initState() {
     super.initState();
-    _ticker = createTicker(_onTick)..start();
     _startCountdown();
 
     // [DB-3] AC19: Start match in DB. 
@@ -118,28 +138,6 @@ class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTicker
     
     _input = '';
     _isWrongFlash = false;
-  }
-
-  void _onTick(Duration elapsed) {
-    // AC (General): Smooth 60fps timer calculation
-    if (!mounted || !_gameStarted || _showCountdown) return;
-    
-    final dt = (elapsed - _lastElapsed).inMicroseconds / 1000000.0;
-    _lastElapsed = elapsed;
-    if (dt > 0.1) return; // Clamp to prevent jumps on background/resume
-
-    final currentElapsed = elapsed.inMilliseconds / 1000.0;
-    final remaining = 60.0 - currentElapsed;
-    
-    if (remaining <= 0) {
-      _exactTimeLeft = 0;
-      _endGame();
-      return;
-    }
-
-    setState(() {
-      _exactTimeLeft = remaining;
-    });
   }
 
   void _handleDigitTap(int digit) {
@@ -213,8 +211,8 @@ class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTicker
     }
   }
 
+  
   void _endGame() async {
-    _ticker.stop();
     final totalTaps = _hits + _misses;
     final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
 
@@ -226,7 +224,7 @@ class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTicker
         gameId: 'bodmas_burst', // Placeholder to be replaced
         score: _score,
         accuracy: (totalTaps == 0 ? 0.0 : (_hits / totalTaps) * 100.0),
-        durationSeconds: 60,
+        durationSeconds: widget.config.duration.inSeconds,
       );
     }
 
@@ -239,7 +237,7 @@ class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTicker
           previousPBBrokenAfter: matchResult?.previousPBBrokenAfter,
           accuracy: accuracy.round(),
           bestCombo: _bestCombo,
-          gameBuilder: () => BodmasBurstScreen(accentColor: widget.accentColor),
+          gameBuilder: () => BodmasBurstScreen(accentColor: widget.accentColor, config: widget.config),
         ),
       ),
     );
@@ -247,7 +245,6 @@ class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTicker
 
   @override
   void dispose() {
-    _ticker.dispose();
     _countdownTimer?.cancel();
     super.dispose();
   }
@@ -265,8 +262,8 @@ class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTicker
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                   child: GameHud(
-                    timeLeft: _exactTimeLeft,
-                    maxTime: 60,
+                    timeLeft: timeLeft.inMilliseconds / 1000.0,
+                    maxTime: widget.config.duration.inSeconds,
                     target: 0, 
                     score: _score,
                     showTarget: false, 
@@ -319,9 +316,9 @@ class _BodmasBurstScreenState extends State<BodmasBurstScreen> with SingleTicker
                           style: AppTextStyles.display.copyWith(fontSize: 100),
                         ),
                         SizedBox(height: AppSpacing.lg),
-                        Text('BODMAS Burst', style: AppTextStyles.hud.copyWith(color: widget.accentColor)),
+                        Text(widget.config.title, style: AppTextStyles.hud.copyWith(color: widget.accentColor)),
                         SizedBox(height: AppSpacing.md),
-                        Text('Solve maximum BODMAS problems', style: AppTextStyles.body),
+                        Text(widget.config.instructions, style: AppTextStyles.body),
                       ],
                     ),
                   ),

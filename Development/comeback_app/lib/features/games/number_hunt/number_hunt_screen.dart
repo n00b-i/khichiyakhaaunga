@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // [1] Supabase import
 import 'package:vibration/vibration.dart';
@@ -12,19 +11,21 @@ import '../../../core/games/widgets/bubble_painter.dart';
 import '../../../core/games/widgets/game_hud.dart';
 import '../../../core/games/utils/game_diagnostics.dart';
 import '../game_result_screen.dart';
-import '../../../core/games/repository/game_repository.dart'; // [2] Repository import
+import '../../../core/games/repository/game_repository.dart';
+import '../../../core/games/models/game_config.dart';
+import '../../../core/games/configs/game_configs.dart';
+import '../../../core/games/mixins/game_timer_mixin.dart'; // [2] Repository import
 
 class NumberHuntScreen extends StatefulWidget {
   final Color accentColor;
-  const NumberHuntScreen({super.key, required this.accentColor});
+  final GameConfig config;
+  const NumberHuntScreen({super.key, required this.accentColor, this.config = NumberHuntConfig.standard});
 
   @override
   State<NumberHuntScreen> createState() => _NumberHuntScreenState();
 }
 
-class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerProviderStateMixin {
-  late Ticker _ticker;
-  Duration _lastElapsed = Duration.zero;
+class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerProviderStateMixin, GameTimerMixin {
   final Random _random = Random();
 
   // [3] DB Match Tracking Variables
@@ -38,7 +39,6 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
   int _misses = 0;
   bool _gameStarted = false;
   bool _isFrozen = false;
-  double _exactTimeLeft = 60.0;
   
   int _countdown = 3;
   bool _showCountdown = true;
@@ -51,9 +51,40 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
   Size _playAreaSize = Size.zero;
 
   @override
+  GameConfig get config => widget.config;
+
+  @override
+  bool get isTimerActive => _gameStarted && !_showCountdown && !_isFrozen;
+
+  @override
+  void onTimerUpdate(Duration timeLeft) {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void onTimeUp() {
+    _endGame();
+  }
+
+  @override
+  void onTimerTick(double dt) {
+    if (!mounted) return;
+    setState(() {
+      final bottomBound = _playAreaSize.height;
+      for (var b in _bubbles) { b.update(dt, _playAreaSize, 0, bottomBound); }
+      resolveBubbleCollisions(_bubbles);
+
+      _floatingTexts.removeWhere((t) => t.opacity <= 0);
+      for (var t in _floatingTexts) { t.update(dt); }
+
+      _particles.removeWhere((p) => p.opacity <= 0);
+      for (var p in _particles) { p.update(dt); }
+    });
+  }
+
+  @override
   void initState() {
     super.initState();
-    _ticker = createTicker(_onTick)..start();
     _startCountdown();
 
     // [4] Initialize DB Match
@@ -101,37 +132,8 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
     return Bubble(value: value, position: pos, velocity: vel, radius: radius);
   }
 
-  void _onTick(Duration elapsed) {
-    if (!mounted || !_gameStarted || _showCountdown) return;
-    final dt = (elapsed - _lastElapsed).inMicroseconds / 1000000.0;
-    _lastElapsed = elapsed;
-    if (dt > 0.1) return; 
-
-    final currentElapsed = elapsed.inMilliseconds / 1000.0;
-    final remaining = 60.0 - currentElapsed;
-    
-    if (remaining <= 0) {
-      _exactTimeLeft = 0;
-      _endGame();
-      return;
-    }
-
-    setState(() {
-      _exactTimeLeft = remaining;
-      if (!_isFrozen) {
-        final bottomBound = _playAreaSize.height;
-        for (var b in _bubbles) { b.update(dt, _playAreaSize, 0, bottomBound); }
-        resolveBubbleCollisions(_bubbles);
-      }
-      _floatingTexts.removeWhere((t) => t.opacity <= 0);
-      for (var t in _floatingTexts) { t.update(dt); }
-      _particles.removeWhere((p) => p.opacity <= 0);
-      for (var p in _particles) { p.update(dt); }
-    });
-  }
-
   void _handleTap(TapDownDetails details) {
-    if (_isFrozen || _exactTimeLeft <= 0 || _showCountdown) return;
+    if (_isFrozen || timeLeft <= Duration.zero || _showCountdown) return;
 
     final tapPos = details.localPosition;
     Bubble? tapped;
@@ -157,11 +159,9 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
         _bubbles.add(_generateBubbleData());
         
         _isFrozen = true; 
-        _ticker.muted = true;
         Future.delayed(const Duration(milliseconds: 180), () {
           if (mounted) { 
             setState(() => _isFrozen = false); 
-            _ticker.muted = false; 
           }
         });
       } else {
@@ -188,7 +188,6 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
   }
 
   void _endGame() async {
-    _ticker.stop();
     final totalTaps = _hits + _misses;
     final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
 
@@ -200,7 +199,7 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
         gameId: 'small_burst', // Placeholder to be replaced
         score: _score,
         accuracy: (totalTaps == 0 ? 0.0 : (_hits / totalTaps) * 100.0),
-        durationSeconds: 60,
+        durationSeconds: widget.config.duration.inSeconds,
       );
     }
 
@@ -211,12 +210,12 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
           previousPBBrokenAfter: matchResult?.previousPBBrokenAfter, 
       accuracy: accuracy.round(), 
       bestCombo: _bestCombo, 
-      gameBuilder: () => NumberHuntScreen(accentColor: widget.accentColor)
+      gameBuilder: () => NumberHuntScreen(accentColor: widget.accentColor, config: widget.config)
     )));
   }
 
   @override
-  void dispose() { _ticker.dispose(); _countdownTimer?.cancel(); super.dispose(); }
+  void dispose() { _countdownTimer?.cancel(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +238,7 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
                 ),
                 Positioned(
                   top: AppSpacing.md, left: AppSpacing.md, right: AppSpacing.md,
-                  child: GameHud(timeLeft: _exactTimeLeft, maxTime: 60, target: 0, score: _score, showTarget: false),
+                  child: GameHud(timeLeft: timeLeft.inMilliseconds / 1000.0, maxTime: widget.config.duration.inSeconds, target: 0, score: _score, showTarget: false),
                 ),
                 Positioned(
                   bottom: AppSpacing.xl, left: AppSpacing.lg,
@@ -249,9 +248,9 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
                   Positioned.fill(child: Container(color: AppColors.background, child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                     Text('$_countdown', style: AppTextStyles.display.copyWith(fontSize: 100)),
                     SizedBox(height: AppSpacing.lg),
-                    Text('Small Burst', style: AppTextStyles.hud.copyWith(color: widget.accentColor)),
+                    Text(widget.config.title, style: AppTextStyles.hud.copyWith(color: widget.accentColor)),
                     SizedBox(height: AppSpacing.md),
-                    Text('Find and tap the smallest number.', style: AppTextStyles.body),
+                    Text(widget.config.instructions, style: AppTextStyles.body),
                   ])))),
               ],
             );
