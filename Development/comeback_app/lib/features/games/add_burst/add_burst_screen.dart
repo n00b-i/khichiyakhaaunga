@@ -7,6 +7,7 @@ import 'package:vibration/vibration.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/games/models/bubble.dart';
 import '../../../core/games/models/game_fx.dart';
+import '../../../core/games/models/board_paint_state.dart'; // [ISSUE-1] New state model
 import '../../../core/games/widgets/bubble_painter.dart';
 import '../../../core/games/widgets/game_hud.dart';
 import '../game_result_screen.dart';
@@ -16,13 +17,9 @@ import '../../../core/games/configs/game_configs.dart';
 import '../../../core/games/mixins/game_timer_mixin.dart';
 
 class AddBurstScreen extends StatefulWidget {
-  final Color accentColor;
   final GameConfig config;
-  const AddBurstScreen({
-    super.key,
-    required this.accentColor,
-    this.config = AddBurstConfig.standard,
-  });
+  final Color accentColor;
+  const AddBurstScreen({super.key, required this.accentColor, this.config = AddBurstConfig.standard});
 
   @override
   State<AddBurstScreen> createState() => _AddBurstScreenState();
@@ -47,11 +44,15 @@ class _AddBurstScreenState extends State<AddBurstScreen>
   bool _showCountdown = true;
   Timer? _countdownTimer;
 
-  final List<Bubble> _bubbles = [];
-  final List<FloatingText> _floatingTexts = [];
-  final List<Particle> _particles = [];
+  // [ISSUE-1] Isolated state for physics/paint. Replaces _bubbles, _floatingTexts, _particles.
+  final BoardPaintState _board = BoardPaintState();
+  // [ISSUE-1] Long-lived painter, created once to avoid object churn.
+  late final BubblePainter _painter = BubblePainter(board: _board);
+  
+  // [ISSUE-1] Separate Listenable for HUD time, so updating time doesn't rebuild the screen.
+  final ValueNotifier<Duration> _timeLeftListenable = ValueNotifier(Duration.zero);
+  
   Bubble? _selectedBubble;
-
   Size _playAreaSize = Size.zero;
 
   @override
@@ -62,7 +63,8 @@ class _AddBurstScreenState extends State<AddBurstScreen>
 
   @override
   void onTimerUpdate(Duration timeLeft) {
-    setState(() {});
+    // [ISSUE-1] Update HUD without calling setState() on the whole screen.
+    _timeLeftListenable.value = timeLeft;
   }
 
   @override
@@ -72,23 +74,25 @@ class _AddBurstScreenState extends State<AddBurstScreen>
 
   @override
   void onTimerTick(double dt) {
+    if (!mounted) return;
+    
+    // [ISSUE-1] Mutate the bubbles in place (for physics), but don't call setState().
     if (!_isFrozen) {
       final bottomBound = _playAreaSize.height;
-      for (var b in _bubbles) {
+      for (final b in _board.bubbles) {
         b.update(dt, _playAreaSize, 0, bottomBound);
       }
-      resolveBubbleCollisions(_bubbles);
+      resolveBubbleCollisions(_board.bubbles);
     }
 
-    _floatingTexts.removeWhere((t) => t.opacity <= 0);
-    for (var t in _floatingTexts) {
-      t.update(dt);
-    }
+    _board.floatingTexts.removeWhere((t) => t.opacity <= 0);
+    for (final t in _board.floatingTexts) { t.update(dt); }
 
-    _particles.removeWhere((p) => p.opacity <= 0);
-    for (var p in _particles) {
-      p.update(dt);
-    }
+    _board.particles.removeWhere((p) => p.opacity <= 0);
+    for (final p in _board.particles) { p.update(dt); }
+
+    // [ISSUE-1] Triggers the BubblePainter to repaint via the Listenable.
+    _board.tickNotify();
   }
 
   @override
@@ -115,17 +119,17 @@ class _AddBurstScreenState extends State<AddBurstScreen>
   }
 
   void _spawnInitialBubbles() {
-    for (int i = 0; i < 6; i++) {
-      _bubbles.add(_generateBubbleData());
-    }
-    _target = _calculateTarget(_bubbles);
+    final list = <Bubble>[for (int i = 0; i < 6; i++) _generateBubbleData()];
+    // [ISSUE-1] Swap list reference for clean structural update.
+    _board.replaceBubbles(list);
+    _target = _calculateTarget(_board.bubbles);
   }
 
   Bubble _generateBubbleData() {
     int value;
     do {
       value = _random.nextInt(9) + 1;
-    } while (_bubbles.any((b) => b.value == value) && _bubbles.length < 9);
+    } while (_board.bubbles.any((b) => b.value == value) && _board.bubbles.length < 9);
 
     final radius = 40.0;
     final bottomBound = _playAreaSize.height;
@@ -134,11 +138,7 @@ class _AddBurstScreenState extends State<AddBurstScreen>
       radius + 10 + _random.nextDouble() * (bottomBound - radius * 2 - 20),
     );
 
-    final vel = Offset(
-      (_random.nextDouble() - 0.5) * 150,
-      (_random.nextDouble() - 0.5) * 150,
-    );
-
+    final vel = Offset((_random.nextDouble() - 0.5) * 150, (_random.nextDouble() - 0.5) * 150);
     return Bubble(value: value, position: pos, velocity: vel, radius: radius);
   }
 
@@ -157,7 +157,7 @@ class _AddBurstScreenState extends State<AddBurstScreen>
 
     final tapPos = details.localPosition;
     Bubble? tapped;
-    for (var b in _bubbles) {
+    for (var b in _board.bubbles) {
       if ((b.position - tapPos).distance <= b.radius) {
         tapped = b;
         break;
@@ -179,8 +179,7 @@ class _AddBurstScreenState extends State<AddBurstScreen>
         final sum = activeSelected.value + activeTapped.value;
 
         if (sum == _target) {
-          _hits++;
-          _combo++;
+          _hits++; _combo++;
           if (_combo > _bestCombo) _bestCombo = _combo;
 
           final points = 10 + ((_combo - 1) * 2).clamp(0, 20);
@@ -189,32 +188,22 @@ class _AddBurstScreenState extends State<AddBurstScreen>
           SystemSound.play(SystemSoundType.click);
           _addFx(activeTapped.position, '+$points', AppColors.primary, true);
 
-          final survivors = _bubbles
-              .where((b) => b.id != activeSelected.id && b.id != activeTapped.id)
-              .toList();
+          final survivors = _board.bubbles.where((b) => b.id != activeSelected.id && b.id != activeTapped.id).toList();
           final nextBubble1 = _generateBubbleData();
           final nextBubble2 = _generateBubbleData();
-          final nextBoardState = [...survivors, nextBubble1, nextBubble2];
-          final nextTarget = _calculateTarget(nextBoardState);
-
-          _bubbles.clear();
-          _bubbles.addAll(nextBoardState);
-          _target = nextTarget;
+          
+          // [ISSUE-1] Swap the list reference for the physics engine.
+          _board.replaceBubbles([...survivors, nextBubble1, nextBubble2]);
+          _target = _calculateTarget(_board.bubbles);
           _selectedBubble = null;
 
           _isFrozen = true;
           Future.delayed(const Duration(milliseconds: 180), () {
-            if (mounted) {
-              setState(() => _isFrozen = false);
-            }
+            if (mounted) setState(() => _isFrozen = false);
           });
         } else {
-          _misses++;
-          _combo = 0;
-          _score = _score - 5;
-
+          _misses++; _combo = 0; _score = _score - 5;
           Vibration.vibrate(duration: 100, amplitude: 255);
-
           activeTapped.isWrong = true;
           _addFx(activeTapped.position, '-5', AppColors.vibrantRed, false);
 
@@ -229,12 +218,12 @@ class _AddBurstScreenState extends State<AddBurstScreen>
   }
 
   void _addFx(Offset pos, String text, Color color, bool isBurst) {
-    _floatingTexts.add(FloatingText(position: pos, text: text, color: color));
+    _board.floatingTexts.add(FloatingText(position: pos, text: text, color: color));
     if (isBurst) {
       for (int i = 0; i < 10; i++) {
         final angle = _random.nextDouble() * pi * 2;
         final speed = 50 + _random.nextDouble() * 100;
-        _particles.add(Particle(
+        _board.particles.add(Particle(
           position: pos,
           velocity: Offset(cos(angle) * speed, sin(angle) * speed),
           color: AppColors.vibrantGreen,
@@ -269,10 +258,7 @@ class _AddBurstScreenState extends State<AddBurstScreen>
           bestCombo: _bestCombo,
           isNewPB: matchResult?.isNewPB ?? false,
           previousPBBrokenAfter: matchResult?.previousPBBrokenAfter,
-          gameBuilder: () => AddBurstScreen(
-            accentColor: widget.accentColor,
-            config: widget.config,
-          ),
+          gameBuilder: () => AddBurstScreen(accentColor: widget.accentColor, config: widget.config),
         ),
       ),
     );
@@ -281,6 +267,8 @@ class _AddBurstScreenState extends State<AddBurstScreen>
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _timeLeftListenable.dispose(); // [ISSUE-1] Clean up the HUD listenable
+    _board.dispose(); // [ISSUE-1] Clean up the physics listenable
     super.dispose();
   }
 
@@ -291,55 +279,43 @@ class _AddBurstScreenState extends State<AddBurstScreen>
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            _playAreaSize = Size(
-              constraints.maxWidth,
-              constraints.maxHeight - 165,
-            );
+            _playAreaSize = Size(constraints.maxWidth, constraints.maxHeight - 165);
 
             return Stack(
               fit: StackFit.expand,
               children: [
                 Positioned(
-                  top: 105,
-                  bottom: 60,
-                  left: 0,
-                  right: 0,
+                  top: 105, bottom: 60, left: 0, right: 0,
                   child: GestureDetector(
                     onTapDown: _handleTap,
                     behavior: HitTestBehavior.opaque,
-                    child: CustomPaint(
-                      painter: BubblePainter(
-                        bubbles: _bubbles,
-                        floatingTexts: _floatingTexts,
-                        particles: _particles,
-                      ),
+                    // [ISSUE-1] RepaintBoundary caches the physics layer. Only this area repaints on tick.
+                    child: RepaintBoundary(
+                      child: CustomPaint(painter: _painter, child: const SizedBox.expand()),
                     ),
                   ),
                 ),
                 Positioned(
-                  top: AppSpacing.md,
-                  left: AppSpacing.md,
-                  right: AppSpacing.md,
-                  child: GameHud(
-                    timeLeft: timeLeft.inMilliseconds / 1000.0,
-                    maxTime: widget.config.duration.inSeconds,
-                    target: _target,
-                    score: _score,
-                    operationPrefix: widget.config.hudOperationPrefix,
+                  top: AppSpacing.md, left: AppSpacing.md, right: AppSpacing.md,
+                  // [ISSUE-1] Only this tiny HUD widget listens to the timer, not the whole screen.
+                  child: ValueListenableBuilder<Duration>(
+                    valueListenable: _timeLeftListenable,
+                    builder: (context, timeLeftValue, child) {
+                      return GameHud(
+                        timeLeft: timeLeftValue.inMilliseconds / 1000.0,
+                        maxTime: widget.config.duration.inSeconds,
+                        target: _target,
+                        score: _score,
+                        operationPrefix: widget.config.hudOperationPrefix,
+                      );
+                    },
                   ),
                 ),
-                // [ISSUE-27] Fixed width constraint by adding right constraint.
                 Positioned(
-                  bottom: AppSpacing.xl,
-                  left: AppSpacing.lg,
-                  right: AppSpacing.lg,
+                  bottom: AppSpacing.xl, left: AppSpacing.lg, right: AppSpacing.lg,
                   child: Text(
-                    widget.config.instructions,
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.body.copyWith(
-                      color: AppColors.textPrimary.withValues(alpha: 0.6),
-                      fontSize: 14,
-                    ),
+                    widget.config.instructions, textAlign: TextAlign.center,
+                    style: AppTextStyles.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.6), fontSize: 14),
                   ),
                 ),
                 if (_showCountdown)
@@ -350,20 +326,11 @@ class _AddBurstScreenState extends State<AddBurstScreen>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              '$_countdown',
-                              style: AppTextStyles.display.copyWith(fontSize: 100),
-                            ),
+                            Text('$_countdown', style: AppTextStyles.display.copyWith(fontSize: 100)),
                             SizedBox(height: AppSpacing.lg),
-                            Text(
-                              widget.config.title,
-                              style: AppTextStyles.hud.copyWith(color: widget.accentColor),
-                            ),
+                            Text(widget.config.title, style: AppTextStyles.hud.copyWith(color: widget.accentColor)),
                             SizedBox(height: AppSpacing.md),
-                            Text(
-                              widget.config.instructions,
-                              style: AppTextStyles.body,
-                            ),
+                            Text(widget.config.instructions, style: AppTextStyles.body),
                           ],
                         ),
                       ),

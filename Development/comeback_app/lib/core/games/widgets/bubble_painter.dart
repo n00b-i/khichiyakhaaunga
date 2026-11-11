@@ -1,31 +1,43 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../models/board_paint_state.dart';
 import '../models/bubble.dart';
 import '../models/game_fx.dart';
 
 class BubblePainter extends CustomPainter {
-  final List<Bubble> bubbles;
-  final List<FloatingText> floatingTexts;
-  final List<Particle> particles;
+  // [ISSUE-1] The board state acts as a Listenable. When it calls notifyListeners(), 
+  // the CustomPaint repaints without triggering a widget rebuild.
+  final BoardPaintState? board;
+  
+  // Legacy fields kept temporarily for number_hunt_screen.dart so we don't break it.
+  final List<Bubble>? bubbles;
+  final List<FloatingText>? floatingTexts;
+  final List<Particle>? particles;
 
   BubblePainter({
-    required this.bubbles,
-    required this.floatingTexts,
-    required this.particles,
-  });
+    this.board,
+    this.bubbles,
+    this.floatingTexts,
+    this.particles,
+  }) : super(repaint: board); // [ISSUE-1] Pass board to repaint to bypass build phase.
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Draw Bubbles
-    for (var bubble in bubbles) {
+    // Fallback to legacy lists if board is null (used by number_hunt)
+    final activeBubbles = board?.bubbles ?? bubbles ?? [];
+    final activeFloatingTexts = board?.floatingTexts ?? floatingTexts ?? [];
+    final activeParticles = board?.particles ?? particles ?? [];
+
+    final fillPaint = Paint();
+    final borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    for (final bubble in activeBubbles) {
       final rect = Rect.fromCircle(center: bubble.position, radius: bubble.radius);
-      
-      // Determine colors based on state
+
       Color borderColor = AppColors.border;
-      List<Color> gradientColors = [
-        AppColors.surface,
-        AppColors.background,
-      ];
+      List<Color> gradientColors = [AppColors.surface, AppColors.background];
 
       if (bubble.isWrong) {
         borderColor = AppColors.vibrantRed;
@@ -35,22 +47,15 @@ class BubblePainter extends CustomPainter {
         gradientColors = [AppColors.surface, AppColors.primary.withValues(alpha: 0.2)];
       }
 
-      // Glassmorphism gradient
-      final fillPaint = Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(-0.3, -0.3), // 3D highlight effect
-          colors: gradientColors,
-        ).createShader(rect);
-
-      final borderPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0
-        ..color = borderColor;
+      fillPaint.shader = RadialGradient(
+        center: const Alignment(-0.3, -0.3),
+        colors: gradientColors,
+      ).createShader(rect);
+      borderPaint.color = borderColor;
 
       canvas.drawCircle(bubble.position, bubble.radius, fillPaint);
       canvas.drawCircle(bubble.position, bubble.radius, borderPaint);
 
-      // Draw Text
       final textPainter = TextPainter(
         text: TextSpan(
           text: bubble.value.toString(),
@@ -58,21 +63,16 @@ class BubblePainter extends CustomPainter {
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-      
-      textPainter.paint(
-        canvas,
-        bubble.position - Offset(textPainter.width / 2, textPainter.height / 2),
-      );
+
+      textPainter.paint(canvas, bubble.position - Offset(textPainter.width / 2, textPainter.height / 2));
     }
 
-    // 2. Draw Particles
-    for (var p in particles) {
+    for (final p in activeParticles) {
       final paint = Paint()..color = p.color.withValues(alpha: p.opacity.clamp(0.0, 1.0));
       canvas.drawCircle(p.position, p.size, paint);
     }
 
-    // 3. Draw Floating Text
-    for (var t in floatingTexts) {
+    for (final t in activeFloatingTexts) {
       final textPainter = TextPainter(
         text: TextSpan(
           text: t.text,
@@ -84,13 +84,12 @@ class BubblePainter extends CustomPainter {
         textDirection: TextDirection.ltr,
       )..layout();
 
-      textPainter.paint(
-        canvas,
-        Offset(t.position.dx - textPainter.width / 2, t.position.dy + t.offsetY),
-      );
+      textPainter.paint(canvas, Offset(t.position.dx - textPainter.width / 2, t.position.dy + t.offsetY));
     }
   }
 
   @override
-  bool shouldRepaint(covariant BubblePainter oldDelegate) => true;
+  // [ISSUE-1] We return false because repaints are driven purely by the BoardPaintState Listenable.
+  // This prevents redundant repaints when the widget tree rebuilds for other reasons (e.g., countdown).
+  bool shouldRepaint(covariant BubblePainter oldDelegate) => false;
 }
