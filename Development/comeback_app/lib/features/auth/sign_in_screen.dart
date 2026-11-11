@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/network/connectivity_service.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -14,10 +16,26 @@ class SignInScreen extends StatefulWidget {
 class _SignInScreenState extends State<SignInScreen> {
   bool _isLoading = false;
 
+  // [ISSUE-11] Centralized Error Messages
+  static const String _msgOffline = 'No internet connection.\nPlease connect and try again.';
+  static const String _msgTimeout = 'Connection timed out.\nCheck your internet and try again.';
+  static const String _msgConfigError = 'Unable to sign in.\nPlease try again.';
+  static const String _msgGenericError = 'Something went wrong.\nPlease check your internet.';
+
+  // [ISSUE-11] Timeout duration for both Google Auth and Supabase token exchange
+  static const Duration _signInTimeout = Duration(seconds: 8);
+
   Future<void> _signInWithGoogle() async {
     if (_isLoading) return;
+
+    // [ISSUE-11] Fast path: no network interface -> abort immediately.
+    if (await ConnectivityService.instance.isOffline()) {
+      _showError(_msgOffline);
+      return;
+    }
+
     setState(() => _isLoading = true);
-    
+
     try {
       const webClientId = '836171717498-un6j40aatbi1622u1h686ijejrhc5dvt.apps.googleusercontent.com';
       const iosClientId = '836171717498-e2gq4g3219o0en1un4slfmpt2kc786f4.apps.googleusercontent.com';
@@ -28,36 +46,44 @@ class _SignInScreenState extends State<SignInScreen> {
         serverClientId: webClientId,
       );
 
-      final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
-      final String? idToken = googleUser.authentication.idToken;
+      final GoogleSignInAccount googleUser = await GoogleSignIn.instance
+          .authenticate()
+          .timeout(_signInTimeout);
 
+      final String? idToken = googleUser.authentication.idToken;
       if (idToken == null) throw 'No ID Token found.';
 
-      await Supabase.instance.client.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: idToken,
-      );
-      
+      await Supabase.instance.client.auth
+          .signInWithIdToken(
+            provider: OAuthProvider.google,
+            idToken: idToken,
+          )
+          .timeout(_signInTimeout);
+          
+    } on TimeoutException {
+      debugPrint('[Auth] Sign-In timed out');
+      _showError(_msgTimeout);
+    } on AuthException catch (e) {
+      // [ISSUE-11] Catch Supabase Auth errors (e.g., DNS lookup failure when connectivity check passes but internet is dead)
+      debugPrint('[Auth] AuthException: $e');
+      _showError(_msgOffline);
     } on GoogleSignInException catch (e) {
-      // [ISSUE-11] Map specific v7 error codes to friendly messages.
       debugPrint('[Auth] GoogleSignInException: ${e.code.name} — ${e.description}');
-      
       switch (e.code.name) {
         case 'canceled':
         case 'interrupted':
           break; // Silent reset. User cancelled.
         case 'clientConfigurationError':
         case 'providerConfigurationError':
-          _showError('Unable to sign in. Please try again.'); // Hide technical SHA-1 errors
+          _showError(_msgConfigError);
           break;
         default:
-          _showError('No internet connection. Please connect and try again.');
+          _showError(_msgOffline);
           break;
       }
     } catch (e) {
-      // [ISSUE-11] Catch-all for network drops during Supabase exchange.
       debugPrint('[Auth] Sign-In Error: $e');
-      if (mounted) _showError('Something went wrong. Please check your internet.');
+      _showError(_msgGenericError);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -85,7 +111,11 @@ class _SignInScreenState extends State<SignInScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('comebak', style: AppTextStyles.display, textAlign: TextAlign.center),
+              const Text(
+                'comebak',
+                style: AppTextStyles.display,
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: AppSpacing.xl * 3),
               GestureDetector(
                 onTap: _isLoading ? null : _signInWithGoogle,
@@ -99,14 +129,17 @@ class _SignInScreenState extends State<SignInScreen> {
                   alignment: Alignment.center,
                   child: _isLoading
                       ? const SizedBox(
-                    width: AppSizes.iconSm,
-                    height: AppSizes.iconSm,
-                    child: CircularProgressIndicator(
-                      color: AppColors.primary,
-                      strokeWidth: 2,
-                    ),
-                  )
-                      : const Text('Continue with Google', style: AppTextStyles.body),
+                          width: AppSizes.iconSm,
+                          height: AppSizes.iconSm,
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Continue with Google',
+                          style: AppTextStyles.body,
+                        ),
                 ),
               ),
             ],

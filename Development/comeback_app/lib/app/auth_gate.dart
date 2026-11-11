@@ -5,13 +5,6 @@ import '../core/session/session_manager.dart';
 import '../features/auth/sign_in_screen.dart';
 import '../features/shell/main_shell.dart';
 
-/// **AuthGate**
-/// 
-/// **Responsibility:**
-/// - Acts as the root router based on Supabase Auth state.
-/// - Detects when a user logs in or out and routes accordingly.
-/// - Initializes the `SessionManager` exactly once per app launch.
-/// - Cleans up any 'in_progress' matches left behind by a previous crash.
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
@@ -20,45 +13,33 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  // [1] Guard variable to prevent multiple initializations if the stream emits rapidly.
   bool _isSessionInitialized = false;
 
   @override
   void initState() {
     super.initState();
     
-    // [2] Listen to the auth stream. 
-    // We do this instead of checking currentUser directly in initState because 
-    // Supabase might still be loading the token from local storage when initState fires.
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       final session = data.session;
       
       if (session != null) {
-        // [2.1] Valid session found. Initialize the app session.
         _initializeSession(session.user.id);
       } else {
-        // [2.2] Session became null (user logged out).
         debugPrint('[AuthGate] Session became null. User logged out.');
-        _isSessionInitialized = false; // Reset for the next user
+        _isSessionInitialized = false;
       }
     });
   }
 
-  /// [3] Initializes the SessionManager and cleans up the database.
   Future<void> _initializeSession(String userId) async {
     debugPrint('[AuthGate] _initializeSession called for user: $userId');
     
-    // [3.1] Only initialize once per launch.
     if (_isSessionInitialized) return;
     _isSessionInitialized = true;
 
-    // [3.2] Start the SessionManager (creates session row, syncs offline events, fetches telemetry)
     await SessionManager().init(userId);
     debugPrint('[AuthGate] SessionManager init complete');
     
-    // [3.3] Cleanup abandoned matches.
-    // If the app crashed or was killed mid-game, the match is stuck as 'in_progress'.
-    // We mark any lingering 'in_progress' matches as 'abandoned' so they don't pollute stats.
     try {
       await Supabase.instance.client
           .from('matches')
@@ -76,11 +57,9 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
-    // [4] StreamBuilder listens to auth changes and rebuilds the UI.
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
-        // [4.1] Loading state while Supabase checks local tokens.
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             backgroundColor: AppColors.background,
@@ -88,7 +67,36 @@ class _AuthGateState extends State<AuthGate> {
           );
         }
 
-        // [4.2] Route based on authentication status.
+        // [ISSUE-11] Handle auth stream errors (e.g., offline token refresh failure).
+        if (snapshot.hasError) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Connection Error. Please check your internet.',
+                      style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    ElevatedButton(
+                      onPressed: () async {
+                        await Supabase.instance.client.auth.refreshSession();
+                        setState(() {});
+                      },
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
         final session = snapshot.hasData ? snapshot.data!.session : null;
         
         if (session != null) {
