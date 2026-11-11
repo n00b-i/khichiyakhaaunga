@@ -6,7 +6,7 @@
 Phase 3 MVP Polish -> Launch Readiness.
 
 ## Current Task
-Issue #17: Restore `matches_session_id_fkey` constraint.
+Issue #11: Graceful Error Handling for Sign-In and Stats Screens.
 
 ## Recent Gotchas (The "Never Again" List)
 1. Postgres privileges are additive. Rely on triggers.
@@ -14,6 +14,5 @@ Issue #17: Restore `matches_session_id_fkey` constraint.
 3. Logs: Use `debugPrint`, NOT `developer.log`.
 4. Schema drift: Always run `SELECT column_name` before assuming.
 5. SharedPreferences: Must be nullable in singletons.
-6. FK constraint dropped: `matches_session_id_fkey` removed for offline sync testing. Fix in #17.
-7. Comment syntax: `//` only. Never `///`. Never end with `/`.
-8. GameTimerMixin: Implemented for all games except `memory_of_saitan` (see #15).
+6. Comment syntax: `//` only. Never `///`. Never end with `/`.
+7. GameTimerMixin: Implemented for all games except `memory_of_saitan` (see #15).
