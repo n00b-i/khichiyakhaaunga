@@ -1,5 +1,9 @@
 import '../models/game_config.dart';
 
+// [ISSUE-27] GameConfig is the single source of truth for all game metadata.
+// Titles and instructions here are used by BOTH the Home Screen and the Game Screens.
+// Do not hardcode strings in the UI widgets.
+
 class AddBurstConfig {
   static const standard = GameConfig(
     gameId: 'add_burst',
@@ -14,19 +18,22 @@ class MadBurstConfig {
   static const standard = GameConfig(
     gameId: 'mad_burst',
     duration: Duration(seconds: 60),
-    hudOperationPrefix: '+',
+    // [ISSUE-27] Fixed prefix from '+' to 'x' to match multiplication logic.
+    hudOperationPrefix: 'x',
     title: 'Mad Burst',
-    instructions: 'Add two numbers to hit the target. Bubbles move faster.',
+    // [ISSUE-27] Fixed stale instruction. Now matches the home screen and game logic.
+    instructions: 'Multiply two numbers to hit the target.',
   );
 }
 
 class NumberHuntConfig {
   static const standard = GameConfig(
-    gameId: 'number_hunt',
+    gameId: 'small_burst',
     duration: Duration(seconds: 60),
     hudOperationPrefix: '',
-    title: 'Number Hunt',
-    instructions: 'Find the target number.',
+    title: 'Small Burst',
+    // [ISSUE-27] Aligned with home screen text.
+    instructions: 'Find the smallest number.',
   );
 }
 
@@ -34,6 +41,7 @@ class BodmasBurstConfig {
   static const standard = GameConfig(
     gameId: 'bodmas_burst',
     duration: Duration(seconds: 60),
+    hudOperationPrefix: '',
     title: 'BODMAS Burst',
     instructions: 'Solve maximum BODMAS problems.',
   );

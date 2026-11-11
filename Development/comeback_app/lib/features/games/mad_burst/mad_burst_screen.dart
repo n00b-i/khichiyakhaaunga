@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // [1] Supabase import
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/games/models/bubble.dart';
@@ -13,8 +13,9 @@ import '../game_result_screen.dart';
 import '../../../core/games/repository/game_repository.dart';
 import '../../../core/games/models/game_config.dart';
 import '../../../core/games/configs/game_configs.dart';
-import '../../../core/games/mixins/game_timer_mixin.dart'; // [2] Repository import
+import '../../../core/games/mixins/game_timer_mixin.dart';
 
+// [ISSUE-27] Mad Burst now relies entirely on GameConfig.
 class MadBurstScreen extends StatefulWidget {
   final GameConfig config;
   final Color accentColor;
@@ -24,10 +25,12 @@ class MadBurstScreen extends StatefulWidget {
   State<MadBurstScreen> createState() => _MadBurstScreenState();
 }
 
-class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProviderStateMixin, GameTimerMixin {
+// [ISSUE-15] GameTimerMixin contract: manages _ticker, lifecycle, and delta math.
+// Owns: _ticker, _lastElapsed.
+// Requires: config, isTimerActive, onTimerTick, onTimerUpdate, onTimeUp.
+class _MadBurstScreenState extends State<MadBurstScreen>
+    with SingleTickerProviderStateMixin, GameTimerMixin {
   final Random _random = Random();
-
-  // [3] DB Match Tracking Variables
   late GameRepository _gameRepo;
   String? _currentMatchId;
 
@@ -39,7 +42,7 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
   int _misses = 0;
   bool _gameStarted = false;
   bool _isFrozen = false;
-  
+
   int _countdown = 3;
   bool _showCountdown = true;
   Timer? _countdownTimer;
@@ -54,6 +57,7 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
   @override
   GameConfig get config => widget.config;
 
+  // [ISSUE-15] Pauses timer when backgrounded or during match freeze.
   @override
   bool get isTimerActive => _gameStarted && !_showCountdown && !_isFrozen;
 
@@ -89,10 +93,9 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
   void initState() {
     super.initState();
     _startCountdown();
-
-    // [4] Initialize DB Match
     _gameRepo = GameRepository(Supabase.instance.client);
-    _gameRepo.startMatch('mad_burst').then((id) => _currentMatchId = id);
+    // [ISSUE-27] Use config.gameId instead of hardcoded 'mad_burst'.
+    _gameRepo.startMatch(widget.config.gameId).then((id) => _currentMatchId = id);
   }
 
   void _startCountdown() {
@@ -129,7 +132,7 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
       radius + 20 + _random.nextDouble() * (_playAreaSize.width - radius * 2 - 40),
       radius + 10 + _random.nextDouble() * (bottomBound - radius * 2 - 20),
     );
-    
+
     final vel = Offset(
       (_random.nextDouble() - 0.5) * 150,
       (_random.nextDouble() - 0.5) * 150,
@@ -145,7 +148,7 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
     do {
       b2 = board[_random.nextInt(board.length)];
     } while (b2.id == b1.id);
-    return b1.value * b2.value; // Multiplication logic
+    return b1.value * b2.value;
   }
 
   void _handleTap(TapDownDetails details) {
@@ -173,29 +176,31 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
       } else {
         final activeSelected = _selectedBubble!;
         final product = activeSelected.value * activeTapped.value;
-        
+
         if (product == _target) {
           _hits++;
           _combo++;
           if (_combo > _bestCombo) _bestCombo = _combo;
-          
+
           final points = 10 + ((_combo - 1) * 2).clamp(0, 20);
           _score += points;
-          
+
           SystemSound.play(SystemSoundType.click);
           _addFx(activeTapped.position, '+$points', AppColors.primary, true);
-          
-          final survivors = _bubbles.where((b) => b.id != activeSelected.id && b.id != activeTapped.id).toList();
+
+          final survivors = _bubbles
+              .where((b) => b.id != activeSelected.id && b.id != activeTapped.id)
+              .toList();
           final nextBubble1 = _generateBubbleData();
           final nextBubble2 = _generateBubbleData();
           final nextBoardState = [...survivors, nextBubble1, nextBubble2];
           final nextTarget = _calculateTarget(nextBoardState);
-          
+
           _bubbles.clear();
           _bubbles.addAll(nextBoardState);
           _target = nextTarget;
           _selectedBubble = null;
-          
+
           _isFrozen = true;
           Future.delayed(const Duration(milliseconds: 180), () {
             if (mounted) {
@@ -205,10 +210,10 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
         } else {
           _misses++;
           _combo = 0;
-          _score = _score - 5; 
-          
-          Vibration.vibrate(duration: 100, amplitude: 255); 
-          
+          _score = _score - 5;
+
+          Vibration.vibrate(duration: 100, amplitude: 255);
+
           activeTapped.isWrong = true;
           _addFx(activeTapped.position, '-5', AppColors.vibrantRed, false);
 
@@ -238,33 +243,35 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
     }
   }
 
-  
   void _endGame() async {
     final totalTaps = _hits + _misses;
     final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
 
-    // [5] Save Match to DB
     MatchResult? matchResult;
     if (_currentMatchId != null) {
       matchResult = await _gameRepo.endMatch(
         matchId: _currentMatchId!,
-        gameId: 'mad_burst', // Placeholder to be replaced
+        gameId: widget.config.gameId,
         score: _score,
-        accuracy: (totalTaps == 0 ? 0.0 : (_hits / totalTaps) * 100.0),
+        accuracy: accuracy,
         durationSeconds: widget.config.duration.inSeconds,
       );
     }
 
     if (!mounted) return;
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => GameResultScreen(
           score: _score,
-          isNewPB: matchResult?.isNewPB ?? false,
-          previousPBBrokenAfter: matchResult?.previousPBBrokenAfter,
           accuracy: accuracy.round(),
           bestCombo: _bestCombo,
-          gameBuilder: () => MadBurstScreen(accentColor: widget.accentColor, config: widget.config),
+          isNewPB: matchResult?.isNewPB ?? false,
+          previousPBBrokenAfter: matchResult?.previousPBBrokenAfter,
+          gameBuilder: () => MadBurstScreen(
+            accentColor: widget.accentColor,
+            config: widget.config,
+          ),
         ),
       ),
     );
@@ -285,7 +292,7 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
           builder: (context, constraints) {
             _playAreaSize = Size(
               constraints.maxWidth,
-              constraints.maxHeight - 165, 
+              constraints.maxHeight - 165,
             );
 
             return Stack(
@@ -317,14 +324,18 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
                     maxTime: widget.config.duration.inSeconds,
                     target: _target,
                     score: _score,
-                    operationPrefix: 'x',
+                    // [ISSUE-27] Use config prefix instead of hardcoded 'x'.
+                    operationPrefix: widget.config.hudOperationPrefix,
                   ),
                 ),
+                // [ISSUE-27] Fixed width constraint by adding 'right'. Text now wraps properly and centers.
                 Positioned(
                   bottom: AppSpacing.xl,
                   left: AppSpacing.lg,
+                  right: AppSpacing.lg,
                   child: Text(
-                    'Tap 2 bubbles with product as target',
+                    widget.config.instructions,
+                    textAlign: TextAlign.center,
                     style: AppTextStyles.body.copyWith(
                       color: AppColors.textPrimary.withValues(alpha: 0.6),
                       fontSize: 14,
@@ -344,9 +355,15 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
                               style: AppTextStyles.display.copyWith(fontSize: 100),
                             ),
                             SizedBox(height: AppSpacing.lg),
-                            Text(widget.config.title, style: AppTextStyles.hud.copyWith(color: widget.accentColor)),
+                            Text(
+                              widget.config.title,
+                              style: AppTextStyles.hud.copyWith(color: widget.accentColor),
+                            ),
                             SizedBox(height: AppSpacing.md),
-                            Text(widget.config.instructions, style: AppTextStyles.body),
+                            Text(
+                              widget.config.instructions,
+                              style: AppTextStyles.body,
+                            ),
                           ],
                         ),
                       ),

@@ -328,11 +328,14 @@ class _AddBurstScreenState extends State<AddBurstScreen>
                     operationPrefix: widget.config.hudOperationPrefix,
                   ),
                 ),
+                // [ISSUE-27] Fixed width constraint by adding right constraint.
                 Positioned(
                   bottom: AppSpacing.xl,
                   left: AppSpacing.lg,
+                  right: AppSpacing.lg,
                   child: Text(
                     widget.config.instructions,
+                    textAlign: TextAlign.center,
                     style: AppTextStyles.body.copyWith(
                       color: AppColors.textPrimary.withValues(alpha: 0.6),
                       fontSize: 14,
