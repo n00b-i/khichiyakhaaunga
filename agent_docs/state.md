@@ -17,4 +17,4 @@ Issue #1: Bubble jitter when matching pairs in Add/Mad Burst.
 6. Comment syntax: `//` only. Never `///`. Never end with `/`.
 7. GameTimerMixin: Implemented for all games except `memory_of_saitan` (see #15).
 8. Connectivity: Use `ConnectivityService.instance.isOffline()` (interface + real internet ping). Never rely on `connectivity_plus` alone.
-9. Interactivelows: Never wrap `GoogleSignIn.authenticate()` in a short timeout. Only timeout network hops.
+9. Interactive Flows: Never wrap `GoogleSignIn.authenticate()` in a short timeout. Only timeout network hops.
