@@ -248,9 +248,9 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
     final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
 
     // [5] Save Match to DB
-    bool isNewPB = false;
+    MatchResult? matchResult;
     if (_currentMatchId != null) {
-      isNewPB = await _gameRepo.endMatch(
+      matchResult = await _gameRepo.endMatch(
         matchId: _currentMatchId!,
         gameId: 'mad_burst', // Placeholder to be replaced
         score: _score,
@@ -264,7 +264,8 @@ class _MadBurstScreenState extends State<MadBurstScreen> with SingleTickerProvid
       MaterialPageRoute(
         builder: (_) => GameResultScreen(
           score: _score,
-          isNewPB: isNewPB,
+          isNewPB: matchResult?.isNewPB ?? false,
+          previousPBBrokenAfter: matchResult?.previousPBBrokenAfter,
           accuracy: accuracy.round(),
           bestCombo: _bestCombo,
           gameBuilder: () => MadBurstScreen(accentColor: widget.accentColor),

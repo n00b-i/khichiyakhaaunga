@@ -244,9 +244,9 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
     final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
 
     // [ISSUE-14] Await the PB check
-    bool isNewPB = false;
+    MatchResult? matchResult;
     if (_currentMatchId != null) {
-      isNewPB = await _gameRepo.endMatch(
+      matchResult = await _gameRepo.endMatch(
         matchId: _currentMatchId!,
         gameId: 'add_burst',
         score: _score,
@@ -263,7 +263,8 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
           score: _score,
           accuracy: accuracy.round(),
           bestCombo: _bestCombo,
-          isNewPB: isNewPB, // Pass the flag
+          isNewPB: matchResult?.isNewPB ?? false,
+          previousPBBrokenAfter: matchResult?.previousPBBrokenAfter, // Pass the flag
           gameBuilder: () => AddBurstScreen(accentColor: widget.accentColor),
         ),
       ),

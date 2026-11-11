@@ -284,11 +284,11 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
     final totalTaps = _hits + _misses;
     final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
 
-    bool isNewPB = false;
+    MatchResult? matchResult;
     // [5] Save Match to DB
     if (_currentMatchId != null) {
       final gameId = widget.isMultiplication ? 'saitan_mul' : 'saitan_add';
-      isNewPB = await _gameRepo.endMatch(
+      matchResult = await _gameRepo.endMatch(
         matchId: _currentMatchId!,
         gameId: gameId,
         score: _score,
@@ -302,7 +302,8 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
       score: _score, 
       accuracy: accuracy.round(), 
       bestCombo: _bestCombo, 
-      isNewPB: isNewPB,
+      isNewPB: matchResult?.isNewPB ?? false,
+          previousPBBrokenAfter: matchResult?.previousPBBrokenAfter,
       gameBuilder: () => MemoryOfSaitanScreen(
         isMultiplication: widget.isMultiplication,
         accentColor: widget.accentColor,
