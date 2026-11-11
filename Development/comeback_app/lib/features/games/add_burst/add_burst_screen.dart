@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
@@ -12,18 +11,25 @@ import '../../../core/games/widgets/bubble_painter.dart';
 import '../../../core/games/widgets/game_hud.dart';
 import '../game_result_screen.dart';
 import '../../../core/games/repository/game_repository.dart';
+import '../../../core/games/models/game_config.dart';
+import '../../../core/games/configs/game_configs.dart';
+import '../../../core/games/mixins/game_timer_mixin.dart';
 
 class AddBurstScreen extends StatefulWidget {
   final Color accentColor;
-  const AddBurstScreen({super.key, required this.accentColor});
+  final GameConfig config;
+  const AddBurstScreen({
+    super.key,
+    required this.accentColor,
+    this.config = AddBurstConfig.standard,
+  });
 
   @override
   State<AddBurstScreen> createState() => _AddBurstScreenState();
 }
 
-class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProviderStateMixin {
-  late Ticker _ticker;
-  Duration _lastElapsed = Duration.zero;
+class _AddBurstScreenState extends State<AddBurstScreen>
+    with SingleTickerProviderStateMixin, GameTimerMixin {
   final Random _random = Random();
   late GameRepository _gameRepo;
   String? _currentMatchId;
@@ -36,8 +42,7 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
   int _misses = 0;
   bool _gameStarted = false;
   bool _isFrozen = false;
-  double _exactTimeLeft = 60.0;
-  
+
   int _countdown = 3;
   bool _showCountdown = true;
   Timer? _countdownTimer;
@@ -50,12 +55,48 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
   Size _playAreaSize = Size.zero;
 
   @override
+  GameConfig get config => widget.config;
+
+  @override
+  bool get isTimerActive => _gameStarted && !_showCountdown && !_isFrozen;
+
+  @override
+  void onTimerUpdate(Duration timeLeft) {
+    setState(() {});
+  }
+
+  @override
+  void onTimeUp() {
+    _endGame();
+  }
+
+  @override
+  void onTimerTick(double dt) {
+    if (!_isFrozen) {
+      final bottomBound = _playAreaSize.height;
+      for (var b in _bubbles) {
+        b.update(dt, _playAreaSize, 0, bottomBound);
+      }
+      resolveBubbleCollisions(_bubbles);
+    }
+
+    _floatingTexts.removeWhere((t) => t.opacity <= 0);
+    for (var t in _floatingTexts) {
+      t.update(dt);
+    }
+
+    _particles.removeWhere((p) => p.opacity <= 0);
+    for (var p in _particles) {
+      p.update(dt);
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
-    _ticker = createTicker(_onTick)..start();
     _startCountdown();
     _gameRepo = GameRepository(Supabase.instance.client);
-    _gameRepo.startMatch('add_burst').then((id) => _currentMatchId = id);
+    _gameRepo.startMatch(widget.config.gameId).then((id) => _currentMatchId = id);
   }
 
   void _startCountdown() {
@@ -92,7 +133,7 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
       radius + 20 + _random.nextDouble() * (_playAreaSize.width - radius * 2 - 40),
       radius + 10 + _random.nextDouble() * (bottomBound - radius * 2 - 20),
     );
-    
+
     final vel = Offset(
       (_random.nextDouble() - 0.5) * 150,
       (_random.nextDouble() - 0.5) * 150,
@@ -111,43 +152,8 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
     return b1.value + b2.value;
   }
 
-  void _onTick(Duration elapsed) {
-    if (!mounted || !_gameStarted || _showCountdown) return;
-    
-    final dt = (elapsed - _lastElapsed).inMicroseconds / 1000000.0;
-    _lastElapsed = elapsed;
-    if (dt > 0.1) return; 
-
-    final currentElapsed = elapsed.inMilliseconds / 1000.0;
-    final remaining = 60.0 - currentElapsed;
-    
-    if (remaining <= 0) {
-      _exactTimeLeft = 0;
-      _endGame();
-      return;
-    }
-
-    setState(() {
-      _exactTimeLeft = remaining;
-      
-      if (!_isFrozen) {
-        final bottomBound = _playAreaSize.height;
-        for (var b in _bubbles) {
-          b.update(dt, _playAreaSize, 0, bottomBound);
-        }
-        resolveBubbleCollisions(_bubbles);
-      }
-
-      _floatingTexts.removeWhere((t) => t.opacity <= 0);
-      for (var t in _floatingTexts) { t.update(dt); }
-      
-      _particles.removeWhere((p) => p.opacity <= 0);
-      for (var p in _particles) { p.update(dt); }
-    });
-  }
-
   void _handleTap(TapDownDetails details) {
-    if (_isFrozen || _exactTimeLeft <= 0 || _showCountdown) return;
+    if (_isFrozen || timeLeft <= Duration.zero || _showCountdown) return;
 
     final tapPos = details.localPosition;
     Bubble? tapped;
@@ -171,44 +177,44 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
       } else {
         final activeSelected = _selectedBubble!;
         final sum = activeSelected.value + activeTapped.value;
-        
+
         if (sum == _target) {
           _hits++;
           _combo++;
           if (_combo > _bestCombo) _bestCombo = _combo;
-          
+
           final points = 10 + ((_combo - 1) * 2).clamp(0, 20);
           _score += points;
-          
+
           SystemSound.play(SystemSoundType.click);
           _addFx(activeTapped.position, '+$points', AppColors.primary, true);
-          
-          final survivors = _bubbles.where((b) => b.id != activeSelected.id && b.id != activeTapped.id).toList();
+
+          final survivors = _bubbles
+              .where((b) => b.id != activeSelected.id && b.id != activeTapped.id)
+              .toList();
           final nextBubble1 = _generateBubbleData();
           final nextBubble2 = _generateBubbleData();
           final nextBoardState = [...survivors, nextBubble1, nextBubble2];
           final nextTarget = _calculateTarget(nextBoardState);
-          
+
           _bubbles.clear();
           _bubbles.addAll(nextBoardState);
           _target = nextTarget;
           _selectedBubble = null;
-          
+
           _isFrozen = true;
-          _ticker.muted = true;
           Future.delayed(const Duration(milliseconds: 180), () {
             if (mounted) {
               setState(() => _isFrozen = false);
-              _ticker.muted = false;
             }
           });
         } else {
           _misses++;
           _combo = 0;
-          _score = _score - 5; 
-          
-          Vibration.vibrate(duration: 100, amplitude: 255); 
-          
+          _score = _score - 5;
+
+          Vibration.vibrate(duration: 100, amplitude: 255);
+
           activeTapped.isWrong = true;
           _addFx(activeTapped.position, '-5', AppColors.vibrantRed, false);
 
@@ -239,19 +245,17 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
   }
 
   void _endGame() async {
-    _ticker.stop();
     final totalTaps = _hits + _misses;
     final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
 
-    // [ISSUE-14] Await the PB check
     MatchResult? matchResult;
     if (_currentMatchId != null) {
       matchResult = await _gameRepo.endMatch(
         matchId: _currentMatchId!,
-        gameId: 'add_burst',
+        gameId: widget.config.gameId,
         score: _score,
         accuracy: accuracy,
-        durationSeconds: 60,
+        durationSeconds: widget.config.duration.inSeconds,
       );
     }
 
@@ -264,8 +268,11 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
           accuracy: accuracy.round(),
           bestCombo: _bestCombo,
           isNewPB: matchResult?.isNewPB ?? false,
-          previousPBBrokenAfter: matchResult?.previousPBBrokenAfter, // Pass the flag
-          gameBuilder: () => AddBurstScreen(accentColor: widget.accentColor),
+          previousPBBrokenAfter: matchResult?.previousPBBrokenAfter,
+          gameBuilder: () => AddBurstScreen(
+            accentColor: widget.accentColor,
+            config: widget.config,
+          ),
         ),
       ),
     );
@@ -273,7 +280,6 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
 
   @override
   void dispose() {
-    _ticker.dispose();
     _countdownTimer?.cancel();
     super.dispose();
   }
@@ -287,7 +293,7 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
           builder: (context, constraints) {
             _playAreaSize = Size(
               constraints.maxWidth,
-              constraints.maxHeight - 165, 
+              constraints.maxHeight - 165,
             );
 
             return Stack(
@@ -315,18 +321,18 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
                   left: AppSpacing.md,
                   right: AppSpacing.md,
                   child: GameHud(
-                    timeLeft: _exactTimeLeft,
-                    maxTime: 60,
+                    timeLeft: timeLeft.inMilliseconds / 1000.0,
+                    maxTime: widget.config.duration.inSeconds,
                     target: _target,
                     score: _score,
-                    operationPrefix: '+',
+                    operationPrefix: widget.config.hudOperationPrefix,
                   ),
                 ),
                 Positioned(
                   bottom: AppSpacing.xl,
                   left: AppSpacing.lg,
                   child: Text(
-                    'Tap 2 bubbles with sum as target',
+                    widget.config.instructions,
                     style: AppTextStyles.body.copyWith(
                       color: AppColors.textPrimary.withValues(alpha: 0.6),
                       fontSize: 14,
@@ -346,9 +352,15 @@ class _AddBurstScreenState extends State<AddBurstScreen> with SingleTickerProvid
                               style: AppTextStyles.display.copyWith(fontSize: 100),
                             ),
                             SizedBox(height: AppSpacing.lg),
-                            Text('Add Burst', style: AppTextStyles.hud.copyWith(color: widget.accentColor)),
+                            Text(
+                              widget.config.title,
+                              style: AppTextStyles.hud.copyWith(color: widget.accentColor),
+                            ),
                             SizedBox(height: AppSpacing.md),
-                            Text('Add two numbers to hit the target.', style: AppTextStyles.body),
+                            Text(
+                              widget.config.instructions,
+                              style: AppTextStyles.body,
+                            ),
                           ],
                         ),
                       ),
