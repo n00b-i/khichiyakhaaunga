@@ -25,10 +25,10 @@ class _SignInScreenState extends State<SignInScreen> {
   // [ISSUE-11] Timeout duration for both Google Auth and Supabase token exchange
   static const Duration _signInTimeout = Duration(seconds: 8);
 
-  Future<void> _signInWithGoogle() async {
+    Future<void> _signInWithGoogle() async {
     if (_isLoading) return;
 
-    // [ISSUE-11] Fast path: no network interface -> abort immediately.
+    // Pre-flight: Now catches captive portals via the new service
     if (await ConnectivityService.instance.isOffline()) {
       _showError(_msgOffline);
       return;
@@ -46,13 +46,13 @@ class _SignInScreenState extends State<SignInScreen> {
         serverClientId: webClientId,
       );
 
-      final GoogleSignInAccount googleUser = await GoogleSignIn.instance
-          .authenticate()
-          .timeout(_signInTimeout);
+      // Interactive step: No artificial timeout here. Let the user take their time.
+      final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
 
       final String? idToken = googleUser.authentication.idToken;
       if (idToken == null) throw 'No ID Token found.';
 
+      // Network step: Apply timeout only to the backend token exchange.
       await Supabase.instance.client.auth
           .signInWithIdToken(
             provider: OAuthProvider.google,
@@ -61,10 +61,9 @@ class _SignInScreenState extends State<SignInScreen> {
           .timeout(_signInTimeout);
           
     } on TimeoutException {
-      debugPrint('[Auth] Sign-In timed out');
+      debugPrint('[Auth] Supabase token exchange timed out');
       _showError(_msgTimeout);
     } on AuthException catch (e) {
-      // [ISSUE-11] Catch Supabase Auth errors (e.g., DNS lookup failure when connectivity check passes but internet is dead)
       debugPrint('[Auth] AuthException: $e');
       _showError(_msgOffline);
     } on GoogleSignInException catch (e) {
@@ -72,7 +71,7 @@ class _SignInScreenState extends State<SignInScreen> {
       switch (e.code.name) {
         case 'canceled':
         case 'interrupted':
-          break; // Silent reset. User cancelled.
+          break;
         case 'clientConfigurationError':
         case 'providerConfigurationError':
           _showError(_msgConfigError);
