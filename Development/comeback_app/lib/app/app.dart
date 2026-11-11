@@ -1,11 +1,11 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'auth_gate.dart';
 import 'package:fossui/fossui.dart';
 
 import '../core/theme/app_theme.dart';
 import '../core/theme/foss_theme.dart';
-import 'auth_gate.dart';
 import '../core/dev/dev_harness_shell.dart';
 
 /// Root application widget for Comebak.

@@ -69,6 +69,11 @@ class AppSizes {
   static const double avatar = 56; // [RULE 6.3.1] Avatar 56x56
   static const double islandHeight = 64;
   static const double tabIcon = 24;
+  
+  // [ISSUE-31] Game Layout Tokens
+  static const double playAreaTop = 105.0;
+  static const double playAreaBottom = 60.0;
+  static const double bubbleRadius = 40.0;
 }
 
 class AppRadius {
@@ -119,6 +124,11 @@ class AppTextStyles {
   // [FIX] Added missing token for streak chip
   static const TextStyle labelXSmall = TextStyle(
     fontFamily: fontFamily, fontSize: 11, fontWeight: FontWeight.w600, height: 1.2, color: AppColors.textMuted,
+  );
+  
+  // [ISSUE-31] Hero countdown text used in game screens
+  static const TextStyle countdown = TextStyle(
+    fontFamily: fontFamily, fontSize: 100, fontWeight: FontWeight.w800, height: 1.0, color: AppColors.textPrimary,
   );
 }
 

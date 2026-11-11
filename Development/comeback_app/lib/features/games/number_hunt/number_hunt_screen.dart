@@ -7,6 +7,7 @@ import 'package:vibration/vibration.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/games/models/bubble.dart';
 import '../../../core/games/models/game_fx.dart';
+import '../../../core/games/models/board_paint_state.dart';
 import '../../../core/games/widgets/bubble_painter.dart';
 import '../../../core/games/widgets/game_hud.dart';
 import '../../../core/games/utils/game_diagnostics.dart';
@@ -38,15 +39,14 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
   int _hits = 0;
   int _misses = 0;
   bool _gameStarted = false;
-  bool _isFrozen = false;
   
   int _countdown = 3;
   bool _showCountdown = true;
   Timer? _countdownTimer;
 
-  final List<Bubble> _bubbles = [];
-  final List<FloatingText> _floatingTexts = [];
-  final List<Particle> _particles = [];
+  final BoardPaintState _board = BoardPaintState();
+  late final BubblePainter _painter = BubblePainter(board: _board);
+  final ValueNotifier<Duration> _timeLeftListenable = ValueNotifier(Duration.zero);
 
   Size _playAreaSize = Size.zero;
 
@@ -54,11 +54,11 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
   GameConfig get config => widget.config;
 
   @override
-  bool get isTimerActive => _gameStarted && !_showCountdown && !_isFrozen;
+  bool get isTimerActive => _gameStarted && !_showCountdown;
 
   @override
   void onTimerUpdate(Duration timeLeft) {
-    if (mounted) setState(() {});
+    _timeLeftListenable.value = timeLeft;
   }
 
   @override
@@ -69,17 +69,22 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
   @override
   void onTimerTick(double dt) {
     if (!mounted) return;
-    setState(() {
-      final bottomBound = _playAreaSize.height;
-      for (var b in _bubbles) { b.update(dt, _playAreaSize, 0, bottomBound); }
-      resolveBubbleCollisions(_bubbles);
+    final bottomBound = _playAreaSize.height;
+    for (var b in _board.bubbles) { b.update(dt, _playAreaSize, 0, bottomBound); }
+    resolveBubbleCollisions(_board.bubbles);
 
-      _floatingTexts.removeWhere((t) => t.opacity <= 0);
-      for (var t in _floatingTexts) { t.update(dt); }
+    _board.floatingTexts.removeWhere((t) => t.opacity <= 0);
+    for (var t in _board.floatingTexts) { t.update(dt); }
 
-      _particles.removeWhere((p) => p.opacity <= 0);
-      for (var p in _particles) { p.update(dt); }
-    });
+    _board.particles.removeWhere((p) => p.opacity <= 0);
+    for (var p in _board.particles) { p.update(dt); }
+
+    for (final b in _board.bubbles) {
+      if (b.isExiting) b.updateExit(dt);
+    }
+    _board.bubbles.removeWhere((b) => b.isExiting && b.scale <= 0.0);
+
+    _board.tickNotify();
   }
 
   @override
@@ -111,7 +116,7 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
     GameDiagnostics.logGameStart('Small Burst');
     GameDiagnostics.printMaxScore('Small Burst', 60, 10);
     for (int i = 0; i < 8; i++) {
-      _bubbles.add(_generateBubbleData());
+      _board.bubbles.add(_generateBubbleData());
     }
   }
 
@@ -119,7 +124,7 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
     int value;
     do {
       value = _random.nextInt(99) + 1;
-    } while (_bubbles.any((b) => b.value == value) && _bubbles.length < 20);
+    } while (_board.bubbles.any((b) => b.value == value) && _board.bubbles.length < 20);
 
     final radius = 40.0;
     final bottomBound = _playAreaSize.height;
@@ -133,17 +138,17 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
   }
 
   void _handleTap(TapDownDetails details) {
-    if (_isFrozen || timeLeft <= Duration.zero || _showCountdown) return;
+    if (timeLeft <= Duration.zero || _showCountdown) return;
 
     final tapPos = details.localPosition;
     Bubble? tapped;
-    for (var b in _bubbles) {
+    for (var b in _board.bubbles) {
       if ((b.position - tapPos).distance <= b.radius) { tapped = b; break; }
     }
     if (tapped == null) return;
 
     final activeTapped = tapped;
-    int minValue = _bubbles.map((b) => b.value).reduce(min);
+    int minValue = _board.bubbles.where((b) => !b.isExiting).map((b) => b.value).reduce(min);
 
     setState(() {
       if (activeTapped.value == minValue) {
@@ -155,20 +160,17 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
         SystemSound.play(SystemSoundType.click);
         _addFx(activeTapped.position, '+$points', AppColors.primary, true);
         
-        _bubbles.removeWhere((b) => b.id == activeTapped.id);
-        _bubbles.add(_generateBubbleData());
+        activeTapped.startExiting();
+        final nextBubble = _generateBubbleData()..scale = 0.0;
+        _board.replaceBubbles([..._board.bubbles, nextBubble]);
+        _board.tickNotify();
         
-        _isFrozen = true; 
-        Future.delayed(const Duration(milliseconds: 180), () {
-          if (mounted) { 
-            setState(() => _isFrozen = false); 
-          }
-        });
+
       } else {
         _misses++; _combo = 0; _score -= 5;
         Vibration.vibrate(duration: 100, amplitude: 255);
         activeTapped.isWrong = true;
-        _addFx(activeTapped.position, '-5', AppColors.vibrantRed, false);
+        _addFx(activeTapped.position + const Offset(0, -40), '-5', AppColors.vibrantRed, false);
         Future.delayed(const Duration(milliseconds: 300), () {
           if (mounted) setState(() => activeTapped.isWrong = false);
         });
@@ -177,12 +179,12 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
   }
 
   void _addFx(Offset pos, String text, Color color, bool isBurst) {
-    _floatingTexts.add(FloatingText(position: pos, text: text, color: color));
+    _board.floatingTexts.add(FloatingText(position: pos, text: text, color: color));
     if (isBurst) {
       for (int i = 0; i < 10; i++) {
         final angle = _random.nextDouble() * pi * 2;
         final speed = 50 + _random.nextDouble() * 100;
-        _particles.add(Particle(position: pos, velocity: Offset(cos(angle) * speed, sin(angle) * speed), color: AppColors.vibrantGreen, size: 2 + _random.nextDouble() * 4));
+        _board.particles.add(Particle(position: pos, velocity: Offset(cos(angle) * speed, sin(angle) * speed), color: AppColors.vibrantGreen, size: 2 + _random.nextDouble() * 4));
       }
     }
   }
@@ -215,7 +217,7 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
   }
 
   @override
-  void dispose() { _countdownTimer?.cancel(); super.dispose(); }
+  void dispose() { _countdownTimer?.cancel(); _timeLeftListenable.dispose(); _board.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +235,7 @@ class _NumberHuntScreenState extends State<NumberHuntScreen> with SingleTickerPr
                   child: GestureDetector(
                     onTapDown: _handleTap,
                     behavior: HitTestBehavior.opaque,
-                    child: CustomPaint(painter: BubblePainter(bubbles: _bubbles, floatingTexts: _floatingTexts, particles: _particles)),
+                    child: RepaintBoundary(child: CustomPaint(painter: _painter, child: const SizedBox.expand())),
                   ),
                 ),
                 Positioned(

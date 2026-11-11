@@ -38,7 +38,6 @@ class _MadBurstScreenState extends State<MadBurstScreen>
   int _hits = 0;
   int _misses = 0;
   bool _gameStarted = false;
-  bool _isFrozen = false;
 
   int _countdown = 3;
   bool _showCountdown = true;
@@ -58,7 +57,7 @@ class _MadBurstScreenState extends State<MadBurstScreen>
   GameConfig get config => widget.config;
 
   @override
-  bool get isTimerActive => _gameStarted && !_showCountdown && !_isFrozen;
+  bool get isTimerActive => _gameStarted && !_showCountdown;
 
   @override
   void onTimerUpdate(Duration timeLeft) {
@@ -74,13 +73,12 @@ class _MadBurstScreenState extends State<MadBurstScreen>
   void onTimerTick(double dt) {
     if (!mounted) return;
     
-    if (!_isFrozen) {
-      final bottomBound = _playAreaSize.height;
-      for (final b in _board.bubbles) {
-        b.update(dt, _playAreaSize, 0, bottomBound);
-      }
-      resolveBubbleCollisions(_board.bubbles);
+    // [ISSUE-30] Flow like air: Physics never stops.
+    final bottomBound = _playAreaSize.height;
+    for (final b in _board.bubbles) {
+      b.update(dt, _playAreaSize, 0, bottomBound);
     }
+    resolveBubbleCollisions(_board.bubbles);
 
     _board.floatingTexts.removeWhere((t) => t.opacity <= 0);
     for (final t in _board.floatingTexts) { t.update(dt); }
@@ -157,7 +155,7 @@ class _MadBurstScreenState extends State<MadBurstScreen>
   }
 
   void _handleTap(TapDownDetails details) {
-    if (_isFrozen || timeLeft <= Duration.zero || _showCountdown) return;
+    if (timeLeft <= Duration.zero || _showCountdown) return;
 
     final tapPos = details.localPosition;
     Bubble? tapped;
@@ -191,7 +189,7 @@ class _MadBurstScreenState extends State<MadBurstScreen>
           _score += points;
 
           SystemSound.play(SystemSoundType.click);
-          _addFx(activeTapped.position, '+$points', AppColors.primary, true);
+          _addFx(activeTapped.position + const Offset(0, -40), '+$points', AppColors.primary, true);
 
           // [ISSUE-30] Start exit animation instead of instant removal
           activeSelected.startExiting();
@@ -208,15 +206,15 @@ class _MadBurstScreenState extends State<MadBurstScreen>
           _target = _calculateTarget(_board.bubbles);
           _selectedBubble = null;
 
-          _isFrozen = true;
-          Future.delayed(const Duration(milliseconds: 180), () {
-            if (mounted) setState(() => _isFrozen = false);
-          });
+          // [ISSUE-30] Force immediate repaint so matched bubbles instantly turn green before the freeze.
+          _board.tickNotify(); 
+
+
         } else {
           _misses++; _combo = 0; _score = _score - 5;
           Vibration.vibrate(duration: 100, amplitude: 255);
           activeTapped.isWrong = true;
-          _addFx(activeTapped.position, '-5', AppColors.vibrantRed, false);
+          _addFx(activeTapped.position + const Offset(0, -40), '-5', AppColors.vibrantRed, false);
 
           Future.delayed(const Duration(milliseconds: 300), () {
             if (mounted) setState(() => activeTapped.isWrong = false);

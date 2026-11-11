@@ -7,7 +7,6 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/ui/components/comebak_button.dart';
 import '../../core/ui/components/comebak_chip.dart';
 
-// [ISSUE-22] Game result screen. Full-bleed layout with PB celebration.
 class GameResultScreen extends StatefulWidget {
   final int score;
   final int accuracy;
@@ -97,7 +96,10 @@ class _GameResultScreenState extends State<GameResultScreen>
   @override
   Widget build(BuildContext context) {
     final disableAnimations = MediaQuery.disableAnimationsOf(context);
-    final scoreColor = widget.score > 0 ? AppColors.primaryAccent : AppColors.danger;
+    
+    // [ISSUE-30] Ensure confetti and celebration only run if there is an actual score above 0.
+    // This prevents accidental confetti flashes on 0 or negative scores.
+    final showCelebration = widget.isNewPB && widget.score > 0 && !disableAnimations;
     final brokenRecordText = _formatBrokenRecord(widget.previousPBBrokenAfter);
 
     return Scaffold(
@@ -122,7 +124,7 @@ class _GameResultScreenState extends State<GameResultScreen>
                           ),
                           const SizedBox(height: AppSpacing.space24),
                           
-                          if (widget.isNewPB) ...[
+                          if (showCelebration) ...[
                             Center(
                               child: ComebakChip(
                                 text: 'New Personal Best!',
@@ -141,18 +143,12 @@ class _GameResultScreenState extends State<GameResultScreen>
                             const SizedBox(height: AppSpacing.space32),
                           ],
 
-                          TweenAnimationBuilder<double>(
-                            tween: Tween<double>(begin: 0, end: widget.score.toDouble()),
-                            duration: disableAnimations ? Duration.zero : AppMotion.durationRollup,
-                            curve: Curves.easeOutCubic,
-                            builder: (context, value, child) {
-                              return Text(
-                                value.toInt().toString(),
-                                style: AppTextStyles.hudLarge.copyWith(color: scoreColor, fontWeight: FontWeight.w900),
-                                textAlign: TextAlign.center,
-                              );
-                            },
+                          // [ISSUE-30] Extracted to its own widget to prevent route transition jank.
+                          _ScoreRollup(
+                            score: widget.score, 
+                            disableAnimations: disableAnimations,
                           ),
+
                           Text(
                             'SCORE',
                             style: AppTextStyles.labelSmall,
@@ -162,21 +158,23 @@ class _GameResultScreenState extends State<GameResultScreen>
                           const SizedBox(height: AppSpacing.space32),
 
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               Expanded(
+                                flex: 1,
                                 child: Column(
                                   children: [
                                     Text('${widget.accuracy}%', style: AppTextStyles.hudMedium),
-                                    const Text('Accuracy', style: AppTextStyles.labelSmall),
+                                    const Text('Accuracy', style: AppTextStyles.labelSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
                                   ],
                                 ),
                               ),
+                              const SizedBox(width: AppSpacing.space16),
                               Expanded(
+                                flex: 1,
                                 child: Column(
                                   children: [
                                     Text('x${widget.bestCombo}', style: AppTextStyles.hudMedium),
-                                    const Text('Best Combo', style: AppTextStyles.labelSmall),
+                                    const Text('Best Combo', style: AppTextStyles.labelSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
                                   ],
                                 ),
                               ),
@@ -242,12 +240,45 @@ class _GameResultScreenState extends State<GameResultScreen>
             },
           ),
           
-          if (widget.isNewPB && !disableAnimations)
+          // [ISSUE-30] Isolated confetti using RepaintBoundary so it doesn't block the route transition.
+          if (showCelebration)
             const Positioned.fill(
-              child: IgnorePointer(child: _ConfettiOverlay()),
+              child: IgnorePointer(
+                child: RepaintBoundary(
+                  child: _ConfettiOverlay(),
+                ),
+              ),
             ),
         ],
       ),
+    );
+  }
+}
+
+// [ISSUE-30] Isolated score rollup. By isolating the TweenAnimationBuilder into its own 
+// widget, its 60fps rebuilds do not trigger layout recalculations for the entire screen. 
+// This allows the route slide-in animation to remain perfectly smooth.
+class _ScoreRollup extends StatelessWidget {
+  final int score;
+  final bool disableAnimations;
+
+  const _ScoreRollup({required this.score, required this.disableAnimations});
+
+  @override
+  Widget build(BuildContext context) {
+    final scoreColor = score > 0 ? AppColors.primaryAccent : AppColors.danger;
+    
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: score.toDouble()),
+      duration: disableAnimations ? Duration.zero : AppMotion.durationRollup,
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Text(
+          value.toInt().toString(),
+          style: AppTextStyles.hudLarge.copyWith(color: scoreColor, fontWeight: FontWeight.w900),
+          textAlign: TextAlign.center,
+        );
+      },
     );
   }
 }
@@ -285,8 +316,11 @@ class _ConfettiOverlayState extends State<_ConfettiOverlay>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return CustomPaint(
-          painter: _ConfettiPainter(_particles, _controller.value),
+        // [ISSUE-30] ClipRect prevents particles from bleeding into the previous screen during swipe-back gestures.
+        return ClipRect(
+          child: CustomPaint(
+            painter: _ConfettiPainter(_particles, _controller.value),
+          ),
         );
       },
     );
@@ -319,6 +353,9 @@ class _ConfettiPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // [ISSUE-30] Hard clip the canvas to the screen bounds.
+    canvas.clipRect(Offset.zero & size);
+
     final paint = Paint()..style = PaintingStyle.fill;
     for (var p in particles) {
       final dx = cos(p.angle) * p.speed * progress * size.width * 0.8;

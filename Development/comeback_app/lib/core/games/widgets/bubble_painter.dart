@@ -5,11 +5,7 @@ import '../models/bubble.dart';
 import '../models/game_fx.dart';
 
 class BubblePainter extends CustomPainter {
-  // [ISSUE-1] The board state acts as a Listenable. When it calls notifyListeners(), 
-  // the CustomPaint repaints without triggering a widget rebuild.
   final BoardPaintState? board;
-  
-  // Legacy fields kept temporarily for number_hunt_screen.dart so we don't break it.
   final List<Bubble>? bubbles;
   final List<FloatingText>? floatingTexts;
   final List<Particle>? particles;
@@ -19,7 +15,7 @@ class BubblePainter extends CustomPainter {
     this.bubbles,
     this.floatingTexts,
     this.particles,
-  }) : super(repaint: board); // [ISSUE-1] Bypasses build phase for 60fps repaints.
+  }) : super(repaint: board);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -33,17 +29,19 @@ class BubblePainter extends CustomPainter {
       ..strokeWidth = 2.0;
 
     for (final bubble in activeBubbles) {
-      // [ISSUE-30] Skip rendering entirely if the bubble has fully shrunk (saves draw calls).
       if (bubble.scale <= 0) continue;
       
-      // [ISSUE-30] Use scaled radius for visual rendering so it shrinks/grows.
       final currentRadius = bubble.radius * bubble.scale;
       final rect = Rect.fromCircle(center: bubble.position, radius: currentRadius);
 
       Color borderColor = AppColors.border;
       List<Color> gradientColors = [AppColors.surface, AppColors.background];
 
-      if (bubble.isWrong) {
+      // [ISSUE-30] If matched, instantly paint solid green before scaling down.
+      if (bubble.isMatched) {
+        borderColor = AppColors.vibrantGreen;
+        gradientColors = [AppColors.vibrantGreen, AppColors.vibrantGreen.withValues(alpha: 0.5)];
+      } else if (bubble.isWrong) {
         borderColor = AppColors.vibrantRed;
         gradientColors = [AppColors.surface, AppColors.vibrantRed.withValues(alpha: 0.2)];
       } else if (bubble.isSelected) {
@@ -60,7 +58,6 @@ class BubblePainter extends CustomPainter {
       canvas.drawCircle(bubble.position, currentRadius, fillPaint);
       canvas.drawCircle(bubble.position, currentRadius, borderPaint);
 
-      // [ISSUE-30] Scale the font size proportionally to the bubble scale.
       final textPainter = TextPainter(
         text: TextSpan(
           text: bubble.value.toString(),
@@ -94,6 +91,5 @@ class BubblePainter extends CustomPainter {
   }
 
   @override
-  // [ISSUE-1] We return false because repaints are driven purely by the BoardPaintState Listenable.
   bool shouldRepaint(covariant BubblePainter oldDelegate) => false;
 }

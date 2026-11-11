@@ -15,6 +15,7 @@ import '../../../core/games/repository/game_repository.dart';
 import '../../../core/games/models/game_config.dart';
 import '../../../core/games/configs/game_configs.dart';
 import '../../../core/games/mixins/game_timer_mixin.dart';
+import '../../../core/games/widgets/game_chrome.dart';
 
 class AddBurstScreen extends StatefulWidget {
   final GameConfig config;
@@ -38,7 +39,6 @@ class _AddBurstScreenState extends State<AddBurstScreen>
   int _hits = 0;
   int _misses = 0;
   bool _gameStarted = false;
-  bool _isFrozen = false;
 
   int _countdown = 3;
   bool _showCountdown = true;
@@ -62,7 +62,7 @@ class _AddBurstScreenState extends State<AddBurstScreen>
   GameConfig get config => widget.config;
 
   @override
-  bool get isTimerActive => _gameStarted && !_showCountdown && !_isFrozen;
+  bool get isTimerActive => _gameStarted && !_showCountdown;
 
   @override
   void onTimerUpdate(Duration timeLeft) {
@@ -80,13 +80,12 @@ class _AddBurstScreenState extends State<AddBurstScreen>
     if (!mounted) return;
     
     // [ISSUE-1] We mutate the board in place. No setState() here.
-    if (!_isFrozen) {
-      final bottomBound = _playAreaSize.height;
-      for (final b in _board.bubbles) {
-        b.update(dt, _playAreaSize, 0, bottomBound);
-      }
-      resolveBubbleCollisions(_board.bubbles);
+    // [ISSUE-30] Flow like air: Physics never stops.
+    final bottomBound = _playAreaSize.height;
+    for (final b in _board.bubbles) {
+      b.update(dt, _playAreaSize, 0, bottomBound);
     }
+    resolveBubbleCollisions(_board.bubbles);
 
     _board.floatingTexts.removeWhere((t) => t.opacity <= 0);
     for (final t in _board.floatingTexts) { t.update(dt); }
@@ -165,7 +164,7 @@ class _AddBurstScreenState extends State<AddBurstScreen>
   }
 
   void _handleTap(TapDownDetails details) {
-    if (_isFrozen || timeLeft <= Duration.zero || _showCountdown) return;
+    if (timeLeft <= Duration.zero || _showCountdown) return;
 
     final tapPos = details.localPosition;
     Bubble? tapped;
@@ -199,7 +198,7 @@ class _AddBurstScreenState extends State<AddBurstScreen>
           _score += points;
 
           SystemSound.play(SystemSoundType.click);
-          _addFx(activeTapped.position, '+$points', AppColors.primary, true);
+          _addFx(activeTapped.position + const Offset(0, -40), '+$points', AppColors.primary, true);
 
           // [ISSUE-30] Mark the two matched bubbles as exiting. 
           // They will shrink over 200ms in onTimerTick.
@@ -218,15 +217,15 @@ class _AddBurstScreenState extends State<AddBurstScreen>
           _target = _calculateTarget(_board.bubbles);
           _selectedBubble = null;
 
-          _isFrozen = true;
-          Future.delayed(const Duration(milliseconds: 180), () {
-            if (mounted) setState(() => _isFrozen = false);
-          });
+          // [ISSUE-30] Force immediate repaint so matched bubbles instantly turn green before the freeze.
+          _board.tickNotify(); 
+
+
         } else {
           _misses++; _combo = 0; _score = _score - 5;
           Vibration.vibrate(duration: 100, amplitude: 255);
           activeTapped.isWrong = true;
-          _addFx(activeTapped.position, '-5', AppColors.vibrantRed, false);
+          _addFx(activeTapped.position + const Offset(0, -40), '-5', AppColors.vibrantRed, false);
 
           Future.delayed(const Duration(milliseconds: 300), () {
             if (mounted) setState(() => activeTapped.isWrong = false);
@@ -300,22 +299,15 @@ class _AddBurstScreenState extends State<AddBurstScreen>
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            _playAreaSize = Size(constraints.maxWidth, constraints.maxHeight - 165);
+            _playAreaSize = Size(constraints.maxWidth, constraints.maxHeight - (AppSizes.playAreaTop + AppSizes.playAreaBottom));
 
             return Stack(
               fit: StackFit.expand,
               children: [
-                Positioned(
-                  top: 105, bottom: 60, left: 0, right: 0,
-                  child: GestureDetector(
-                    onTapDown: _handleTap,
-                    behavior: HitTestBehavior.opaque,
-                    // [ISSUE-1] RepaintBoundary limits repaint scope. 
-                    // When bubbles move, only this box repaints, not the HUD.
-                    child: RepaintBoundary(
-                      child: CustomPaint(painter: _painter, child: const SizedBox.expand()),
-                    ),
-                  ),
+                // [ISSUE-31] Using shared GamePlayArea
+                GamePlayArea(
+                  onTapDown: _handleTap,
+                  painter: CustomPaint(painter: _painter, child: const SizedBox.expand()),
                 ),
                 Positioned(
                   top: AppSpacing.md, left: AppSpacing.md, right: AppSpacing.md,
@@ -333,30 +325,15 @@ class _AddBurstScreenState extends State<AddBurstScreen>
                     },
                   ),
                 ),
-                Positioned(
-                  bottom: AppSpacing.xl, left: AppSpacing.lg, right: AppSpacing.lg,
-                  child: Text(
-                    widget.config.instructions, textAlign: TextAlign.center,
-                    style: AppTextStyles.body.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.6), fontSize: 14),
-                  ),
-                ),
+                // [ISSUE-31] Using shared GameInstructionBar
+                GameInstructionBar(text: widget.config.instructions),
+                // [ISSUE-31] Using shared GameCountdownOverlay
                 if (_showCountdown)
-                  Positioned.fill(
-                    child: Container(
-                      color: AppColors.background,
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('$_countdown', style: AppTextStyles.display.copyWith(fontSize: 100)),
-                            SizedBox(height: AppSpacing.lg),
-                            Text(widget.config.title, style: AppTextStyles.hud.copyWith(color: widget.accentColor)),
-                            SizedBox(height: AppSpacing.md),
-                            Text(widget.config.instructions, style: AppTextStyles.body),
-                          ],
-                        ),
-                      ),
-                    ),
+                  GameCountdownOverlay(
+                    count: _countdown,
+                    title: widget.config.title,
+                    instructions: widget.config.instructions,
+                    accentColor: widget.accentColor,
                   ),
               ],
             );

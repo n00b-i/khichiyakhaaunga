@@ -51,13 +51,20 @@ mixin GameTimerMixin<T extends StatefulWidget> on State<T>, SingleTickerProvider
     final dt = (elapsed - _lastElapsed).inMicroseconds / 1000000.0;
     _lastElapsed = elapsed;
     if (dt <= 0 || dt > 0.1) return;
+    
     _timeLeft -= Duration(microseconds: (dt * 1000000).round());
+    
     if (_timeLeft <= Duration.zero) {
       _timeLeft = Duration.zero;
+      // [CRITICAL FIX] Stop the ticker immediately so onTimeUp() only fires ONCE.
+      // Without this, the ticker continues at 60fps, causing onTimeUp to fire 60 times a second,
+      // which triggers multiple Navigator.pushReplacement calls and breaks the slide animation.
+      _ticker.stop(); 
       onTimerUpdate(Duration.zero);
       onTimeUp();
       return;
     }
+    
     onTimerUpdate(_timeLeft);
     onTimerTick(dt);
   }

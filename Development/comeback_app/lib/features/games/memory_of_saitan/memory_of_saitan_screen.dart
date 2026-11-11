@@ -1,22 +1,27 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // [1] Supabase import
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/games/widgets/game_hud.dart';
+import '../../../core/games/widgets/game_chrome.dart'; // [ISSUE-31] Shared UI
 import '../../../core/games/utils/game_diagnostics.dart';
 import '../game_result_screen.dart';
-import '../../../core/games/repository/game_repository.dart'; // [2] Repository import
+import '../../../core/games/repository/game_repository.dart';
+import '../../../core/games/models/game_config.dart'; // [ISSUE-27] Config
+import '../../../core/games/configs/game_configs.dart';
+import '../../../core/games/mixins/game_timer_mixin.dart'; // [ISSUE-15] Timer
 
 class MemoryOfSaitanScreen extends StatefulWidget {
+  final GameConfig config;
   final bool isMultiplication;
   final Color accentColor;
 
   const MemoryOfSaitanScreen({
     super.key, 
+    this.config = SaitanConfig.addition,
     this.isMultiplication = false,
     required this.accentColor,
   });
@@ -25,12 +30,9 @@ class MemoryOfSaitanScreen extends StatefulWidget {
   State<MemoryOfSaitanScreen> createState() => _MemoryOfSaitanScreenState();
 }
 
-class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  late Ticker _ticker;
-  Duration _lastElapsed = Duration.zero;
+class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen>
+    with SingleTickerProviderStateMixin, GameTimerMixin {
   final Random _random = Random();
-
-  // [3] DB Match Tracking Variables
   late GameRepository _gameRepo;
   String? _currentMatchId;
 
@@ -40,7 +42,8 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
   int _hits = 0; 
   int _misses = 0;
   bool _gameStarted = false; 
-  double _timeLeft = 60.0;
+  
+  // [ISSUE-1] ValueNotifier for HUD to avoid full rebuilds
   final ValueNotifier<double> _timeNotifier = ValueNotifier(60.0);
   
   int _countdown = 3; 
@@ -65,26 +68,34 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
   final ValueNotifier<Offset?> _fingerPos = ValueNotifier(null);
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _ticker = createTicker(_onTick)..start();
-    _startCountdown();
+  GameConfig get config => widget.config;
 
-    // [4] Initialize DB Match
-    _gameRepo = GameRepository(Supabase.instance.client);
-    final gameId = widget.isMultiplication ? 'saitan_mul' : 'saitan_add';
-    _gameRepo.startMatch(gameId).then((id) => _currentMatchId = id);
+  // [ISSUE-15] Pause timer during countdown and level transitions
+  @override
+  bool get isTimerActive => _gameStarted && !_showCountdown && !_isLevelClearing;
+
+  @override
+  void onTimerUpdate(Duration timeLeft) {
+    _timeNotifier.value = timeLeft.inMilliseconds / 1000.0;
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      _ticker.muted = true;
-    } else if (state == AppLifecycleState.resumed) {
-      _ticker.muted = false;
-      _lastElapsed = Duration.zero; 
-    }
+  void onTimeUp() {
+    _endGame();
+  }
+
+  @override
+  void onTimerTick(double dt) {
+    // Saitan is driven by taps, not per-frame physics.
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _startCountdown();
+
+    _gameRepo = GameRepository(Supabase.instance.client);
+    _gameRepo.startMatch(widget.config.gameId).then((id) => _currentMatchId = id);
   }
 
   void _startCountdown() {
@@ -103,8 +114,7 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
   }
 
   void _buildGrid() {
-    final name = widget.isMultiplication ? 'Saitan X' : 'Saitan +';
-    GameDiagnostics.logGameStart(name);
+    GameDiagnostics.logGameStart(widget.config.title);
     
     if (_level == 0) { _gridSize = 2; _emptyCount = 0; }
     else if (_level == 1) { _gridSize = 3; _emptyCount = 1; }
@@ -138,9 +148,7 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
     
     _pickNewTarget();
 
-    // Dynamic memorize time: Base 500ms + 200ms per level
     final revealDuration = 500 + (_level * 200);
-    
     Future.delayed(Duration(milliseconds: revealDuration), () {
       if (mounted) setState(() => _isMemorizing = false);
     });
@@ -176,26 +184,6 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
         _buildGrid(); 
       });
     });
-  }
-
-  void _onTick(Duration elapsed) {
-    if (!mounted || !_gameStarted || _showCountdown || _isLevelClearing) return;
-    
-    final dt = (elapsed - _lastElapsed).inMicroseconds / 1000000.0;
-    _lastElapsed = elapsed;
-    
-    if (dt > 0.1) return; 
-    
-    _timeLeft -= dt;
-    
-    if (_timeLeft <= 0) { 
-      _timeLeft = 0;
-      _timeNotifier.value = 0; 
-      _endGame(); 
-      return; 
-    }
-    
-    _timeNotifier.value = _timeLeft;
   }
 
   void _onPointerDown(PointerDownEvent event) {
@@ -280,20 +268,17 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
   }
 
   void _endGame() async {
-    _ticker.stop();
     final totalTaps = _hits + _misses;
     final accuracy = totalTaps == 0 ? 0.0 : ((_hits / totalTaps) * 100.0);
 
     MatchResult? matchResult;
-    // [5] Save Match to DB
     if (_currentMatchId != null) {
-      final gameId = widget.isMultiplication ? 'saitan_mul' : 'saitan_add';
       matchResult = await _gameRepo.endMatch(
         matchId: _currentMatchId!,
-        gameId: gameId,
+        gameId: widget.config.gameId,
         score: _score,
         accuracy: accuracy,
-        durationSeconds: 60,
+        durationSeconds: widget.config.duration.inSeconds,
       );
     }
     
@@ -303,8 +288,9 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
       accuracy: accuracy.round(), 
       bestCombo: _bestCombo, 
       isNewPB: matchResult?.isNewPB ?? false,
-          previousPBBrokenAfter: matchResult?.previousPBBrokenAfter,
+      previousPBBrokenAfter: matchResult?.previousPBBrokenAfter,
       gameBuilder: () => MemoryOfSaitanScreen(
+        config: widget.config,
         isMultiplication: widget.isMultiplication,
         accentColor: widget.accentColor,
       )
@@ -313,8 +299,6 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
 
   @override
   void dispose() { 
-    WidgetsBinding.instance.removeObserver(this);
-    _ticker.dispose(); 
     _countdownTimer?.cancel(); 
     _timeNotifier.dispose();
     _fingerPos.dispose();
@@ -330,13 +314,17 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
           children: [
             Column(
               children: [
+                // [ISSUE-1] Using ValueNotifier for HUD
                 ValueListenableBuilder<double>(
                   valueListenable: _timeNotifier,
                   builder: (context, timeLeft, child) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                       child: GameHud(
-                        timeLeft: timeLeft, maxTime: 60, target: _target, score: _score,
+                        timeLeft: timeLeft, 
+                        maxTime: widget.config.duration.inSeconds, 
+                        target: _target, 
+                        score: _score,
                         operationPrefix: widget.isMultiplication ? 'x' : '+',
                       ),
                     );
@@ -500,17 +488,8 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
               ],
             ),
 
-            Positioned(
-              bottom: AppSpacing.xl,
-              left: AppSpacing.lg,
-              child: Text(
-                'Slide to reveal. Tap 2 tiles to match target.',
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.textPrimary.withValues(alpha: 0.6),
-                  fontSize: 14,
-                ),
-              ),
-            ),
+            // [ISSUE-31] Using shared GameInstructionBar
+            GameInstructionBar(text: widget.config.instructions),
 
             if (_showLevelUp)
               Positioned.fill(
@@ -533,20 +512,14 @@ class _MemoryOfSaitanScreenState extends State<MemoryOfSaitanScreen> with Single
                 ),
               ),
 
+            // [ISSUE-31] Using shared GameCountdownOverlay
             if (_showCountdown)
-              Positioned.fill(child: Container(color: AppColors.background, child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text('$_countdown', style: AppTextStyles.display.copyWith(fontSize: 100)),
-                SizedBox(height: AppSpacing.lg),
-                Text(
-                  widget.isMultiplication ? 'Saitan X' : 'Saitan +', 
-                  style: AppTextStyles.hud.copyWith(color: widget.accentColor),
-                ),
-                SizedBox(height: AppSpacing.md),
-                Text(
-                  widget.isMultiplication ? 'Memorize the grid. Multiply to target.' : 'Memorize the grid. Add to target.', 
-                  style: AppTextStyles.body,
-                ),
-              ])))),
+              GameCountdownOverlay(
+                count: _countdown,
+                title: widget.config.title,
+                instructions: widget.config.instructions,
+                accentColor: widget.accentColor,
+              ),
           ],
         ),
       ),
