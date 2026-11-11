@@ -19,11 +19,10 @@ class BubblePainter extends CustomPainter {
     this.bubbles,
     this.floatingTexts,
     this.particles,
-  }) : super(repaint: board); // [ISSUE-1] Pass board to repaint to bypass build phase.
+  }) : super(repaint: board); // [ISSUE-1] Bypasses build phase for 60fps repaints.
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Fallback to legacy lists if board is null (used by number_hunt)
     final activeBubbles = board?.bubbles ?? bubbles ?? [];
     final activeFloatingTexts = board?.floatingTexts ?? floatingTexts ?? [];
     final activeParticles = board?.particles ?? particles ?? [];
@@ -34,7 +33,12 @@ class BubblePainter extends CustomPainter {
       ..strokeWidth = 2.0;
 
     for (final bubble in activeBubbles) {
-      final rect = Rect.fromCircle(center: bubble.position, radius: bubble.radius);
+      // [ISSUE-30] Skip rendering entirely if the bubble has fully shrunk (saves draw calls).
+      if (bubble.scale <= 0) continue;
+      
+      // [ISSUE-30] Use scaled radius for visual rendering so it shrinks/grows.
+      final currentRadius = bubble.radius * bubble.scale;
+      final rect = Rect.fromCircle(center: bubble.position, radius: currentRadius);
 
       Color borderColor = AppColors.border;
       List<Color> gradientColors = [AppColors.surface, AppColors.background];
@@ -53,13 +57,14 @@ class BubblePainter extends CustomPainter {
       ).createShader(rect);
       borderPaint.color = borderColor;
 
-      canvas.drawCircle(bubble.position, bubble.radius, fillPaint);
-      canvas.drawCircle(bubble.position, bubble.radius, borderPaint);
+      canvas.drawCircle(bubble.position, currentRadius, fillPaint);
+      canvas.drawCircle(bubble.position, currentRadius, borderPaint);
 
+      // [ISSUE-30] Scale the font size proportionally to the bubble scale.
       final textPainter = TextPainter(
         text: TextSpan(
           text: bubble.value.toString(),
-          style: AppTextStyles.hud.copyWith(fontSize: 28),
+          style: AppTextStyles.hud.copyWith(fontSize: 28 * bubble.scale),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -90,6 +95,5 @@ class BubblePainter extends CustomPainter {
 
   @override
   // [ISSUE-1] We return false because repaints are driven purely by the BoardPaintState Listenable.
-  // This prevents redundant repaints when the widget tree rebuilds for other reasons (e.g., countdown).
   bool shouldRepaint(covariant BubblePainter oldDelegate) => false;
 }

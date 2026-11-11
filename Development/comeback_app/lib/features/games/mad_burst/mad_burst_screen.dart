@@ -7,7 +7,7 @@ import 'package:vibration/vibration.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/games/models/bubble.dart';
 import '../../../core/games/models/game_fx.dart';
-import '../../../core/games/models/board_paint_state.dart'; // [ISSUE-1] New state model
+import '../../../core/games/models/board_paint_state.dart';
 import '../../../core/games/widgets/bubble_painter.dart';
 import '../../../core/games/widgets/game_hud.dart';
 import '../game_result_screen.dart';
@@ -44,12 +44,11 @@ class _MadBurstScreenState extends State<MadBurstScreen>
   bool _showCountdown = true;
   Timer? _countdownTimer;
 
-  // [ISSUE-1] Isolated state for physics/paint. Replaces _bubbles, _floatingTexts, _particles.
+  // [ISSUE-1] Isolated state for physics/paint.
   final BoardPaintState _board = BoardPaintState();
-  // [ISSUE-1] Long-lived painter, created once to avoid object churn.
   late final BubblePainter _painter = BubblePainter(board: _board);
   
-  // [ISSUE-1] Separate Listenable for HUD time, so updating time doesn't rebuild the screen.
+  // [ISSUE-1] Separate Listenable for HUD time.
   final ValueNotifier<Duration> _timeLeftListenable = ValueNotifier(Duration.zero);
   
   Bubble? _selectedBubble;
@@ -63,7 +62,6 @@ class _MadBurstScreenState extends State<MadBurstScreen>
 
   @override
   void onTimerUpdate(Duration timeLeft) {
-    // [ISSUE-1] Update HUD without calling setState() on the whole screen.
     _timeLeftListenable.value = timeLeft;
   }
 
@@ -76,7 +74,6 @@ class _MadBurstScreenState extends State<MadBurstScreen>
   void onTimerTick(double dt) {
     if (!mounted) return;
     
-    // [ISSUE-1] Mutate the bubbles in place (for physics), but don't call setState().
     if (!_isFrozen) {
       final bottomBound = _playAreaSize.height;
       for (final b in _board.bubbles) {
@@ -91,7 +88,12 @@ class _MadBurstScreenState extends State<MadBurstScreen>
     _board.particles.removeWhere((p) => p.opacity <= 0);
     for (final p in _board.particles) { p.update(dt); }
 
-    // [ISSUE-1] Triggers the BubblePainter to repaint via the Listenable.
+    // [ISSUE-30] Process exit animations every tick.
+    for (final b in _board.bubbles) {
+      if (b.isExiting) b.updateExit(dt);
+    }
+    _board.bubbles.removeWhere((b) => b.isExiting && b.scale <= 0.0);
+
     _board.tickNotify();
   }
 
@@ -120,7 +122,6 @@ class _MadBurstScreenState extends State<MadBurstScreen>
 
   void _spawnInitialBubbles() {
     final list = <Bubble>[for (int i = 0; i < 6; i++) _generateBubbleData()];
-    // [ISSUE-1] Swap list reference for clean structural update.
     _board.replaceBubbles(list);
     _target = _calculateTarget(_board.bubbles);
   }
@@ -143,12 +144,15 @@ class _MadBurstScreenState extends State<MadBurstScreen>
   }
 
   int _calculateTarget(List<Bubble> board) {
-    if (board.length < 2) return 10;
-    final b1 = board[_random.nextInt(board.length)];
+    // [ISSUE-30] Ignore bubbles that are animating out so they don't affect the math.
+    final activeBoard = board.where((b) => !b.isExiting).toList();
+    if (activeBoard.length < 2) return 10;
+    final b1 = activeBoard[_random.nextInt(activeBoard.length)];
     Bubble b2;
     do {
-      b2 = board[_random.nextInt(board.length)];
+      b2 = activeBoard[_random.nextInt(activeBoard.length)];
     } while (b2.id == b1.id);
+    // [MAD-BURST] Multiplication logic
     return b1.value * b2.value;
   }
 
@@ -158,7 +162,8 @@ class _MadBurstScreenState extends State<MadBurstScreen>
     final tapPos = details.localPosition;
     Bubble? tapped;
     for (var b in _board.bubbles) {
-      if ((b.position - tapPos).distance <= b.radius) {
+      // [ISSUE-30] You cannot tap a bubble that is currently shrinking away.
+      if (!b.isExiting && (b.position - tapPos).distance <= (b.radius * b.scale)) {
         tapped = b;
         break;
       }
@@ -176,9 +181,9 @@ class _MadBurstScreenState extends State<MadBurstScreen>
         _selectedBubble = null;
       } else {
         final activeSelected = _selectedBubble!;
-        final sum = activeSelected.value + activeTapped.value;
+        final product = activeSelected.value * activeTapped.value;
 
-        if (sum == _target) {
+        if (product == _target) {
           _hits++; _combo++;
           if (_combo > _bestCombo) _bestCombo = _combo;
 
@@ -188,12 +193,18 @@ class _MadBurstScreenState extends State<MadBurstScreen>
           SystemSound.play(SystemSoundType.click);
           _addFx(activeTapped.position, '+$points', AppColors.primary, true);
 
-          final survivors = _board.bubbles.where((b) => b.id != activeSelected.id && b.id != activeTapped.id).toList();
-          final nextBubble1 = _generateBubbleData();
-          final nextBubble2 = _generateBubbleData();
+          // [ISSUE-30] Start exit animation instead of instant removal
+          activeSelected.startExiting();
+          activeTapped.startExiting();
+
+          // [ISSUE-30] Spawn new bubbles at scale 0.0 so they grow in
+          final nextBubble1 = _generateBubbleData()..scale = 0.0;
+          final nextBubble2 = _generateBubbleData()..scale = 0.0;
           
-          // [ISSUE-1] Swap the list reference for the physics engine.
-          _board.replaceBubbles([...survivors, nextBubble1, nextBubble2]);
+          // [ISSUE-30] Append new bubbles without deleting the old ones immediately.
+          _board.replaceBubbles([..._board.bubbles, nextBubble1, nextBubble2]);
+          
+          // [ISSUE-30] Recalculate target, ignoring the dying bubbles.
           _target = _calculateTarget(_board.bubbles);
           _selectedBubble = null;
 
@@ -267,8 +278,8 @@ class _MadBurstScreenState extends State<MadBurstScreen>
   @override
   void dispose() {
     _countdownTimer?.cancel();
-    _timeLeftListenable.dispose(); // [ISSUE-1] Clean up the HUD listenable
-    _board.dispose(); // [ISSUE-1] Clean up the physics listenable
+    _timeLeftListenable.dispose();
+    _board.dispose();
     super.dispose();
   }
 
@@ -289,7 +300,7 @@ class _MadBurstScreenState extends State<MadBurstScreen>
                   child: GestureDetector(
                     onTapDown: _handleTap,
                     behavior: HitTestBehavior.opaque,
-                    // [ISSUE-1] RepaintBoundary caches the physics layer. Only this area repaints on tick.
+                    // [ISSUE-1] RepaintBoundary limits repaint scope. 
                     child: RepaintBoundary(
                       child: CustomPaint(painter: _painter, child: const SizedBox.expand()),
                     ),
@@ -297,7 +308,7 @@ class _MadBurstScreenState extends State<MadBurstScreen>
                 ),
                 Positioned(
                   top: AppSpacing.md, left: AppSpacing.md, right: AppSpacing.md,
-                  // [ISSUE-1] Only this tiny HUD widget listens to the timer, not the whole screen.
+                  // [ISSUE-1] Only the HUD listens to the clock.
                   child: ValueListenableBuilder<Duration>(
                     valueListenable: _timeLeftListenable,
                     builder: (context, timeLeftValue, child) {
