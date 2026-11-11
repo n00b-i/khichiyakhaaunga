@@ -6,8 +6,6 @@ import 'package:fossui/fossui.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/foss_theme.dart';
 import 'auth_gate.dart';
-import '../core/dev/dev_harness_pill.dart';
-import '../core/dev/dev_states_page.dart';
 import '../core/dev/dev_harness_shell.dart';
 
 /// Root application widget for Comebak.
@@ -68,7 +66,7 @@ class ComebakApp extends StatelessWidget {
         // Authentication determines the initial application flow.
         // AuthGate handles the transition between authenticated
         // and unauthenticated application states.
-        home: const DevStatesPage(),
+        home: const AuthGate(),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 import '../../theme/app_tokens.dart';
 
 enum ComebakChipVariant { normal, active, neon }
@@ -23,7 +24,7 @@ class ComebakChip extends StatelessWidget {
   Color get _bgColor {
     switch (_effective) {
       case ComebakChipVariant.neon:
-        return AppColors.neon.withValues(alpha: 0.12);
+        return AppColors.neon.withValues(alpha: 0.10);
       case ComebakChipVariant.active:
         return AppColors.warning.withValues(alpha: 0.1);
       case ComebakChipVariant.normal:
@@ -57,14 +58,9 @@ class ComebakChip extends StatelessWidget {
     if (_effective != ComebakChipVariant.neon) return const [];
     return [
       BoxShadow(
-        color: AppColors.neon.withValues(alpha: 0.55),
-        blurRadius: 16,
-        spreadRadius: 0,
-      ),
-      BoxShadow(
         color: AppColors.neon.withValues(alpha: 0.25),
-        blurRadius: 32,
-        spreadRadius: 4,
+        blurRadius: 8,
+        spreadRadius: 0,
       ),
     ];
   }
@@ -82,9 +78,18 @@ class ComebakChip extends StatelessWidget {
         border: Border.all(color: _borderColor, width: _effective == ComebakChipVariant.neon ? 1.5 : 1),
         boxShadow: _shadows,
       ),
-      child: Text(
-        text,
-        style: AppTextStyles.labelXSmall.copyWith(color: _textColor),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_effective == ComebakChipVariant.neon) ...[
+            Icon(LucideIcons.award, size: 14, color: _textColor),
+            const SizedBox(width: AppSpacing.space4),
+          ],
+          Text(
+            text,
+            style: AppTextStyles.labelXSmall.copyWith(color: _textColor),
+          ),
+        ],
       ),
     );
   }

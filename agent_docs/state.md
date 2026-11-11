@@ -20,3 +20,9 @@ None.
 4. SharedPreferences: Must be `SharedPreferences?` (nullable) in singletons to avoid `LateInitializationError`.
 5. **FK constraint dropped**: `matches_session_id_fkey` was removed on 2026-11-10 for offline sync testing. MUST restore after offline session queuing is built. Tracked in GitHub issue.
 6. **Comment syntax**: Use `//` for comments. NEVER `///`. Never end a comment line with `/`.
+
+## Locked UI: Game Result Screen (Issue #22)
+- **Status:** MVP UI Locked on 2026-11-11.
+- **Notes:** Full-bleed layout, neon PB chip, null-safe record-broken text, thumb-zone buttons. Button text weight settled at `w700`.
+- **Post-MVP Task:** The Game Result Screen UI needs a deeper upgrade (animations, deeper data integration) in a future sprint. Do not delete this issue, keep it as a reference for the redesign.
+- **Backend Gap:** `GameRepository.endMatch()` currently returns `Future<bool>`. It needs to return `Future<MatchResult>` to pass `previousPBBrokenAfter` to the UI for real gameplay (currently mocked in Dev States).

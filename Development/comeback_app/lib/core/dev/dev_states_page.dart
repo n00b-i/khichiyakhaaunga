@@ -5,7 +5,6 @@ import '../ui/components/comebak_button.dart';
 import 'dev_screen_registry.dart';
 
 // Dev-only page listing every registered screen state as tappable buttons.
-// Reached via app.dart home: override while reviewing states.
 class DevStatesPage extends StatelessWidget {
   const DevStatesPage({super.key});
 

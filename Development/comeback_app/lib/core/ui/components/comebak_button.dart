@@ -97,7 +97,7 @@ class _ComebakButtonState extends State<ComebakButton> {
                   )
                 : Text(
                     widget.text,
-                    style: AppTextStyles.titleMedium.copyWith(color: fgColor),
+                    style: AppTextStyles.titleMedium.copyWith(color: fgColor, fontWeight: FontWeight.w700),
                   ),
           ),
         ),
