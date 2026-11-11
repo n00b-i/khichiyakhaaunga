@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -238,16 +239,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           trailing: const Icon(LucideIcons.chevron_right, size: 20, color: AppColors.textMuted),
                           onTap: () => _handleEditName(name, lastUpdated),
                         ),
-                        const Divider(height: 1, color: AppColors.borderSubtle),
-                        ComebakListTile(
-                          leading: const Icon(LucideIcons.settings, size: 24, color: AppColors.textMuted),
-                          title: 'Developer Mode',
-                          trailing: Switch(
-                            value: widget.isDevMode,
-                            onChanged: widget.onToggleDevMode,
-                            activeThumbColor: AppColors.primaryAccent,
+                        // [ISSUE-28] Developer Mode is only visible in debug builds.
+                        if (kDebugMode) ...[
+                          const Divider(height: 1, color: AppColors.borderSubtle),
+                          ComebakListTile(
+                            leading: const Icon(LucideIcons.settings, size: 24, color: AppColors.textMuted),
+                            title: 'Developer Mode',
+                            trailing: Switch(
+                              value: widget.isDevMode,
+                              onChanged: widget.onToggleDevMode,
+                              activeThumbColor: AppColors.primaryAccent,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
