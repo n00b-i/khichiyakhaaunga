@@ -6,16 +6,16 @@ import '../../features/debug/ui_lab/ui_lab_screen.dart';
 class DevScreenRegistry {
   DevScreenRegistry._();
 
-  static Map<String, Map<String, WidgetBuilder>> get screens => {
+    static Map<String, Map<String, WidgetBuilder>> get screens => {
         'Game Result': {
-          'PB High (Broken 2d 14h ago)': (_) => _gameResult(
+          'PB High (2d 14h ago)': (_) => _gameResult(
                 score: 1500,
                 accuracy: 95,
                 bestCombo: 12,
                 isNewPB: true,
                 previousPBBrokenAfter: const Duration(days: 2, hours: 14),
               ),
-          'PB Low (Broken 5m ago)': (_) => _gameResult(
+          'PB Low (5m ago)': (_) => _gameResult(
                 score: 50,
                 accuracy: 10,
                 bestCombo: 1,
@@ -29,27 +29,21 @@ class DevScreenRegistry {
                 isNewPB: true,
                 previousPBBrokenAfter: null,
               ),
-          'Normal (Not PB)': (_) => _gameResult(
+          'Normal': (_) => _gameResult(
                 score: 800,
                 accuracy: 70,
                 bestCombo: 5,
                 isNewPB: false,
               ),
-          'Negative (Not PB)': (_) => _gameResult(
-                score: -40,
-                accuracy: 15,
-                bestCombo: 0,
-                isNewPB: false,
-              ),
-          'Negative (Not PB)': (_) => _gameResult(
-                score: -40,
-                accuracy: 15,
-                bestCombo: 0,
-                isNewPB: false,
-              ),
-          'Zero (Not PB)': (_) => _gameResult(
+          'Zero': (_) => _gameResult(
                 score: 0,
                 accuracy: 0,
+                bestCombo: 0,
+                isNewPB: false,
+              ),
+          'Negative': (_) => _gameResult(
+                score: -40,
+                accuracy: 15,
                 bestCombo: 0,
                 isNewPB: false,
               ),

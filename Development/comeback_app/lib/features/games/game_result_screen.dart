@@ -91,7 +91,7 @@ class _GameResultScreenState extends State<GameResultScreen>
     if (d.inSeconds < 60) return 'Record broken after ${d.inSeconds} seconds';
     if (d.inMinutes < 60) return 'Record broken after ${d.inMinutes} minutes';
     if (d.inHours < 24) return 'Record broken after ${d.inHours} hours';
-    return 'Record broken after ${d.inDays} days';
+    return 'Record broken after ${d.inDays} ${d.inDays == 1 ? 'Day' : 'Days'}';
   }
 
   @override

@@ -80,6 +80,10 @@ class GameRepository {
       }).eq('id', matchId);
       
       debugPrint('[GameRepository] Match completed online: $matchId');
+      
+      // [ISSUE-3] Invalidate cached stats so the UI fetches fresh data next time
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cached_stats');
     } catch (e) {
       debugPrint('[GameRepository] Network failed on match end. Queuing for sync: $e');
       

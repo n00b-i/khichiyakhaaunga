@@ -26,3 +26,8 @@ None.
 - **Notes:** Full-bleed layout, neon PB chip, null-safe record-broken text, thumb-zone buttons. Button text weight settled at `w700`.
 - **Post-MVP Task:** The Game Result Screen UI needs a deeper upgrade (animations, deeper data integration) in a future sprint. Do not delete this issue, keep it as a reference for the redesign.
 - **Backend Gap:** `GameRepository.endMatch()` currently returns `Future<bool>`. It needs to return `Future<MatchResult>` to pass `previousPBBrokenAfter` to the UI for real gameplay (currently mocked in Dev States).
+
+## Issue #3: Local-First Stats Caching (Complete)
+- **Status:** Complete on 2026-11-11.
+- **Notes:** `StatsRepository` caches to `SharedPreferences` (`cached_stats`). `GameRepository.endMatch()` now invalidates this cache after a successful match update, forcing a fresh fetch on the next stats screen visit.
+- **Related:** Pluralization for "Record broken after X Days" handled in `GameResultScreen`.
