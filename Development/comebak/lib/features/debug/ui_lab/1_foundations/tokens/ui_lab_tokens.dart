@@ -25,6 +25,8 @@ class ComebakColors {
   static const Color flameOrange = Color(0xFFFF9800);
   static const Color flameRed = Color(0xFFFF5252);
   static const Color flameShadow = Color(0xFFFF3D00);
+  static const Color mutedGreen = Color(0xFF2E7D32);
+  static const Color mutedRed = Color(0xFFC62828);
   static const Color transparent = Color(0x00000000);
 }
 
@@ -52,6 +54,7 @@ class ComebakLayout {
   static const double avatarSize = 40.0;
   static const double logoSize = 32.0;
   static const double bgGlowSize = 400.0;
+  static const double buttonHeight = 48.0;
 
   // Borders & Dividers
   static const double borderThin = 1.0;

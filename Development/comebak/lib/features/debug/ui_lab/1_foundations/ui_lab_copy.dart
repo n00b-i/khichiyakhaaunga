@@ -30,6 +30,23 @@ class ComebakCopy {
   static const String catalogHome = 'Home Screen Flow';
   static const String catalogFoundations = 'Foundations (Colors, Type, Layout)';
 
+  // Milestone Banner
+  static const String milestoneTitle = 'You\'re on a roll!';
+  static const String milestoneSubtitle = 'Just 2 more days to unlock next milestone.';
+  static const String milestoneCta = 'View Progress';
+
+  // Bottom Sheets
+  static const String editNameTitle = 'Edit Name';
+  static const String editNameHint = 'Your name';
+  static const String editNameError = 'Use only letters, numbers, and underscores.';
+  static const String btnCancel = 'Cancel';
+  static const String btnSave = 'Save';
+  static const String logoutTitle = 'Log out?';
+  static const String logoutSubtitlePart1 = 'We agreed to ';
+  static const String logoutSubtitleHighlight = 'Comebak';
+  static const String logoutSubtitlePart2 = ' this year...';
+  static const String btnLogout = 'Logout';
+
   // Milestone Random Copy
   static const List<String> milestoneCheers = [
     "You're unstoppable.",

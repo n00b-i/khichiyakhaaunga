@@ -6,6 +6,7 @@ import '../2_atoms/comebak_icon_3d.dart';
 import '../3_molecules/comebak_game_card.dart';
 import '../3_molecules/comebak_streak_card.dart';
 import '../4_organisms/comebak_header.dart';
+import '../4_organisms/comebak_milestone_banner.dart'; // [NEW IMPORT]
 
 // ==============================================================================
 // [FLOW] ComebakHomeFlow
@@ -21,7 +22,6 @@ class ComebakHomeFlow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ComebakColors.canvas,
-      // [LAYOUT] Stack allows the background glow to sit behind the scrollable content.
       body: Stack(
         children: [
           // [CREATIVE BG] The soft green atmospheric glow in the top right corner.
@@ -36,7 +36,6 @@ class ComebakHomeFlow extends StatelessWidget {
                 gradient: RadialGradient(
                   colors: [
                     ComebakColors.neonGreen.withValues(alpha: ComebakLayout.opacityAvatarGlow),
-                    // [RULE 1] Strictly using the transparent token.
                     ComebakColors.transparent, 
                   ],
                 ),
@@ -55,7 +54,6 @@ class ComebakHomeFlow extends StatelessWidget {
                   ComebakHeader(
                     onProfileTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        // [RULE 7] No more raw strings.
                         const SnackBar(content: Text(ComebakCopy.navProfile)),
                       );
                     },
@@ -97,7 +95,6 @@ class ComebakHomeFlow extends StatelessWidget {
                         color: ComebakColors.neonGreen, 
                         margin: const EdgeInsets.only(right: ComebakLayout.spaceSm)
                       ),
-                      // [RULE 7] No more raw strings.
                       Text(ComebakCopy.sectionMathBurst, style: ComebakTypography.titleLarge),
                     ],
                   ),
@@ -134,6 +131,16 @@ class ComebakHomeFlow extends StatelessWidget {
                     color: ComebakColors.neonBlue,
                     primaryIcon: LucideIcons.search,
                     secondaryIcon: LucideIcons.hash,
+                  ),
+                  const SizedBox(height: ComebakLayout.spaceXxl),
+
+                  // 6. [ORGANISM] Milestone Banner
+                  ComebakMilestoneBanner(
+                    onViewProgress: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('View Progress Tapped')),
+                      );
+                    },
                   ),
                   const SizedBox(height: ComebakLayout.spaceXxl),
                 ],

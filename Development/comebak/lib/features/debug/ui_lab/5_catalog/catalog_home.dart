@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import '../1_foundations/tokens/ui_lab_tokens.dart';
 import '../1_foundations/ui_lab_copy.dart';
+import '../3_molecules/comebak_sheets.dart'; // [NEW IMPORT]
 import 'comebak_home_flow.dart';
 import 'comebak_streak_card_page.dart';
+import 'comebak_button_test_page.dart';
 
 // ==============================================================================
 // [FLOW] ComebakCatalogHome
 // ------------------------------------------------------------------------------
 // PURPOSE: The main navigation index for the UI Lab.
-// ARCHITECTURE: Acts as the router. It lists all available components and 
-// screens so developers and designers can easily navigate to test them.
 // ==============================================================================
 class ComebakCatalogHome extends StatelessWidget {
   const ComebakCatalogHome({super.key});
@@ -30,17 +30,56 @@ class ComebakCatalogHome extends StatelessWidget {
               const SizedBox(height: ComebakLayout.spaceXxl),
 
               // ==================================================================
-              // [MOLECULES]
+              // [COMPONENTS]
               // ==================================================================
               Text('COMPONENTS', style: ComebakTypography.sectionSubtitle),
               const SizedBox(height: ComebakLayout.spaceSm),
               _CatalogTile(
                 title: ComebakCopy.catalogStreak,
-                icon: LucideIcons.flame,
+                icon: LucideIcons.flame, 
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const ComebakStreakCardPage()),
                 ),
+              ),
+              const SizedBox(height: ComebakLayout.spaceXl),
+
+              // ==================================================================
+              // [OVERLAYS]
+              // ==================================================================
+              Text('OVERLAYS', style: ComebakTypography.sectionSubtitle),
+              const SizedBox(height: ComebakLayout.spaceSm),
+              _CatalogTile(
+                title: 'Button Layout Tests',
+                icon: Icons.dashboard,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ComebakButtonTestPage()),
+                ),
+              ),
+              _CatalogTile(
+                title: 'Edit Name Sheet',
+                icon: LucideIcons.pencil,
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => const ComebakEditNameSheet(initialName: 'deevanshu'),
+                  );
+                },
+              ),
+              _CatalogTile(
+                title: 'Logout Sheet',
+                icon: LucideIcons.log_out,
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => const ComebakLogoutSheet(),
+                  );
+                },
               ),
               const SizedBox(height: ComebakLayout.spaceXl),
 
@@ -51,7 +90,7 @@ class ComebakCatalogHome extends StatelessWidget {
               const SizedBox(height: ComebakLayout.spaceSm),
               _CatalogTile(
                 title: ComebakCopy.catalogHome,
-                icon: LucideIcons.house,
+                icon: LucideIcons.house, 
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const ComebakHomeFlow()),
@@ -68,8 +107,6 @@ class ComebakCatalogHome extends StatelessWidget {
 
 // ==============================================================================
 // [ATOM] _CatalogTile
-// ------------------------------------------------------------------------------
-// PURPOSE: A simple, tokenized list tile used exclusively in the catalog.
 // ==============================================================================
 class _CatalogTile extends StatelessWidget {
   final String title;
