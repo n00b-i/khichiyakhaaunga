@@ -10,6 +10,7 @@ import 'comebak_foundations_page.dart';
 import 'comebak_game_card_page.dart';
 import 'game_flow/comebak_game_hud_page.dart';
 import 'game_flow/comebak_game_over_page.dart';
+import 'stats_flow/comebak_stats_page.dart';
 
 // Auth Variants Imports
 import 'auth_variants/comebak_auth_variants_page.dart';
@@ -72,7 +73,7 @@ class ComebakCatalogHome extends StatelessWidget {
               ),
               _CatalogTile(
                 title: 'Button Layout Tests',
-                icon: Icons.dashboard,
+                icon: LucideIcons.layout_dashboard,
                 onTap: () => Navigator.push(
                   context,
                   FadeRoute(page: const ComebakButtonTestPage()),
@@ -112,26 +113,6 @@ class ComebakCatalogHome extends StatelessWidget {
               const SizedBox(height: ComebakLayout.spaceSm),
 
               _CatalogTile(
-                title: 'GAMEPLAY HUD',
-                icon: LucideIcons.timer,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ComebakGameHudPage()),
-                ),
-              ),
-
-              _CatalogTile(
-                title: 'GAME SCORE SCREEN',
-                icon: LucideIcons.trophy,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                  builder: (context) => const ComebakGameOverPage(),
-                ),
-                ),
-              ),
-
-              _CatalogTile(
                 title: 'THE RULES (Full Flow)',
                 icon: LucideIcons.flame,
                 onTap: () async {
@@ -162,6 +143,37 @@ class ComebakCatalogHome extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+
+              _CatalogTile(
+                title: 'GAMEPLAY HUD',
+                icon: LucideIcons.timer,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ComebakGameHudPage(),
+                  ),
+                ),
+              ),
+
+              _CatalogTile(
+                title: 'GAME SCORE SCREEN',
+                icon: LucideIcons.trophy,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ComebakGameOverPage(),
+                  ),
+                ),
+              ),
+
+              _CatalogTile(
+                title: 'STATS SCREEN',
+                icon: LucideIcons.chart_bar,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ComebakStatsPage()),
+                ),
               ),
 
               _CatalogTile(
@@ -236,22 +248,18 @@ class _CatalogTile extends StatelessWidget {
   }
 }
 
-// ==============================================================================
-// [ROUTE] FadeRoute
-// ==============================================================================
-
 class FadeRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
 
   FadeRoute({required this.page})
-      : super(
-          pageBuilder: (context, animation, secondaryAnimation) => page,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: const Duration(milliseconds: 600),
-          barrierDismissible: false, // FIX: Prevents the Null bool crash
-          barrierColor: Colors.transparent,
-          opaque: false,
-        );
+    : super(
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 600),
+        barrierDismissible: false,
+        barrierColor: Colors.transparent,
+        opaque: false,
+      );
 }
