@@ -64,7 +64,7 @@ class _SparkPainter extends CustomPainter {
       Offset(cx, cy),
       r * 3.0,
       Paint()
-        ..color = ComebakColors.neonGreen.withOpacity(haloAlpha)
+        ..color = ComebakColors.neonGreen.withValues(alpha: haloAlpha)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24),
     );
 
@@ -75,7 +75,7 @@ class _SparkPainter extends CustomPainter {
       Offset(cx, cy),
       r,
       Paint()
-        ..color = ComebakColors.neonGreen.withOpacity(bodyAlpha)
+        ..color = ComebakColors.neonGreen.withValues(alpha: bodyAlpha)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
     );
 
@@ -88,7 +88,7 @@ class _SparkPainter extends CustomPainter {
         r * 0.4,
         Paint()
           ..color = ComebakColors.flameYellow
-              .withOpacity(0.9 * ignition.clamp(0.0, 1.0))
+              .withValues(alpha: 0.9 * ignition.clamp(0.0, 1.0))
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
       );
     }

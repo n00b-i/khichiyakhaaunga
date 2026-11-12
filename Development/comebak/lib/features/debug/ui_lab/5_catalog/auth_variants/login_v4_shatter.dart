@@ -40,7 +40,7 @@ class LoginV4Shatter extends StatelessWidget {
                           width: 24,
                           height: 3,
                           color: ComebakColors.vibrantRed
-                              .withOpacity(0.4 + i * 0.1),
+                              .withValues(alpha: 0.4 + i * 0.1),
                         ),
                       ),
                     ),

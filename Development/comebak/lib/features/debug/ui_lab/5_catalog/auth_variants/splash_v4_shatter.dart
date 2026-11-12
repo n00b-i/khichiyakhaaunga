@@ -50,7 +50,7 @@ class _SplashV4ShatterState extends State<SplashV4Shatter>
           Center(
             child: AnimatedBuilder(
               animation: _ctrl,
-              builder: (_, __) => SizedBox(
+              builder: (_, _) => SizedBox(
                 width: 300,
                 height: 300,
                 child: CustomPaint(
@@ -67,7 +67,7 @@ class _SplashV4ShatterState extends State<SplashV4Shatter>
             top: MediaQuery.of(context).padding.top + 60,
             child: AnimatedBuilder(
               animation: _ctrl,
-              builder: (_, __) {
+              builder: (_, _) {
                 final isFirstHalf = _ctrl.value < 0.45;
                 final phase = isFirstHalf ? 'BREAK.' : 'REFORM.';
                 final t = Curves.easeOut.transform(
@@ -164,7 +164,7 @@ class _ShatterPainter extends CustomPainter {
       canvas.drawCircle(
         pos,
         3.5,
-        Paint()..color = color.withOpacity(opacity),
+        Paint()..color = color.withValues(alpha: opacity),
       );
     }
 
@@ -173,7 +173,7 @@ class _ShatterPainter extends CustomPainter {
       Offset(cx, cy),
       30,
       Paint()
-        ..color = ComebakColors.neonGreen.withOpacity(0.3 * (1 - t))
+        ..color = ComebakColors.neonGreen.withValues(alpha: 0.3 * (1 - t))
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20),
     );
   }

@@ -46,11 +46,11 @@ class ComebakVignette extends StatelessWidget {
               radius: centerRadius,
               colors: [
                 // Inner stop: fully transparent — scene shows through unmodified
-                ComebakColors.canvas.withOpacity(0.0),
+                ComebakColors.canvas.withValues(alpha: 0.0),
                 // Mid stop: 8% canvas — gentle falloff begins here
-                ComebakColors.canvas.withOpacity(edgeOpacity * 0.15),
+                ComebakColors.canvas.withValues(alpha: edgeOpacity * 0.15),
                 // Outer stop: full edge opacity — corners are the darkest
-                ComebakColors.canvas.withOpacity(edgeOpacity),
+                ComebakColors.canvas.withValues(alpha: edgeOpacity),
               ],
               stops: const [0.0, 0.55, 1.0],
             ),

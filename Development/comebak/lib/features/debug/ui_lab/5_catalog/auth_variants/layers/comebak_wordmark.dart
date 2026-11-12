@@ -76,18 +76,9 @@ class _WordmarkPainter extends CustomPainter {
       color: Colors.white,
     );
 
+    // REMOVED the Shadow array here to kill the glow on the Login screen
     final tp = TextPainter(
-      text: TextSpan(
-        text: visibleText,
-        style: textStyle.copyWith(
-          shadows: [
-            Shadow(
-              color: ComebakColors.neonGreen.withOpacity(0.5),
-              blurRadius: 24,
-            ),
-          ],
-        ),
-      ),
+      text: TextSpan(text: visibleText, style: textStyle),
       textDirection: TextDirection.ltr,
     )..layout();
 
@@ -108,9 +99,10 @@ class _WordmarkPainter extends CustomPainter {
     );
     canvas.restore();
 
-    // Removed the unused 'rnd' declaration here since enableSparks is false for Login
     if (enableSparks) {
-      // Logic handled in splash
+      final frameSeed = (time * 20).floor();
+      final rnd = math.Random(frameSeed);
+      // Splash screen spark logic would go here if re-enabled
     }
   }
 

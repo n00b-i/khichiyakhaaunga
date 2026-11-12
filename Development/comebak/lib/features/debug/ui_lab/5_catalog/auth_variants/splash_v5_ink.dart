@@ -51,7 +51,7 @@ class _SplashV5InkState extends State<SplashV5Ink>
           Center(
             child: AnimatedBuilder(
               animation: _ctrl,
-              builder: (_, __) => SizedBox(
+              builder: (_, _) => SizedBox(
                 width: 200,
                 height: 200,
                 child: CustomPaint(
@@ -68,7 +68,7 @@ class _SplashV5InkState extends State<SplashV5Ink>
             bottom: 140,
             child: AnimatedBuilder(
               animation: _ctrl,
-              builder: (_, __) {
+              builder: (_, _) {
                 final t = Curves.easeOut.transform(
                   ((_ctrl.value - 0.7) / 0.3).clamp(0.0, 1.0),
                 );
@@ -150,7 +150,7 @@ class _InkPainter extends CustomPainter {
 
     // Under-glow — soft blur behind brush
     final glow = Paint()
-      ..color = ComebakColors.textPrimary.withOpacity(0.15)
+      ..color = ComebakColors.textPrimary.withValues(alpha: 0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 24
       ..strokeCap = StrokeCap.round

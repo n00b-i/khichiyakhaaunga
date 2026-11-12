@@ -104,7 +104,7 @@ class _SplashV1RulesV2State extends State<SplashV1RulesV2>
       backgroundColor: ComebakColors.canvas,
       body: AnimatedBuilder(
         animation: _ctrl,
-        builder: (_, __) => _buildLayers(_ctrl.value),
+        builder: (_, _) => _buildLayers(_ctrl.value),
       ),
     );
   }
@@ -145,8 +145,8 @@ class _SplashV1RulesV2State extends State<SplashV1RulesV2>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    ComebakColors.canvas.withOpacity(0.0),
-                    ComebakColors.canvas.withOpacity(0.95),
+                    ComebakColors.canvas.withValues(alpha: 0.0),
+                    ComebakColors.canvas.withValues(alpha: 0.95),
                     ComebakColors.canvas,
                   ],
                   stops: const [0.0, 0.3, 1.0],

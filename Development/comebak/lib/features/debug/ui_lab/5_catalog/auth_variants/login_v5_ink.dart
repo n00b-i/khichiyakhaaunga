@@ -43,7 +43,7 @@ class LoginV5Ink extends StatelessWidget {
               Container(
                 width: 32,
                 height: 2,
-                color: ComebakColors.textSecondary.withOpacity(0.5),
+                color: ComebakColors.textSecondary.withValues(alpha: 0.5),
               ),
 
               const SizedBox(height: ComebakLayout.spaceLg),

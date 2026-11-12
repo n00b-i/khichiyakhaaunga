@@ -33,11 +33,11 @@ class LoginV6Ticker extends StatelessWidget {
                       vertical: ComebakLayout.spaceXs,
                     ),
                     decoration: BoxDecoration(
-                      color: ComebakColors.vibrantRed.withOpacity(0.15),
+                      color: ComebakColors.vibrantRed.withValues(alpha: 0.15),
                       borderRadius:
                           BorderRadius.circular(ComebakLayout.radiusSm),
                       border: Border.all(
-                        color: ComebakColors.vibrantRed.withOpacity(0.4),
+                        color: ComebakColors.vibrantRed.withValues(alpha: 0.4),
                       ),
                     ),
                     child: Text(

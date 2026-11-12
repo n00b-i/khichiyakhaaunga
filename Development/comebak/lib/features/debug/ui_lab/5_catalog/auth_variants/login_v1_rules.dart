@@ -44,7 +44,7 @@ class _LoginV1RulesState extends State<LoginV1Rules>
                   center: const Alignment(0, -0.4),
                   radius: 1.2,
                   colors: [
-                    ComebakColors.neonGreen.withOpacity(0.15),
+                    ComebakColors.neonGreen.withValues(alpha: 0.15),
                     ComebakColors.canvas,
                   ],
                 ),
@@ -65,7 +65,7 @@ class _LoginV1RulesState extends State<LoginV1Rules>
                   Center(
                     child: AnimatedBuilder(
                       animation: _ctrl,
-                      builder: (_, __) {
+                      builder: (_, _) {
                         return FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Row(

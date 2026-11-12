@@ -8,6 +8,7 @@ import 'comebak_streak_card_page.dart';
 import 'comebak_button_test_page.dart';
 import 'comebak_foundations_page.dart';
 import 'comebak_game_card_page.dart';
+import 'game_flow/comebak_game_hud_page.dart';
 
 // Auth Variants Imports
 import 'auth_variants/comebak_auth_variants_page.dart';
@@ -15,11 +16,6 @@ import 'auth_variants/splash_v1_rules_v2.dart';
 import 'auth_variants/comebak_rule_engine.dart';
 import 'auth_variants/login_v1_rules.dart';
 
-// ==============================================================================
-// [FLOW] ComebakCatalogHome
-// ------------------------------------------------------------------------------
-// PURPOSE: The main navigation index for the UI Lab.
-// ==============================================================================
 class ComebakCatalogHome extends StatelessWidget {
   const ComebakCatalogHome({super.key});
 
@@ -28,7 +24,7 @@ class ComebakCatalogHome extends StatelessWidget {
   // ============================================================================
   Route<T> _fadeRoute<T>(
     Widget page, {
-    Duration duration = const Duration(milliseconds: 400),
+    Duration duration = const Duration(milliseconds: 600),
   }) {
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
@@ -132,6 +128,15 @@ class ComebakCatalogHome extends StatelessWidget {
               const SizedBox(height: ComebakLayout.spaceSm),
 
               _CatalogTile(
+                title: 'GAMEPLAY HUD',
+                icon: LucideIcons.timer,
+                onTap: () => Navigator.push(
+                  context,
+                  _fadeRoute(const ComebakGameHudPage()),
+                ),
+              ),
+
+              _CatalogTile(
                 title: 'THE RULES (Full Flow)',
                 icon: LucideIcons.flame,
                 onTap: () async {
@@ -139,21 +144,21 @@ class ComebakCatalogHome extends StatelessWidget {
                   final rule = await engine.pickRule();
                   if (!context.mounted) return;
 
-                  // 1. Fade into Splash
+                  // 1. Push Splash on top of Catalog
                   Navigator.push(
                     context,
                     _fadeRoute(
                       SplashV1RulesV2(
                         rule: rule,
                         onComplete: () {
-                          // 2. Fade from Splash into Login
+                          // 2. Replace Splash with Login, keeping Catalog underneath
                           Navigator.pushReplacement(
                             context,
                             _fadeRoute(
                               LoginV1Rules(
                                 onGoogleSignIn: () {
-                                  // In UI Lab, tapping Google just pops back to catalog
-                                  Navigator.pop(context);
+                                  // Pop Login to return to Catalog
+                                  Navigator.of(context).popUntil((route) => route.isFirst);
                                 },
                               ),
                             ),

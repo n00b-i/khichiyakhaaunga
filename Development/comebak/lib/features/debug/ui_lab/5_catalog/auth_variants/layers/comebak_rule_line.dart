@@ -31,7 +31,7 @@ class ComebakRuleLine extends StatelessWidget {
               offset: const Offset(0, 2),
             ),
             Shadow(
-              color: ComebakColors.neonGreen.withOpacity(0.3),
+              color: ComebakColors.neonGreen.withValues(alpha: 0.3),
               blurRadius: 20,
             ),
           ],

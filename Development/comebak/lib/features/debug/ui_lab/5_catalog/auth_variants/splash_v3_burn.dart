@@ -51,7 +51,7 @@ class _SplashV3BurnState extends State<SplashV3Burn>
           Center(
             child: AnimatedBuilder(
               animation: _ctrl,
-              builder: (_, __) {
+              builder: (_, _) {
                 final t = Curves.easeOut.transform(
                   (_ctrl.value * 1.4).clamp(0.0, 1.0),
                 );
@@ -73,7 +73,7 @@ class _SplashV3BurnState extends State<SplashV3Burn>
             bottom: 120,
             child: AnimatedBuilder(
               animation: _ctrl,
-              builder: (_, __) {
+              builder: (_, _) {
                 final t = Curves.easeOut.transform(
                   ((_ctrl.value - 0.55) / 0.35).clamp(0.0, 1.0),
                 );
@@ -131,7 +131,7 @@ class _FlamePainter extends CustomPainter {
 
     // Colored ambient shadow — never black
     final shadow = Paint()
-      ..color = ComebakColors.flameOrange.withOpacity(0.35 * progress)
+      ..color = ComebakColors.flameOrange.withValues(alpha: 0.35 * progress)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 40);
     canvas.drawCircle(Offset(cx, cy), baseR * 1.4, shadow);
 
@@ -151,7 +151,7 @@ class _FlamePainter extends CustomPainter {
     canvas.drawPath(
       flamePath(1.0),
       Paint()
-        ..color = ComebakColors.flameRed.withOpacity(0.9)
+        ..color = ComebakColors.flameRed.withValues(alpha: 0.9)
         ..style = PaintingStyle.fill,
     );
     canvas.drawPath(
@@ -169,7 +169,7 @@ class _FlamePainter extends CustomPainter {
 
     // Specular gloss — top-left on outer face
     final gloss = Paint()
-      ..color = Colors.white.withOpacity(0.25)
+      ..color = Colors.white.withValues(alpha: 0.25)
       ..style = PaintingStyle.fill;
     canvas.save();
     canvas.translate(cx - 8, cy - 25);
@@ -185,7 +185,7 @@ class _FlamePainter extends CustomPainter {
       canvas.drawCircle(
         Offset(ex, ey),
         1.5,
-        Paint()..color = ComebakColors.neonYellow.withOpacity(0.7),
+        Paint()..color = ComebakColors.neonYellow.withValues(alpha: 0.7),
       );
     }
   }

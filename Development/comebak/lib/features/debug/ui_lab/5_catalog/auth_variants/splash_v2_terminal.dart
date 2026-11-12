@@ -66,7 +66,7 @@ class _SplashV2TerminalState extends State<SplashV2Terminal>
                     colors: List.generate(
                       60,
                       (i) => i.isEven
-                          ? ComebakColors.border.withOpacity(0.05)
+                          ? ComebakColors.border.withValues(alpha: 0.05)
                           : Colors.transparent,
                     ),
                   ),
@@ -79,7 +79,7 @@ class _SplashV2TerminalState extends State<SplashV2Terminal>
               padding: const EdgeInsets.all(ComebakLayout.spaceXl),
               child: AnimatedBuilder(
                 animation: _ctrl,
-                builder: (_, __) {
+                builder: (_, _) {
                   final visible = (_ctrl.value * _lines.length)
                       .floor()
                       .clamp(0, _lines.length);

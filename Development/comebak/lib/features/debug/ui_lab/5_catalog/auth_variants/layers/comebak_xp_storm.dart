@@ -100,7 +100,7 @@ class _XpCubePainter extends CustomPainter {
         height: h * 1.0,
       ),
       Paint()
-        ..color = ComebakColors.neonGreen.withOpacity(0.20 * b)
+        ..color = ComebakColors.neonGreen.withValues(alpha: 0.20 * b)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 18 * s),
     );
 
@@ -110,15 +110,15 @@ class _XpCubePainter extends CustomPainter {
     // -------------------------------------------------------------------------
     final topFill = Paint()
       ..style = PaintingStyle.fill
-      ..color = ComebakColors.surfaceElevated.withOpacity(0.95 * b);
+      ..color = ComebakColors.surfaceElevated.withValues(alpha: 0.95 * b);
 
     final leftFill = Paint()
       ..style = PaintingStyle.fill
-      ..color = ComebakColors.canvas.withOpacity(0.85 * b);
+      ..color = ComebakColors.canvas.withValues(alpha: 0.85 * b);
 
     final rightFill = Paint()
       ..style = PaintingStyle.fill
-      ..color = ComebakColors.canvas.withOpacity(0.95 * b);
+      ..color = ComebakColors.canvas.withValues(alpha: 0.95 * b);
 
     canvas.drawPath(left, leftFill);
     canvas.drawPath(right, rightFill);
@@ -133,7 +133,7 @@ class _XpCubePainter extends CustomPainter {
       ..strokeWidth = 4 * s
       ..strokeJoin = StrokeJoin.round
       ..strokeCap = StrokeCap.round
-      ..color = ComebakColors.surfaceElevated.withOpacity(0.6 * b);
+      ..color = ComebakColors.surfaceElevated.withValues(alpha: 0.6 * b);
 
     canvas.drawPath(top, bevelStroke);
     canvas.drawPath(left, bevelStroke);
@@ -144,7 +144,7 @@ class _XpCubePainter extends CustomPainter {
       ..strokeWidth = 1.5 * s
       ..strokeJoin = StrokeJoin.round
       ..strokeCap = StrokeCap.round
-      ..color = ComebakColors.neonGreen.withOpacity(0.9 * b);
+      ..color = ComebakColors.neonGreen.withValues(alpha: 0.9 * b);
 
     canvas.drawPath(top, rimStroke);
     canvas.drawPath(left, rimStroke);
@@ -173,7 +173,7 @@ class _XpCubePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2 * s
           ..strokeCap = StrokeCap.round
-          ..color = Colors.white.withOpacity(0.35 * b),
+          ..color = Colors.white.withValues(alpha: 0.35 * b),
       );
     }
   }
@@ -187,7 +187,7 @@ class _XpCubePainter extends CustomPainter {
       canvas,
       center + Offset(0, 4 * s),
       fontSize,
-      ComebakColors.canvas.withOpacity(0.9 * b),
+      ComebakColors.canvas.withValues(alpha: 0.9 * b),
     );
 
     // Layer 2: mid-tone
@@ -195,7 +195,7 @@ class _XpCubePainter extends CustomPainter {
       canvas,
       center + Offset(0, 2 * s),
       fontSize,
-      ComebakColors.mutedGreen.withOpacity(0.95 * b),
+      ComebakColors.mutedGreen.withValues(alpha: 0.95 * b),
     );
 
     // Layer 3: white top
@@ -203,7 +203,7 @@ class _XpCubePainter extends CustomPainter {
       canvas,
       center,
       fontSize,
-      Colors.white.withOpacity(b),
+      Colors.white.withValues(alpha: b),
     );
   }
 

@@ -49,7 +49,7 @@ class _SplashV1RulesState extends State<SplashV1Rules>
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _ctrl,
-              builder: (_, __) {
+              builder: (_, _) {
                 final t = Curves.easeOut.transform(
                   (_ctrl.value * 2).clamp(0.0, 1.0),
                 );
@@ -59,7 +59,7 @@ class _SplashV1RulesState extends State<SplashV1Rules>
                       center: const Alignment(0.35, -0.45),
                       radius: 1.2,
                       colors: [
-                        ComebakColors.neonGreen.withOpacity(0.14 * t),
+                        ComebakColors.neonGreen.withValues(alpha: 0.14 * t),
                         ComebakColors.canvas,
                       ],
                     ),
@@ -76,7 +76,7 @@ class _SplashV1RulesState extends State<SplashV1Rules>
               height: 160,
               child: AnimatedBuilder(
                 animation: _ctrl,
-                builder: (_, __) => CustomPaint(
+                builder: (_, _) => CustomPaint(
                   painter: _IsoBarPainter(
                     drawT: Curves.easeOut.transform(
                       (_ctrl.value * 2.5).clamp(0.0, 1.0),
@@ -97,7 +97,7 @@ class _SplashV1RulesState extends State<SplashV1Rules>
             bottom: ComebakLayout.spaceXxl * 2,
             child: AnimatedBuilder(
               animation: _ctrl,
-              builder: (_, __) {
+              builder: (_, _) {
                 final t = Curves.easeOut.transform(
                   ((_ctrl.value - 0.55) / 0.3).clamp(0.0, 1.0),
                 );
@@ -201,18 +201,18 @@ class _IsoBarPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2 * s
       ..strokeJoin = StrokeJoin.round
-      ..color = ComebakColors.neonGreen.withOpacity(0.9 * drawT);
+      ..color = ComebakColors.neonGreen.withValues(alpha: 0.9 * drawT);
 
     // Fill passes — three faces, three shades
     final fillTop = Paint()
       ..style = PaintingStyle.fill
-      ..color = ComebakColors.neonGreen.withOpacity(0.35 * fillT);
+      ..color = ComebakColors.neonGreen.withValues(alpha: 0.35 * fillT);
     final fillLeft = Paint()
       ..style = PaintingStyle.fill
-      ..color = ComebakColors.mutedGreen.withOpacity(0.45 * fillT);
+      ..color = ComebakColors.mutedGreen.withValues(alpha: 0.45 * fillT);
     final fillRight = Paint()
       ..style = PaintingStyle.fill
-      ..color = ComebakColors.mutedGreen.withOpacity(0.7 * fillT);
+      ..color = ComebakColors.mutedGreen.withValues(alpha: 0.7 * fillT);
 
     // Scale-in draw
     canvas.save();

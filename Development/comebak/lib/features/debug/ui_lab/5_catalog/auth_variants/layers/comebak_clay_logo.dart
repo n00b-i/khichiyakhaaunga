@@ -1,6 +1,5 @@
-import 'dart:math' as math; // ADDED IMPORT
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../../1_foundations/tokens/ui_lab_tokens.dart';
 
 class ComebakClayLogo extends StatelessWidget {
   final int pose;
@@ -17,7 +16,7 @@ class ComebakClayLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      size: const Size(48, 64),
+      size: const Size(56, 72),
       painter: _ClayLogoPainter(
         pose: pose,
         time: time,
@@ -39,11 +38,11 @@ class _ClayLogoPainter extends CustomPainter {
   });
 
   static const List<_Pose> _poses = [
-    _Pose(scale: 0.60, extrude: 0.0, rotation: 0.00, brightness: 0.30),
-    _Pose(scale: 0.75, extrude: 2.0, rotation: 0.14, brightness: 0.55),
-    _Pose(scale: 0.90, extrude: 4.0, rotation: -0.07, brightness: 0.75),
-    _Pose(scale: 1.00, extrude: 6.0, rotation: 0.03, brightness: 0.95),
-    _Pose(scale: 1.00, extrude: 6.0, rotation: 0.00, brightness: 1.00),
+    _Pose(scale: 0.60, extrude: 0.0, brightness: 0.30),
+    _Pose(scale: 0.75, extrude: 2.0, brightness: 0.55),
+    _Pose(scale: 0.90, extrude: 4.0, brightness: 0.75),
+    _Pose(scale: 1.00, extrude: 6.0, brightness: 0.95),
+    _Pose(scale: 1.00, extrude: 6.0, brightness: 1.00),
   ];
 
   @override
@@ -53,77 +52,85 @@ class _ClayLogoPainter extends CustomPainter {
     canvas.save();
     canvas.translate(size.width / 2, size.height / 2);
     canvas.scale(p.scale);
+    canvas.rotate(math.pi / 4);
+    canvas.scale(1.0, -1.0);
     canvas.translate(-size.width / 2, -size.height / 2);
-    canvas.rotate(p.rotation);
 
-    final path = _buildThunderPath();
+    final leftBolt = _buildLeftBolt(size);
+    final rightBolt = _buildRightBolt(size);
 
-    canvas.drawPath(
-      path.shift(Offset(p.extrude, p.extrude)),
-      Paint()..color = Colors.black.withOpacity(0.8 * p.brightness),
-    );
+    final ex = p.extrude;
+    final ey = p.extrude;
 
-    canvas.drawPath(
-      path.shift(Offset(p.extrude * 0.5, p.extrude * 0.5)),
-      Paint()..color = const Color(0xFF003D16).withOpacity(p.brightness),
-    );
-
-    final angle = time * 0.5;
-    final fillGradient = LinearGradient(
-      begin: Alignment(math.cos(angle), math.sin(angle)),
-      end: Alignment(-math.cos(angle), -math.sin(angle)),
-      colors: const [Color(0xFF00C853), Color(0xFF00E676), Colors.white],
-    ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    canvas.drawPath(path, Paint()..shader = fillGradient);
+    // 1. THE EXTRUSION (Back 3D Body - Solid, no shadow)
+    final backPaint = Paint()
+      ..color = const Color(0xFF003D16).withValues(alpha: p.brightness);
 
     canvas.save();
-    canvas.clipPath(path);
-    canvas.drawRect(
-      Rect.fromLTWH(0, size.height * 0.7, size.width, size.height),
-      Paint()
-        ..color = Colors.black.withOpacity(0.4 * p.brightness)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
-    );
+    canvas.translate(ex, ey);
+    canvas.drawPath(leftBolt, backPaint);
     canvas.restore();
 
-    final metrics = path.computeMetrics().toList();
-    if (metrics.isNotEmpty) {
-      final glossSegment = metrics.first.extractPath(
-        0,
-        metrics.first.length * 0.3,
-      );
-      canvas.drawPath(
-        glossSegment,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.0
-          ..strokeCap = StrokeCap.round
-          ..color = Colors.white.withOpacity(0.9 * p.brightness)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1),
-      );
-    }
+    canvas.save();
+    canvas.translate(ex * 1.2, ey * 1.2);
+    canvas.drawPath(rightBolt, backPaint);
+    canvas.restore();
+
+    // 2. THE FRONT FACES (The colored clay)
+    final leftGradient = const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF00E676), Color(0xFF00C853)],
+    ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    final rightGradient = const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF69F0AE), Color(0xFF00E676)],
+    ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
     canvas.drawPath(
-      path,
+      leftBolt,
       Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..strokeJoin = StrokeJoin.round
-        ..color = ComebakColors.neonGreen.withOpacity(0.9 * p.brightness),
+        ..shader = leftGradient
+        ..style = PaintingStyle.fill,
     );
 
+    canvas.drawPath(
+      rightBolt,
+      Paint()
+        ..shader = rightGradient
+        ..style = PaintingStyle.fill,
+    );
+
+    // NO white borders, NO inner blur shadows. Clean flat 3D.
     canvas.restore();
   }
 
-  Path _buildThunderPath() {
+  Path _buildLeftBolt(Size size) {
+    final scale = size.width / 300;
     final path = Path();
-    path.moveTo(32, 0);
-    path.lineTo(0, 40);
-    path.lineTo(20, 40);
-    path.lineTo(12, 64);
-    path.lineTo(48, 24);
-    path.lineTo(28, 24);
+    path.moveTo(80 * scale, 40 * scale);
+    path.lineTo(140 * scale, 200 * scale);
+    path.lineTo(100 * scale, 200 * scale);
+    path.lineTo(150 * scale, 360 * scale);
+    path.lineTo(60 * scale, 220 * scale);
+    path.lineTo(100 * scale, 220 * scale);
+    path.lineTo(40 * scale, 100 * scale);
+    path.close();
+    return path;
+  }
+
+  Path _buildRightBolt(Size size) {
+    final scale = size.width / 300;
+    final path = Path();
+    path.moveTo(220 * scale, 40 * scale);
+    path.lineTo(160 * scale, 200 * scale);
+    path.lineTo(200 * scale, 200 * scale);
+    path.lineTo(150 * scale, 360 * scale);
+    path.lineTo(240 * scale, 220 * scale);
+    path.lineTo(200 * scale, 220 * scale);
+    path.lineTo(260 * scale, 100 * scale);
     path.close();
     return path;
   }
@@ -136,12 +143,10 @@ class _ClayLogoPainter extends CustomPainter {
 class _Pose {
   final double scale;
   final double extrude;
-  final double rotation;
   final double brightness;
   const _Pose({
     required this.scale,
     required this.extrude,
-    required this.rotation,
     required this.brightness,
   });
 }

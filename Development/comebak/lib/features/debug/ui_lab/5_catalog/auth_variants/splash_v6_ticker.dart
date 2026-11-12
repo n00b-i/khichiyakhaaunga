@@ -48,7 +48,7 @@ class _SplashV6TickerState extends State<SplashV6Ticker>
           children: [
             AnimatedBuilder(
               animation: _ctrl,
-              builder: (_, __) {
+              builder: (_, _) {
                 final v = _ctrl.value;
                 final showReady = v > 0.72;
 
@@ -157,9 +157,9 @@ class _SplashV6TickerState extends State<SplashV6Ticker>
           vertical: ComebakLayout.spaceXs,
         ),
         decoration: BoxDecoration(
-          color: c.withOpacity(0.12),
+          color: c.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(ComebakLayout.radiusSm),
-          border: Border.all(color: c.withOpacity(0.4)),
+          border: Border.all(color: c.withValues(alpha: 0.4)),
         ),
         child: Text(
           label,

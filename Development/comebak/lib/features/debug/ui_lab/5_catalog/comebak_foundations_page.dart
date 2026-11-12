@@ -7,9 +7,9 @@ import '../1_foundations/ui_lab_copy.dart';
 // [FLOW] ComebakFoundationsPage
 // ------------------------------------------------------------------------------
 // PURPOSE: The single source of truth for the app's visual language.
-// ARCHITECTURE: This page renders every color, text style, spacing token, 
-// radius token, and gradient we have defined. It allows developers and 
-// designers to visually verify the design system before applying it to 
+// ARCHITECTURE: This page renders every color, text style, spacing token,
+// radius token, and gradient we have defined. It allows developers and
+// designers to visually verify the design system before applying it to
 // production screens.
 // ==============================================================================
 class ComebakFoundationsPage extends StatelessWidget {
@@ -21,7 +21,10 @@ class ComebakFoundationsPage extends StatelessWidget {
       backgroundColor: ComebakColors.canvas,
       appBar: AppBar(
         backgroundColor: ComebakColors.surface,
-        title: Text(ComebakCopy.catalogFoundationsPage, style: ComebakTypography.titleLarge),
+        title: Text(
+          ComebakCopy.catalogFoundationsPage,
+          style: ComebakTypography.titleLarge,
+        ),
         iconTheme: const IconThemeData(color: ComebakColors.textPrimary),
       ),
       body: SingleChildScrollView(
@@ -135,14 +138,24 @@ class ComebakFoundationsPage extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(ComebakLayout.radiusMd),
-            border: Border.all(color: ComebakColors.border, width: ComebakLayout.borderThin),
+            border: Border.all(
+              color: ComebakColors.border,
+              width: ComebakLayout.borderThin,
+            ),
           ),
         ),
         const SizedBox(height: ComebakLayout.spaceSm),
-        Text(name, style: ComebakTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
         Text(
-          '#${color.value.toRadixString(16).padLeft(8, '0').toUpperCase()}',
-          style: ComebakTypography.labelSmall.copyWith(color: ComebakColors.textSecondary),
+          name,
+          style: ComebakTypography.bodyMedium.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        Text(
+          '#${color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}',
+          style: ComebakTypography.labelSmall.copyWith(
+            color: ComebakColors.textSecondary,
+          ),
         ),
       ],
     );
@@ -157,10 +170,22 @@ class ComebakFoundationsPage extends StatelessWidget {
       children: [
         _buildTextSample('Brand (w800, 22)', ComebakTypography.brand),
         _buildTextSample('Greeting (w800, 36)', ComebakTypography.greeting),
-        _buildTextSample('Title Large (w700, 18)', ComebakTypography.titleLarge),
-        _buildTextSample('Title Medium (w700, 16)', ComebakTypography.titleMedium),
-        _buildTextSample('Body Medium (w600, 13)', ComebakTypography.bodyMedium),
-        _buildTextSample('Label Small (w600, 12)', ComebakTypography.labelSmall),
+        _buildTextSample(
+          'Title Large (w700, 18)',
+          ComebakTypography.titleLarge,
+        ),
+        _buildTextSample(
+          'Title Medium (w700, 16)',
+          ComebakTypography.titleMedium,
+        ),
+        _buildTextSample(
+          'Body Medium (w600, 13)',
+          ComebakTypography.bodyMedium,
+        ),
+        _buildTextSample(
+          'Label Small (w600, 12)',
+          ComebakTypography.labelSmall,
+        ),
       ],
     );
   }
@@ -171,11 +196,20 @@ class ComebakFoundationsPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: ComebakTypography.labelSmall.copyWith(color: ComebakColors.neonGreen)),
+          Text(
+            label,
+            style: ComebakTypography.labelSmall.copyWith(
+              color: ComebakColors.neonGreen,
+            ),
+          ),
           const SizedBox(height: ComebakLayout.spaceXs),
           Text('The quick brown fox jumps over the lazy dog.', style: style),
           const SizedBox(height: ComebakLayout.spaceXs),
-          Divider(color: ComebakColors.border, height: ComebakLayout.borderThin, thickness: ComebakLayout.borderThin),
+          Divider(
+            color: ComebakColors.border,
+            height: ComebakLayout.borderThin,
+            thickness: ComebakLayout.borderThin,
+          ),
         ],
       ),
     );
@@ -190,9 +224,18 @@ class ComebakFoundationsPage extends StatelessWidget {
       children: [
         _buildColorTextSample('Text Primary', ComebakColors.textPrimary),
         _buildColorTextSample('Text Secondary', ComebakColors.textSecondary),
-        _buildColorTextSample('Neon Green (Success/Brand)', ComebakColors.neonGreen),
-        _buildColorTextSample('Vibrant Red (Danger/Error)', ComebakColors.vibrantRed),
-        _buildColorTextSample('Neon Orange (Warning/Streak)', ComebakColors.neonOrange),
+        _buildColorTextSample(
+          'Neon Green (Success/Brand)',
+          ComebakColors.neonGreen,
+        ),
+        _buildColorTextSample(
+          'Vibrant Red (Danger/Error)',
+          ComebakColors.vibrantRed,
+        ),
+        _buildColorTextSample(
+          'Neon Orange (Warning/Streak)',
+          ComebakColors.neonOrange,
+        ),
       ],
     );
   }
@@ -204,11 +247,16 @@ class ComebakFoundationsPage extends StatelessWidget {
         children: [
           SizedBox(
             width: 200,
-            child: Text(label, style: ComebakTypography.labelSmall.copyWith(color: ComebakColors.textSecondary)),
+            child: Text(
+              label,
+              style: ComebakTypography.labelSmall.copyWith(
+                color: ComebakColors.textSecondary,
+              ),
+            ),
           ),
           Expanded(
             child: Text(
-              'Comebak UI', 
+              'Comebak UI',
               style: ComebakTypography.titleMedium.copyWith(color: color),
             ),
           ),
@@ -225,11 +273,31 @@ class ComebakFoundationsPage extends StatelessWidget {
       spacing: ComebakLayout.spaceXl,
       runSpacing: ComebakLayout.spaceLg,
       children: [
-        _buildIconSample('Neon Green', LucideIcons.zap, ComebakColors.neonGreen),
-        _buildIconSample('Neon Orange', LucideIcons.flame, ComebakColors.neonOrange),
-        _buildIconSample('Neon Yellow', LucideIcons.trophy, ComebakColors.neonYellow),
-        _buildIconSample('Neon Blue', LucideIcons.house, ComebakColors.neonBlue),
-        _buildIconSample('Text Primary', LucideIcons.user, ComebakColors.textPrimary),
+        _buildIconSample(
+          'Neon Green',
+          LucideIcons.zap,
+          ComebakColors.neonGreen,
+        ),
+        _buildIconSample(
+          'Neon Orange',
+          LucideIcons.flame,
+          ComebakColors.neonOrange,
+        ),
+        _buildIconSample(
+          'Neon Yellow',
+          LucideIcons.trophy,
+          ComebakColors.neonYellow,
+        ),
+        _buildIconSample(
+          'Neon Blue',
+          LucideIcons.house,
+          ComebakColors.neonBlue,
+        ),
+        _buildIconSample(
+          'Text Primary',
+          LucideIcons.user,
+          ComebakColors.textPrimary,
+        ),
       ],
     );
   }
@@ -246,7 +314,12 @@ class ComebakFoundationsPage extends StatelessWidget {
           child: Icon(icon, color: color, size: ComebakLayout.spaceXl),
         ),
         const SizedBox(height: ComebakLayout.spaceSm),
-        Text(label, style: ComebakTypography.labelSmall.copyWith(color: ComebakColors.textSecondary)),
+        Text(
+          label,
+          style: ComebakTypography.labelSmall.copyWith(
+            color: ComebakColors.textSecondary,
+          ),
+        ),
       ],
     );
   }
@@ -269,13 +342,22 @@ class ComebakFoundationsPage extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      ComebakColors.neonGreen.withValues(alpha: ComebakLayout.opacityGradientStart),
-                      ComebakColors.neonGreen.withValues(alpha: ComebakLayout.opacityGradientEnd),
+                      ComebakColors.neonGreen.withValues(
+                        alpha: ComebakLayout.opacityGradientStart,
+                      ),
+                      ComebakColors.neonGreen.withValues(
+                        alpha: ComebakLayout.opacityGradientEnd,
+                      ),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(ComebakLayout.radiusMd),
                 ),
-                child: const Center(child: Icon(LucideIcons.plus, color: ComebakColors.textPrimary)),
+                child: const Center(
+                  child: Icon(
+                    LucideIcons.plus,
+                    color: ComebakColors.textPrimary,
+                  ),
+                ),
               ),
               const SizedBox(height: ComebakLayout.spaceSm),
               Text('3D Icon Fill', style: ComebakTypography.labelSmall),
@@ -283,7 +365,7 @@ class ComebakFoundationsPage extends StatelessWidget {
           ),
         ),
         const SizedBox(width: ComebakLayout.spaceLg),
-        
+
         // [GRADIENT 2] The Card Border Gradient
         Expanded(
           child: Column(
@@ -296,12 +378,17 @@ class ComebakFoundationsPage extends StatelessWidget {
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                     colors: [
-                      ComebakColors.neonGreen.withValues(alpha: ComebakLayout.opacityBorderAccent),
+                      ComebakColors.neonGreen.withValues(
+                        alpha: ComebakLayout.opacityBorderAccent,
+                      ),
                       ComebakColors.canvas,
                     ],
                   ),
                   borderRadius: BorderRadius.circular(ComebakLayout.radiusMd),
-                  border: Border.all(color: ComebakColors.border, width: ComebakLayout.borderThin),
+                  border: Border.all(
+                    color: ComebakColors.border,
+                    width: ComebakLayout.borderThin,
+                  ),
                 ),
               ),
               const SizedBox(height: ComebakLayout.spaceSm),
@@ -334,7 +421,10 @@ class ComebakFoundationsPage extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: ComebakLayout.spaceSm),
       child: Row(
         children: [
-          SizedBox(width: 120, child: Text(label, style: ComebakTypography.labelSmall)),
+          SizedBox(
+            width: 120,
+            child: Text(label, style: ComebakTypography.labelSmall),
+          ),
           Container(width: size, height: 20, color: ComebakColors.neonGreen),
         ],
       ),
@@ -363,7 +453,10 @@ class ComebakFoundationsPage extends StatelessWidget {
           decoration: BoxDecoration(
             color: ComebakColors.surfaceElevated,
             borderRadius: BorderRadius.circular(radius),
-            border: Border.all(color: ComebakColors.neonGreen, width: ComebakLayout.borderThin),
+            border: Border.all(
+              color: ComebakColors.neonGreen,
+              width: ComebakLayout.borderThin,
+            ),
           ),
         ),
         const SizedBox(height: ComebakLayout.spaceSm),

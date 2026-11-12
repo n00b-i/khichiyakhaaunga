@@ -33,10 +33,10 @@ class LoginV3Burn extends StatelessWidget {
                 height: 60,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: ComebakColors.flameOrange.withOpacity(0.15),
+                  color: ComebakColors.flameOrange.withValues(alpha: 0.15),
                   boxShadow: [
                     BoxShadow(
-                      color: ComebakColors.flameOrange.withOpacity(0.4),
+                      color: ComebakColors.flameOrange.withValues(alpha: 0.4),
                       blurRadius: 30,
                     ),
                   ],

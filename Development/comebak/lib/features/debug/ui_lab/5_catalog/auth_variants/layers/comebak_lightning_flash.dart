@@ -107,7 +107,7 @@ class _LightningPainter extends CustomPainter {
         ..strokeWidth = 14
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
-        ..color = ComebakColors.neonGreen.withOpacity(haloAlpha)
+        ..color = ComebakColors.neonGreen.withValues(alpha: haloAlpha)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
 
       canvas.drawPath(main, haloPaint);
@@ -125,7 +125,7 @@ class _LightningPainter extends CustomPainter {
         ..strokeWidth = 3
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
-        ..color = ComebakColors.neonGreen.withOpacity(0.95 * f);
+        ..color = ComebakColors.neonGreen.withValues(alpha: 0.95 * f);
 
       canvas.drawPath(main, bodyPaint);
       canvas.drawPath(forkA, bodyPaint);
@@ -143,7 +143,7 @@ class _LightningPainter extends CustomPainter {
         ..strokeWidth = 1.5
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
-        ..color = Colors.white.withOpacity(coreAlpha);
+        ..color = Colors.white.withValues(alpha: coreAlpha);
 
       canvas.drawPath(main, corePaint);
       canvas.drawPath(forkA, corePaint);
@@ -159,7 +159,7 @@ class _LightningPainter extends CustomPainter {
       final washAlpha = ((f - 0.3) / 0.7 * 0.08).clamp(0.0, 0.08);
       canvas.drawRect(
         Offset.zero & size,
-        Paint()..color = Colors.white.withOpacity(washAlpha),
+        Paint()..color = Colors.white.withValues(alpha: washAlpha),
       );
     }
   }

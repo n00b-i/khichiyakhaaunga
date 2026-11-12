@@ -187,9 +187,9 @@ class ComebakAuthVariantsPage extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: accent.withOpacity(0.15),
+                color: accent.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(ComebakLayout.radiusMd),
-                border: Border.all(color: accent.withOpacity(0.4)),
+                border: Border.all(color: accent.withValues(alpha: 0.4)),
               ),
               child: Center(
                 child: Text(
