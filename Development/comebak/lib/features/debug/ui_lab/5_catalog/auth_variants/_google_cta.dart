@@ -30,7 +30,7 @@ class GoogleCta extends StatelessWidget {
       child: TextButton(
         onPressed: onPressed,
         style: TextButton.styleFrom(
-          backgroundColor: ComebakColors.surfaceElevated,
+          backgroundColor: ComebakColors.surface,
           foregroundColor: ComebakColors.textPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(ComebakLayout.radiusMd),

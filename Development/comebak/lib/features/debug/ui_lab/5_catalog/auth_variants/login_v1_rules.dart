@@ -1,70 +1,149 @@
 import 'package:flutter/material.dart';
 import '../../1_foundations/tokens/ui_lab_tokens.dart';
+import 'layers/comebak_clay_logo.dart';
+import 'layers/comebak_wordmark.dart';
 import '_google_cta.dart';
 
-// ==============================================================================
-// [VARIANT 1 — LOGIN] "THE RULES"
-// ------------------------------------------------------------------------------
-// Concept: Continuation of splash_v1. Left-aligned manifesto, single CTA.
-// Copy: "you are not your streak / xp / number."
-// ==============================================================================
-class LoginV1Rules extends StatelessWidget {
+class LoginV1Rules extends StatefulWidget {
   final VoidCallback onGoogleSignIn;
   const LoginV1Rules({super.key, required this.onGoogleSignIn});
+
+  @override
+  State<LoginV1Rules> createState() => _LoginV1RulesState();
+}
+
+class _LoginV1RulesState extends State<LoginV1Rules>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ComebakColors.canvas,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: ComebakLayout.spaceXl,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0, -0.4),
+                  radius: 1.2,
+                  colors: [
+                    ComebakColors.neonGreen.withOpacity(0.15),
+                    ComebakColors.canvas,
+                  ],
+                ),
+              ),
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Spacer(flex: 2),
-              Text(
-                'THE RULES',
-                style: ComebakTypography.labelSmall.copyWith(
-                  color: ComebakColors.neonGreen,
-                  letterSpacing: 2.4,
-                ),
+
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: ComebakLayout.spaceXl,
               ),
-              const SizedBox(height: ComebakLayout.spaceLg),
-              Text(
-                'you are not\nyour streak.',
-                style: ComebakTypography.greeting.copyWith(
-                  fontSize: 44,
-                  height: 1.0,
-                  color: ComebakColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: ComebakLayout.spaceMd),
-              Text(
-                'you are not your xp.\nyou are not the number.',
-                style: ComebakTypography.bodyMedium.copyWith(
-                  color: ComebakColors.textSecondary,
-                  height: 1.5,
-                ),
-              ),
-              const Spacer(flex: 3),
-              GoogleCta(onPressed: onGoogleSignIn),
-              const SizedBox(height: ComebakLayout.spaceMd),
-              Center(
-                child: Text(
-                  'By continuing you agree to our Terms & Privacy Policy.',
-                  textAlign: TextAlign.center,
-                  style: ComebakTypography.labelSmall.copyWith(
-                    color: ComebakColors.textSecondary,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Spacer(flex: 2),
+
+                  Center(
+                    child: AnimatedBuilder(
+                      animation: _ctrl,
+                      builder: (_, __) {
+                        return FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              ComebakClayLogo(
+                                pose: 4,
+                                time: _ctrl.value * 4,
+                                enableSparks: false,
+                              ),
+                              const SizedBox(width: 12),
+                              ComebakWordmark(
+                                charCount: 7,
+                                brightness: 1.0,
+                                time: _ctrl.value * 4,
+                                enableSparks: false,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
+
+                  const Spacer(flex: 1),
+
+                  // UPDATED COPY
+                  Text(
+                    'TIME TO COMEBAK!',
+                    style: ComebakTypography.labelSmall.copyWith(
+                      color: ComebakColors.neonGreen,
+                      letterSpacing: 2.4,
+                    ),
+                  ),
+                  const SizedBox(height: ComebakLayout.spaceLg),
+                  Text(
+                    'Every Day\nJust 60 seconds',
+                    style: ComebakTypography.greeting.copyWith(
+                      fontSize: 44,
+                      height: 1.2,
+                      color: ComebakColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: ComebakLayout.spaceMd),
+                  Text(
+                    'Nobody is coming to SAVE you, take your own responsibility!',
+                    style: ComebakTypography.bodyMedium.copyWith(
+                      color: ComebakColors.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+
+                  const Spacer(flex: 2),
+
+                  GoogleCta(
+                    onPressed: widget.onGoogleSignIn,
+                    label: 'Login with Google',
+                  ),
+
+                  const SizedBox(height: ComebakLayout.spaceMd),
+
+                  Center(
+                    child: Text(
+                      'By continuing you agree to our Terms & Privacy Policy.',
+                      textAlign: TextAlign.center,
+                      style: ComebakTypography.labelSmall.copyWith(
+                        color: ComebakColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  // const SizedBox(height: ComebakLayout.spaceXl),
+                  const Spacer(flex: 3),
+                ],
               ),
-              const SizedBox(height: ComebakLayout.spaceLg),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
