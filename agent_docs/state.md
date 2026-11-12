@@ -1,26 +1,20 @@
 # State — comebak.in
 > Updated: 2026-11-12
-> Source of truth for active context. Max 15 lines. See GitHub issues for deep detail.
+> Source of truth for active context. Max 15 lines. Deep detail lives in GitHub issues.
 
 ## Active Phase
-Phase 4: Launch Readiness.
+UI Lab — Flow Screen Completion (post-Home, pre-Launch).
 
 ## Current Task
-1. Verify #24 (Postgres trigger on INSERT for streak).
-2. Verify #21 (empty name crash in ComebakAvatar).
-3. Close #15 and #30 (code complete in e094959 but still open on board).
-4. Privacy Policy + Store metadata (Screenshots, Data Safety).
+1. Close #45 (Home Screen Assembly & QA) after on-device QA — code is complete, issue is still open.
+2. Start #47 (Auth & Splash Screens) in UI Lab.
+3. Verify #43 and #44 are complete; close them if code is merged.
 
-## Recent Gotchas (The "Never Again" List)
-1. Postgres privileges are additive. Rely on triggers.
-2. Package names: Android = `in.comebak.comebak_app`. iOS = `in.comebak.comebakApp`.
-3. Logs: `debugPrint`, NOT `developer.log`.
-4. Schema drift: `SELECT column_name` before assuming.
-5. SharedPreferences must be nullable in singletons.
-6. Comment syntax: `//` only. Never `///`. Never end with `/`.
-7. Connectivity: `ConnectivityService.instance.isOffline()` (interface + real ping).
-8. Google Sign-In: Never wrap `authencate()` in a short timeout.
-9. `GameTimerMixin`: MUST call `_ticker.stop()` at 0, else 60x/sec `onTimeUp`.
-10. AppLifecycle: Pause on `inactive` and `hidden`, not just `paused`.
-11. KGP warning is upstream (flutter/flutter#195467). Do NOT set `android.builtInKotlin=true`.
-12. Crashlytics is disabled in debug by default; force-enable with `kDebugMode` guard for test.
+## Queue
+#47 Auth & Splash → #48 Gameplay HUD → #49 Game Over → #50 Stats → #51 Profile.
+
+## Parked
+Swipe-direction game — see `agent_docs/PARKING_LOT.md`.
+
+## Critical Gotchas
+See `LEARNINGS_3D_UI.md` + issue comments. Highest risk: Postgres privileges are additive (use triggers); package names `in.comebak.comebak_app` / `in.comebak.comebakApp`; `debugPrint` only; nullable SharedPreferences; `//` comments only; `GameTimerMixin._ticker.stop()` at 0; pause on `inactive` + `hidden`; do NOT set `android.builtInKotlin=true`.

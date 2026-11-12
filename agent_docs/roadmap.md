@@ -26,3 +26,12 @@
 - [ ] Implement Edge Functions for secure score validation (if needed).
 - [ ] Full device testing (Android & iOS).
 - [ ] Final UI polish and haptics review.
+
+## UI Lab — Flow Screen Completion (IN PROGRESS)
+- [x] 7. Flow: Full Home Screen Assembly & QA (#45) — code complete; close after device QA.
+- [ ] 8. Flow: Auth & Splash (#47) — next.
+- [ ] 9. Flow: Gameplay HUD & Timer Wrapper (#48).
+- [ ] 10. Flow: Game Over & Results (#49).
+- [ ] 11. Flow: Stats & Personal Best (#50).
+- [ ] 12. Flow: Profile Screen Layout (#51).
+- [ ] Post-MVP: Surprise Me / Shuffle (#46) — parked.
