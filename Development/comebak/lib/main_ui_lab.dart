@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'core/theme/tokens/ui_lab_colors.dart';
-import 'features/debug/ui_lab/ui_lab_screen.dart';
+import 'features/debug/ui_lab/1_foundations/tokens/ui_lab_tokens.dart';
+import 'features/debug/ui_lab/5_catalog/catalog_home.dart'; // [UPDATED IMPORT]
 
-// [ENTRY POINT] This is the custom entry point for the UI Lab.
-// Flutter requires a void main() function to boot the root isolate.
+// ==============================================================================
+// [ENTRY POINT] UI Lab
+// ==============================================================================
 void main() {
   runApp(const UiLabApp());
 }
@@ -17,16 +18,14 @@ class UiLabApp extends StatelessWidget {
     return MaterialApp(
       title: 'Comebak UI Lab',
       debugShowCheckedModeBanner: false,
-      // [THEME] Isolated theme setup so we don't touch the main app's MaterialApp.
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: UiLabColors.canvas,
-        // [TYPOGRAPHY] Urbanist is a modern geometric sans-serif.
-        // We assign it via fontFamily to bypass the material_ui TextTheme conflict.
+        scaffoldBackgroundColor: ComebakColors.canvas,
         fontFamily: GoogleFonts.urbanist().fontFamily,
-        primaryColor: UiLabColors.neonGreen,
+        primaryColor: ComebakColors.neonGreen,
       ),
-      home: const UiLabScreen(),
+      // [NAVIGATION] Starts at the Catalog Index.
+      home: const ComebakCatalogHome(),
     );
   }
 }
