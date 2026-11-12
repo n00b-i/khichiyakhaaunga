@@ -100,8 +100,6 @@ class _WordmarkPainter extends CustomPainter {
     canvas.restore();
 
     if (enableSparks) {
-      final frameSeed = (time * 20).floor();
-      final rnd = math.Random(frameSeed);
       // Splash screen spark logic would go here if re-enabled
     }
   }

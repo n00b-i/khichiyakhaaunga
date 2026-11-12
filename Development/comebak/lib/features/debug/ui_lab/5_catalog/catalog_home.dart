@@ -9,6 +9,7 @@ import 'comebak_button_test_page.dart';
 import 'comebak_foundations_page.dart';
 import 'comebak_game_card_page.dart';
 import 'game_flow/comebak_game_hud_page.dart';
+import 'game_flow/comebak_game_over_page.dart';
 
 // Auth Variants Imports
 import 'auth_variants/comebak_auth_variants_page.dart';
@@ -18,23 +19,6 @@ import 'auth_variants/login_v1_rules.dart';
 
 class ComebakCatalogHome extends StatelessWidget {
   const ComebakCatalogHome({super.key});
-
-  // ============================================================================
-  // [HELPER] Fade Route — Creates a smooth dissolve transition
-  // ============================================================================
-  Route<T> _fadeRoute<T>(
-    Widget page, {
-    Duration duration = const Duration(milliseconds: 600),
-  }) {
-    return PageRouteBuilder<T>(
-      pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(opacity: animation, child: child);
-      },
-      transitionDuration: duration,
-      reverseTransitionDuration: duration,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +44,7 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: LucideIcons.flame,
                 onTap: () => Navigator.push(
                   context,
-                  _fadeRoute(const ComebakStreakCardPage()),
+                  FadeRoute(page: const ComebakStreakCardPage()),
                 ),
               ),
               const SizedBox(height: ComebakLayout.spaceXl),
@@ -75,7 +59,7 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: LucideIcons.palette,
                 onTap: () => Navigator.push(
                   context,
-                  _fadeRoute(const ComebakFoundationsPage()),
+                  FadeRoute(page: const ComebakFoundationsPage()),
                 ),
               ),
               _CatalogTile(
@@ -83,7 +67,7 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: LucideIcons.gamepad_2,
                 onTap: () => Navigator.push(
                   context,
-                  _fadeRoute(const ComebakGameCardPage()),
+                  FadeRoute(page: const ComebakGameCardPage()),
                 ),
               ),
               _CatalogTile(
@@ -91,7 +75,7 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: Icons.dashboard,
                 onTap: () => Navigator.push(
                   context,
-                  _fadeRoute(const ComebakButtonTestPage()),
+                  FadeRoute(page: const ComebakButtonTestPage()),
                 ),
               ),
               _CatalogTile(
@@ -132,7 +116,18 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: LucideIcons.timer,
                 onTap: () => Navigator.push(
                   context,
-                  _fadeRoute(const ComebakGameHudPage()),
+                  MaterialPageRoute(builder: (context) => const ComebakGameHudPage()),
+                ),
+              ),
+
+              _CatalogTile(
+                title: 'GAME SCORE SCREEN',
+                icon: LucideIcons.trophy,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                  builder: (context) => const ComebakGameOverPage(),
+                ),
                 ),
               ),
 
@@ -144,21 +139,20 @@ class ComebakCatalogHome extends StatelessWidget {
                   final rule = await engine.pickRule();
                   if (!context.mounted) return;
 
-                  // 1. Push Splash on top of Catalog
                   Navigator.push(
                     context,
-                    _fadeRoute(
-                      SplashV1RulesV2(
+                    FadeRoute(
+                      page: SplashV1RulesV2(
                         rule: rule,
                         onComplete: () {
-                          // 2. Replace Splash with Login, keeping Catalog underneath
                           Navigator.pushReplacement(
                             context,
-                            _fadeRoute(
-                              LoginV1Rules(
+                            FadeRoute(
+                              page: LoginV1Rules(
                                 onGoogleSignIn: () {
-                                  // Pop Login to return to Catalog
-                                  Navigator.of(context).popUntil((route) => route.isFirst);
+                                  Navigator.of(
+                                    context,
+                                  ).popUntil((route) => route.isFirst);
                                 },
                               ),
                             ),
@@ -175,7 +169,7 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: LucideIcons.layers,
                 onTap: () => Navigator.push(
                   context,
-                  _fadeRoute(const ComebakAuthVariantsPage()),
+                  FadeRoute(page: const ComebakAuthVariantsPage()),
                 ),
               ),
 
@@ -184,7 +178,7 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: LucideIcons.house,
                 onTap: () => Navigator.push(
                   context,
-                  _fadeRoute(const ComebakHomeFlow()),
+                  FadeRoute(page: const ComebakHomeFlow()),
                 ),
               ),
               const SizedBox(height: ComebakLayout.spaceXl),
@@ -196,9 +190,6 @@ class ComebakCatalogHome extends StatelessWidget {
   }
 }
 
-// ==============================================================================
-// [ATOM] _CatalogTile
-// ==============================================================================
 class _CatalogTile extends StatelessWidget {
   final String title;
   final IconData icon;
@@ -243,4 +234,24 @@ class _CatalogTile extends StatelessWidget {
       ),
     );
   }
+}
+
+// ==============================================================================
+// [ROUTE] FadeRoute
+// ==============================================================================
+
+class FadeRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+
+  FadeRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 600),
+          barrierDismissible: false, // FIX: Prevents the Null bool crash
+          barrierColor: Colors.transparent,
+          opaque: false,
+        );
 }
