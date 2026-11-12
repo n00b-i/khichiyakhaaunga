@@ -56,7 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       lastUpdated = DateTime.tryParse(lastUpdatedStr)?.toLocal();
     } else if (_prefs != null) {
       final cachedStr = _prefs!.getString('name_last_updated');
-    if (cachedStr != null) {
+      if (cachedStr != null) {
         lastUpdated = DateTime.tryParse(cachedStr)?.toLocal();
       }
     }
@@ -67,7 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final hoursLeft = remaining.inHours;
         final minutesLeft = remaining.inMinutes.remainder(60);
         final timeString = hoursLeft > 0 ? '${hoursLeft}h ${minutesLeft}m' : '${minutesLeft}m';
-        
+
         if (!mounted) return;
         showComebakSnackBar(context, 'You can change your name again in $timeString.', isError: true);
         return;
@@ -180,9 +180,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             String streakText = '';
             bool isStreakActive = false;
-            
+
             if (currentStreak > 0) {
-              streakText = '🔥 $currentStreak Day Streak';
+              streakText = '🔥 $currentStreak DayStreak';
               isStreakActive = true;
             } else if (lastPlayedStr != null) {
               final date = DateTime.tryParse(lastPlayedStr);
@@ -197,9 +197,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.all(AppSpacing.space24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+                children: [
                   const SizedBox(height: AppSpacing.space32),
-                  
+
                   Row(
                     children: [
                       ComebakAvatar(name: name),
@@ -211,7 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Text(_getDisplayName(name), style: AppTextStyles.titleLarge),
                             const SizedBox(height: AppSpacing.space4),
                             Text(
-                              email ?? '—', 
+                              email ?? '—',
                               style: AppTextStyles.bodyMedium,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -257,7 +257,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
 
                   const SizedBox(height: AppSpacing.space48),
-                  
+
                   ComebakButton(
                     text: 'Logout',
                     variant: ComebakButtonVariant.danger,
@@ -292,7 +292,9 @@ class _EditNameDialogState extends State<_EditNameDialog> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialName);
-    _isValid = _controller.text.trim().isNotEmpty;
+    // [ISSUE-21] Save disabled unless input is non-empty AND differs from initial name.
+    _isValid = _controller.text.trim().isNotEmpty &&
+        _controller.text.trim() != (widget.initialName ?? '').trim();
   }
 
   @override
@@ -325,7 +327,9 @@ class _EditNameDialogState extends State<_EditNameDialog> {
                 inputFormatters: [LengthLimitingTextInputFormatter(30)],
                 onChanged: (val) {
                   setState(() {
-                    _isValid = val.trim().isNotEmpty;
+                    // [ISSUE-21] Mirror initState gate on every keystroke.
+                    _isValid = val.trim().isNotEmpty &&
+                        val.trim() != (widget.initialName ?? '').trim();
                   });
                 },
                 decoration: InputDecoration(
@@ -355,7 +359,7 @@ class _EditNameDialogState extends State<_EditNameDialog> {
                     child: ComebakButton(
                       text: 'Save',
                       variant: ComebakButtonVariant.primary,
-                      // [FIX] Button is disabled if input is empty
+                      // [FIX] Button is disabled if input is empty or unchanged. [ISSUE-21]
                       onPressed: _isValid
                           ? () => Navigator.pop(context, _controller.text.trim())
                           : null,
