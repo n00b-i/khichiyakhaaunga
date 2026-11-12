@@ -29,8 +29,9 @@ class _SplashV1RulesV2State extends State<SplashV1RulesV2>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _ctrl;
   
-  late final double _typingStartSec;
-  late final double _typingEndSec;
+  late final double _wordmarkEndSec;
+  late final double _bottomTextStartSec;
+  late final double _bottomTextEndSec;
   late final double _totalDurationSec;
 
   bool _firedOpen = false;
@@ -42,10 +43,11 @@ class _SplashV1RulesV2State extends State<SplashV1RulesV2>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // 1s intro + (characters * 40ms) + 1s hold
-    _typingStartSec = 1.0;
-    _typingEndSec = _typingStartSec + (widget.rule.line.length * 0.04); 
-    _totalDurationSec = _typingEndSec + 1.0;
+    // Sequence timing
+    _wordmarkEndSec = 1.3;
+    _bottomTextStartSec = _wordmarkEndSec; 
+    _bottomTextEndSec = _bottomTextStartSec + 0.5; // 500ms smooth fade
+    _totalDurationSec = _bottomTextEndSec + 1.5; // 1.5s hold at the end
 
     _ctrl = AnimationController(
       vsync: this,
@@ -82,7 +84,6 @@ class _SplashV1RulesV2State extends State<SplashV1RulesV2>
     if (!_firedOpen) { ComebakHaptics.tap(); _firedOpen = true; }
     if (elapsed >= 1.0 && !_firedLogoP4) { ComebakHaptics.success(); _firedLogoP4 = true; }
 
-    // Micro-haptics for wordmark typing
     final currentChar = _computeWordmarkCharCount(elapsed);
     if (currentChar > _lastCharCount) {
       ComebakHaptics.tap(); 
@@ -116,36 +117,27 @@ class _SplashV1RulesV2State extends State<SplashV1RulesV2>
     final lavaIntensity = _smoothstep(0.4, 1.0, elapsed);
     final lavaIgnition = _computeLavaIgnition(elapsed);
     
-    final hookOpacity = _smoothstep(_typingStartSec, _typingStartSec + 0.2, elapsed);
-    final lineCharCount = _computeLineCharCount(elapsed);
+    final hookOpacity = _smoothstep(_bottomTextStartSec, _bottomTextStartSec + 0.3, elapsed);
+    final lineOpacity = _smoothstep(_bottomTextStartSec, _bottomTextEndSec, elapsed);
     final wordmarkCharCount = _computeWordmarkCharCount(elapsed);
 
     return Stack(
       children: [
-        // 1. CANVAS BASE
         const Positioned.fill(child: ColoredBox(color: ComebakColors.canvas)),
 
-        // 2. FOG A
         if (fogAOpacity > 0.001)
           Positioned.fill(child: ComebakFogLayer(time: elapsed, opacity: fogAOpacity, tint: ComebakColors.mutedGreen, base: ComebakColors.canvas)),
 
-        // 3. FOG B
         if (fogBOpacity > 0.001)
           Positioned.fill(child: ComebakFogLayer(time: elapsed * 1.4, opacity: fogBOpacity, tint: ComebakColors.neonGreen, base: ComebakColors.canvas)),
 
-        // 4. LAVA BED
         if (lavaIntensity > 0.001)
           Positioned.fill(child: ComebakLavaLayer(time: elapsed * 0.7, intensity: lavaIntensity, ignition: lavaIgnition)),
 
-        // 5. HERO MODULE (Thunder Bolt & Wordmark Inline)
         Center(child: _buildHeroModule(elapsed, wordmarkCharCount)),
 
-        // 6. DARK GRADIENT FOR TEXT READABILITY
         Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 350, // Taller gradient for better coverage
+          left: 0, right: 0, bottom: 0, height: 350,
           child: IgnorePointer(
             child: Container(
               decoration: BoxDecoration(
@@ -154,7 +146,7 @@ class _SplashV1RulesV2State extends State<SplashV1RulesV2>
                   end: Alignment.bottomCenter,
                   colors: [
                     ComebakColors.canvas.withOpacity(0.0),
-                    ComebakColors.canvas.withOpacity(0.95), // Darker to block fog
+                    ComebakColors.canvas.withOpacity(0.95),
                     ComebakColors.canvas,
                   ],
                   stops: const [0.0, 0.3, 1.0],
@@ -164,13 +156,9 @@ class _SplashV1RulesV2State extends State<SplashV1RulesV2>
           ),
         ),
 
-        // 7. GRAIN OVERLAY
         Positioned.fill(child: ComebakGrainOverlay(time: elapsed, opacity: 0.02)),
-
-        // 8. VIGNETTE
         Positioned.fill(child: const ComebakVignette()),
 
-        // 9. TEXT BLOCK (Moved to TOP of stack for absolute readability)
         if (hookOpacity > 0.001)
           Positioned(
             left: ComebakLayout.spaceXl,
@@ -184,14 +172,13 @@ class _SplashV1RulesV2State extends State<SplashV1RulesV2>
                 const SizedBox(height: ComebakLayout.spaceLg),
                 ComebakRuleLine(
                   line: widget.rule.line,
-                  charCount: lineCharCount,
+                  progress: lineOpacity,
                   fontSize: 30,
                 ),
               ],
             ),
           ),
 
-        // 10. SKIP BUTTON
         Positioned(
           top: MediaQuery.of(context).padding.top + ComebakLayout.spaceMd,
           right: ComebakLayout.spaceLg,
@@ -215,25 +202,15 @@ class _SplashV1RulesV2State extends State<SplashV1RulesV2>
       width: MediaQuery.of(context).size.width,
       height: 180,
       child: Center(
-        // FittedBox prevents overflow on smaller screens (like iPhone SE)
         child: FittedBox(
           fit: BoxFit.scaleDown,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Thunder Bolt Logo
-              if (logoPose >= 0)
-                ComebakClayLogo(pose: logoPose),
-              
-              // Tight gap (12px) instead of the old huge padding
+              if (logoPose >= 0) ComebakClayLogo(pose: logoPose, time: elapsed),
               const SizedBox(width: 12),
-
-              // Fluid Wordmark (78pt)
-              ComebakWordmark(
-                charCount: wordmarkCharCount,
-                brightness: logoBrightness,
-              ),
+              ComebakWordmark(charCount: wordmarkCharCount, brightness: logoBrightness, time: elapsed),
             ],
           ),
         ),
@@ -256,18 +233,10 @@ class _SplashV1RulesV2State extends State<SplashV1RulesV2>
     return raw.floor().clamp(0, 4);
   }
 
-  int _computeLineCharCount(double elapsed) {
-    if (elapsed < _typingStartSec) return 0;
-    if (elapsed >= _typingEndSec) return widget.rule.line.length;
-    final frac = (elapsed - _typingStartSec) / (_typingEndSec - _typingStartSec);
-    return (frac * widget.rule.line.length).floor().clamp(0, widget.rule.line.length);
-  }
-
   int _computeWordmarkCharCount(double elapsed) {
-    // Wordmark types between 0.5s and 1.3s
     if (elapsed < 0.5) return 0;
-    if (elapsed >= 1.3) return 7; // "comebak" = 7 chars
-    final frac = (elapsed - 0.5) / 0.8;
+    if (elapsed >= _wordmarkEndSec) return 7;
+    final frac = (elapsed - 0.5) / (_wordmarkEndSec - 0.5);
     return (frac * 7).floor().clamp(0, 7);
   }
 }

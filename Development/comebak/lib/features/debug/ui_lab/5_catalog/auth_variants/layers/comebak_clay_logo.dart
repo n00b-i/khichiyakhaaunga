@@ -1,22 +1,27 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../1_foundations/tokens/ui_lab_tokens.dart';
 
 class ComebakClayLogo extends StatelessWidget {
   final int pose;
-  const ComebakClayLogo({super.key, required this.pose});
+  final double time;
+
+  const ComebakClayLogo({super.key, required this.pose, required this.time});
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      size: const Size(60, 80), // Tight bounding box matching text height
-      painter: _ClayLogoPainter(pose: pose),
+      size: const Size(48, 64),
+      painter: _ClayLogoPainter(pose: pose, time: time),
     );
   }
 }
 
 class _ClayLogoPainter extends CustomPainter {
   final int pose;
-  _ClayLogoPainter({required this.pose});
+  final double time;
+
+  _ClayLogoPainter({required this.pose, required this.time});
 
   static const List<_Pose> _poses = [
     _Pose(scale: 0.60, extrude: 0.0, rotation: 0.00, brightness: 0.30),
@@ -31,7 +36,6 @@ class _ClayLogoPainter extends CustomPainter {
     final p = _poses[pose.clamp(0, _poses.length - 1)];
     
     canvas.save();
-    // Center it in the 60x80 box
     canvas.translate(size.width / 2, size.height / 2);
     canvas.scale(p.scale);
     canvas.translate(-size.width / 2, -size.height / 2);
@@ -39,80 +43,110 @@ class _ClayLogoPainter extends CustomPainter {
 
     final path = _buildThunderPath();
 
-    // 1. Back face (extruded shadow)
+    // 1. Extruded shadow
     canvas.drawPath(
       path.shift(Offset(p.extrude, p.extrude)),
-      Paint()
-        ..style = PaintingStyle.fill
-        ..color = ComebakColors.canvas.withOpacity(p.brightness),
+      Paint()..color = Colors.black.withOpacity(0.8 * p.brightness),
     );
 
-    // 2. Side face (mid-tone bevel)
+    // 2. Side face (Deep green shadow, not grey)
     canvas.drawPath(
       path.shift(Offset(p.extrude * 0.5, p.extrude * 0.5)),
-      Paint()
-        ..style = PaintingStyle.fill
-        ..color = ComebakColors.surfaceElevated.withOpacity(p.brightness),
+      Paint()..color = const Color(0xFF003D16).withOpacity(p.brightness),
     );
 
-    // 3. Front face (clay top)
+    // 3. Front face (Plasma Gradient, not grey)
+    final fillGradient = const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF00C853), Color(0xFF00E676), Colors.white],
+    ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
     canvas.drawPath(
       path,
-      Paint()
-        ..style = PaintingStyle.fill
-        ..color = ComebakColors.surfaceElevated.withOpacity(p.brightness),
+      Paint()..shader = fillGradient..color = Colors.white.withOpacity(p.brightness),
     );
 
-    // 4. Neon rim (stroke only, on top of fill)
-    canvas.drawPath(
-      path,
+    // 4. Ambient Occlusion (Bottom inner shadow)
+    canvas.save();
+    canvas.clipPath(path);
+    canvas.drawRect(
+      Rect.fromLTWH(0, size.height * 0.7, size.width, size.height),
       Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..color = ComebakColors.neonGreen.withOpacity(0.9 * p.brightness),
+        ..color = Colors.black.withOpacity(0.4 * p.brightness)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
     );
+    canvas.restore();
 
-    // 5. Specular gloss on the top-left edge
+    // 5. Specular Highlight (White edge reflection)
     final metrics = path.computeMetrics().toList();
     if (metrics.isNotEmpty) {
-      final full = metrics.first.length;
-      final glossSegment = metrics.first.extractPath(0, full * 0.4);
+      final glossSegment = metrics.first.extractPath(0, metrics.first.length * 0.3);
       canvas.drawPath(
         glossSegment,
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5
+          ..strokeWidth = 2.0
           ..strokeCap = StrokeCap.round
-          ..color = Colors.white.withOpacity(0.7 * p.brightness),
+          ..color = Colors.white.withOpacity(0.9 * p.brightness)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1),
       );
     }
+
+    // 6. Fractal Plasma
+    if (p.brightness > 0.6) {
+      canvas.save();
+      canvas.clipPath(path);
+      final frameSeed = (time * 20).floor();
+      final rnd = math.Random(frameSeed);
+      for (int i = 0; i < 2; i++) {
+        final startX = (size.width * 0.3) + rnd.nextDouble() * (size.width * 0.4);
+        _drawFractalBranch(canvas, Offset(startX, -10), Offset(startX + (rnd.nextDouble() * 10 - 5), size.height + 10), rnd, p.brightness, 3);
+      }
+      canvas.restore();
+    }
+
+    // 7. Neon rim
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..strokeJoin = StrokeJoin.round
+        ..color = ComebakColors.neonGreen.withOpacity(0.9 * p.brightness),
+    );
 
     canvas.restore();
   }
 
+  void _drawFractalBranch(Canvas canvas, Offset start, Offset end, math.Random rnd, double brightness, int depth) {
+    if (depth <= 0) return;
+    final path = Path()..moveTo(start.dx, start.dy);
+    for (int i = 1; i <= 4; i++) {
+      final t = i / 4;
+      path.lineTo(start.dx + (end.dx - start.dx) * t + (rnd.nextDouble() * 16 - 8) * (1.0 - t), start.dy + (end.dy - start.dy) * t);
+    }
+    canvas.drawPath(path, Paint()..style = PaintingStyle.stroke..strokeWidth = 4.0 * (depth / 3)..strokeCap = StrokeCap.round..color = Colors.white.withOpacity(0.5 * brightness)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    canvas.drawPath(path, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.0..strokeCap = StrokeCap.round..color = Colors.white.withOpacity(brightness));
+    if (depth > 1) {
+      final mid = Offset(start.dx + (end.dx - start.dx) * 0.5, start.dy + (end.dy - start.dy) * 0.5);
+      _drawFractalBranch(canvas, mid, Offset(mid.dx - rnd.nextDouble() * 15, mid.dy + rnd.nextDouble() * 15), rnd, brightness, depth - 1);
+      _drawFractalBranch(canvas, mid, Offset(mid.dx + rnd.nextDouble() * 15, mid.dy + rnd.nextDouble() * 15), rnd, brightness, depth - 1);
+    }
+  }
+
   Path _buildThunderPath() {
-    // Sharp, classic lightning bolt filling a 60x80 box perfectly.
     final path = Path();
-    path.moveTo(40, 0);     // Top point
-    path.lineTo(0, 50);     // Down left
-    path.lineTo(25, 50);    // Inner right
-    path.lineTo(15, 80);    // Bottom point
-    path.lineTo(60, 30);    // Up right
-    path.lineTo(35, 30);    // Inner left
-    path.close();
+    path.moveTo(32, 0); path.lineTo(0, 40); path.lineTo(20, 40);
+    path.lineTo(12, 64); path.lineTo(48, 24); path.lineTo(28, 24); path.close();
     return path;
   }
 
   @override
-  bool shouldRepaint(covariant _ClayLogoPainter old) => old.pose != pose;
+  bool shouldRepaint(covariant _ClayLogoPainter old) => old.pose != pose || old.time != time;
 }
 
 class _Pose {
-  final double scale;
-  final double extrude;
-  final double rotation;
-  final double brightness;
+  final double scale; final double extrude; final double rotation; final double brightness;
   const _Pose({required this.scale, required this.extrude, required this.rotation, required this.brightness});
 }
