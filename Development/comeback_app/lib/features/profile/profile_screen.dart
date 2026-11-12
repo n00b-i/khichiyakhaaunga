@@ -64,12 +64,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (lastUpdated != null) {
       final remaining = const Duration(hours: 24) - DateTime.now().difference(lastUpdated);
       if (remaining > Duration.zero) {
-        final hoursLeft = remaining.inHours;
-        final minutesLeft = remaining.inMinutes.remainder(60);
-        final timeString = hoursLeft > 0 ? '${hoursLeft}h ${minutesLeft}m' : '${minutesLeft}m';
-
+        // [ISSUE-21-REFINE] Static cooldown message. No time digits to avoid <1h edge cases and local/UTC drift.
         if (!mounted) return;
-        showComebakSnackBar(context, 'You can change your name again in $timeString.', isError: true);
+        showComebakSnackBar(context, 'Name can be changed once every 24 hours.', isError: true);
         return;
       }
     }
@@ -181,16 +178,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             String streakText = '';
             bool isStreakActive = false;
 
-            if (currentStreak > 0) {
-              streakText = '🔥 $currentStreak DayStreak';
+            if (currentStreak > 1) {
+              streakText = '🔥 $currentStreak Days Streak';
               isStreakActive = true;
-            } else if (lastPlayedStr != null) {
+            }
+            else if (currentStreak == 1) {
+              streakText = '🔥 Keep it up!';
+              isStreakActive = true;
+            }
+             else if (lastPlayedStr != null) {
               final date = DateTime.tryParse(lastPlayedStr);
               if (date != null) {
                 streakText = 'Last played on ${date.day}/${date.month}/${date.year}';
               }
             } else {
-              streakText = 'Welcome! Play your first game.';
+              streakText = 'Time to Comebak';
             }
 
             return SingleChildScrollView(
@@ -324,7 +326,8 @@ class _EditNameDialogState extends State<_EditNameDialog> {
               TextField(
                 controller: _controller,
                 style: AppTextStyles.body,
-                inputFormatters: [LengthLimitingTextInputFormatter(30)],
+                // [ISSUE-21-REFINE] 20 char cap, matching DB constraint profiles_name_length_check.
+                inputFormatters: [LengthLimitingTextInputFormatter(20)],
                 onChanged: (val) {
                   setState(() {
                     // [ISSUE-21] Mirror initState gate on every keystroke.
