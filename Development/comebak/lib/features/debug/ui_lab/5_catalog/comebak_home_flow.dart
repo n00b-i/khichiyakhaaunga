@@ -2,19 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import '../1_foundations/tokens/ui_lab_tokens.dart';
 import '../1_foundations/ui_lab_copy.dart';
-import '../2_atoms/comebak_icon_3d.dart';
+import '../1_foundations/ui_lab_haptics.dart';
 import '../2_atoms/comebak_add_burst_icon.dart';
+import '../2_atoms/comebak_mad_burst_icon.dart';
+import '../2_atoms/comebak_bodmas_burst_icon.dart';
+import '../2_atoms/comebak_small_burst_icon.dart';
+import '../2_atoms/comebak_saitan_icon.dart';
 import '../3_molecules/comebak_game_card.dart';
 import '../3_molecules/comebak_streak_card.dart';
 import '../4_organisms/comebak_header.dart';
-import '../4_organisms/comebak_milestone_banner.dart'; // [NEW IMPORT]
+import '../4_organisms/comebak_milestone_banner.dart';
 
 // ==============================================================================
 // [FLOW] ComebakHomeFlow
 // ------------------------------------------------------------------------------
 // PURPOSE: The final stitched Home Screen.
-// ARCHITECTURE: This page proves our Atoms, Molecules, and Organisms work
-// together perfectly. It acts as the blueprint for the production app.
+// ARCHITECTURE: Uses the 2-column grid layout and the 3D CustomPainter icons.
 // ==============================================================================
 class ComebakHomeFlow extends StatelessWidget {
   const ComebakHomeFlow({super.key});
@@ -25,7 +28,7 @@ class ComebakHomeFlow extends StatelessWidget {
       backgroundColor: ComebakColors.canvas,
       body: Stack(
         children: [
-          // [CREATIVE BG] The soft green atmospheric glow in the top right corner.
+          // [CREATIVE BG] Soft green atmospheric glow
           Positioned(
             top: ComebakLayout.offsetBgGlow.dy,
             right: ComebakLayout.offsetBgGlow.dx,
@@ -75,7 +78,7 @@ class ComebakHomeFlow extends StatelessWidget {
                   Text(ComebakCopy.greetingSubtitle, style: ComebakTypography.greetingSubtitle),
                   const SizedBox(height: ComebakLayout.spaceXxl),
 
-                  // 3. [MOLECULE] Streak Card (Showing Day 3 Active State)
+                  // 3. [MOLECULE] Streak Card
                   const ComebakStreakCard(
                     title: ComebakCopy.streakDay3Title,
                     subtitle: ComebakCopy.streakDay3Subtitle,
@@ -101,37 +104,87 @@ class ComebakHomeFlow extends StatelessWidget {
                   ),
                   const SizedBox(height: ComebakLayout.spaceLg),
 
-                  // 5. [MOLECULE] Game Grid
-                  _buildGameCard(
-                    title: ComebakCopy.gameAddTitle,
-                    subtitle: ComebakCopy.gameAddDesc,
-                    color: ComebakColors.neonOrange,
-                    primaryIcon: LucideIcons.plus,
-                    secondaryIcon: LucideIcons.equal,
+                  // 5. [GRID] 2-Column Game Grid
+                  // ROW 1
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: ComebakGameCard(
+                          title: ComebakCopy.gameAddTitle,
+                          subtitle: ComebakCopy.gameAddDesc,
+                          accentColor: ComebakColors.neonOrange,
+                          onTap: () { ComebakHaptics.tap(); },
+                          iconWidget: ComebakAddBurstIcon(size: ComebakLayout.gameIconSize),
+                        ),
+                      ),
+                      const SizedBox(width: ComebakLayout.spaceLg),
+                      Expanded(
+                        child: ComebakGameCard(
+                          title: ComebakCopy.gameMadTitle,
+                          subtitle: ComebakCopy.gameMadDesc,
+                          accentColor: ComebakColors.neonGreen,
+                          onTap: () { ComebakHaptics.tap(); },
+                          iconWidget: ComebakMadBurstIcon(size: ComebakLayout.gameIconSize),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: ComebakLayout.spaceLg),
-                  _buildGameCard(
-                    title: ComebakCopy.gameMadTitle,
-                    subtitle: ComebakCopy.gameMadDesc,
-                    color: ComebakColors.neonGreen,
-                    primaryIcon: LucideIcons.x,
-                    secondaryIcon: LucideIcons.equal,
+
+                  // ROW 2
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: ComebakGameCard(
+                          title: ComebakCopy.gameBodmasTitle,
+                          subtitle: ComebakCopy.gameBodmasDesc,
+                          accentColor: ComebakColors.neonPurple,
+                          onTap: () { ComebakHaptics.tap(); },
+                          iconWidget: ComebakBodmasBurstIcon(size: ComebakLayout.gameIconSize),
+                        ),
+                      ),
+                      const SizedBox(width: ComebakLayout.spaceLg),
+                      Expanded(
+                        child: ComebakGameCard(
+                          title: ComebakCopy.gameSmallTitle,
+                          subtitle: ComebakCopy.gameSmallDesc,
+                          accentColor: ComebakColors.neonBlue,
+                          onTap: () { ComebakHaptics.tap(); },
+                          iconWidget: ComebakSmallBurstIcon(size: ComebakLayout.gameIconSize),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: ComebakLayout.spaceLg),
-                  _buildGameCard(
-                    title: ComebakCopy.gameBodmasTitle,
-                    subtitle: ComebakCopy.gameBodmasDesc,
-                    color: ComebakColors.neonPurple,
-                    primaryIcon: LucideIcons.sigma,
-                    secondaryIcon: LucideIcons.divide,
-                  ),
-                  const SizedBox(height: ComebakLayout.spaceLg),
-                  _buildGameCard(
-                    title: ComebakCopy.gameSmallTitle,
-                    subtitle: ComebakCopy.gameSmallDesc,
-                    color: ComebakColors.neonBlue,
-                    primaryIcon: LucideIcons.search,
-                    secondaryIcon: LucideIcons.hash,
+
+                  // ROW 3
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: ComebakGameCard(
+                          title: ComebakCopy.gameSaitanTitle,
+                          subtitle: ComebakCopy.gameSaitanDesc,
+                          accentColor: ComebakColors.vibrantPink,
+                          onTap: () { ComebakHaptics.tap(); },
+                          iconWidget: ComebakSaitanIcon(size: ComebakLayout.gameIconSize),
+                        ),
+                      ),
+                      const SizedBox(width: ComebakLayout.spaceLg),
+                      // [LOCKED GAME] Fills the empty grid slot
+                      Expanded(
+                        child: ComebakGameCard(
+                          title: 'Locked Game',
+                          subtitle: 'Coming soon to Comebak.',
+                          accentColor: ComebakColors.textSecondary,
+                          isLocked: true,
+                          onTap: () {},
+                          iconWidget: const SizedBox(), 
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: ComebakLayout.spaceXxl),
 
@@ -149,28 +202,6 @@ class ComebakHomeFlow extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // [DRY PRINCIPLE] Factory method to build Game Cards without repeating the 
-  // Icon3D stacking logic 5 times.
-  Widget _buildGameCard({
-    required String title,
-    required String subtitle,
-    required Color color,
-    required IconData primaryIcon,
-    required IconData secondaryIcon,
-  }) {
-    return ComebakGameCard(
-      title: title,
-      subtitle: subtitle,
-      accentColor: color,
-      onTap: () {},
-      iconWidget: ComebakIcon3D(
-        primaryIcon: primaryIcon,
-        secondaryIcon: secondaryIcon,
-        color: color,
       ),
     );
   }

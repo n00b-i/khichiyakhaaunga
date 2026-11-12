@@ -23,7 +23,7 @@ class ComebakCopy {
   static const String gameSpeedTitle = 'Speed Match';
   static const String gameSpeedDesc = 'Match the elements before time runs out.';
   static const String navProfile = 'Navigate to Profile';
-  static const String sectionMathBurst = 'Math Burst';
+  static const String sectionMathBurst = 'Tap to Play';
 
   // Catalog Index
   static const String catalogTitle = 'UI Lab Catalog';
