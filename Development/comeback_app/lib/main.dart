@@ -1,5 +1,5 @@
-import 'dart:ui'; // Required for PlatformDispatcher
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -14,6 +14,12 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // [CRASHLYTICS] In debug mode, force-enable collection so test crashes reach the console.
+  // In release, this is already enabled by default. This block only runs in debug.
+  if (kDebugMode) {
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+  }
 
   // [CRASHLYTICS] Catch Flutter framework errors (widget build errors, assertions, etc.)
   FlutterError.onError = (errorDetails) {
