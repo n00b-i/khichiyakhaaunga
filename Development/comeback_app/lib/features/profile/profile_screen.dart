@@ -42,7 +42,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<Map<String, dynamic>?> _loadProfileAndPrefs() async {
     _prefs = await SharedPreferences.getInstance();
-    return await _profileRepo.getProfile();
+    final profile = await _profileRepo.getProfile();
+    // [ISSUE-21-REFINE] Sync prefs to DB. DB is source of truth when fetch succeeds.
+    if (profile != null) {
+      final dbTs = profile['name_last_updated'] as String?;
+      if (dbTs == null) {
+        await _prefs?.remove('name_last_updated');
+      } else {
+        await _prefs?.setString('name_last_updated', dbTs);
+      }
+    }
+    return profile;
   }
 
   String _getDisplayName(String? name) {
@@ -52,29 +62,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _handleEditName(String? currentName, String? lastUpdatedStr) async {
     DateTime? lastUpdated;
+    // [ISSUE-21-REFINE] Removed _prefs fallback here. DB (via FutureBuilder) is the single source of truth.
     if (lastUpdatedStr != null) {
       lastUpdated = DateTime.tryParse(lastUpdatedStr)?.toLocal();
-    } else if (_prefs != null) {
-      final cachedStr = _prefs!.getString('name_last_updated');
-      if (cachedStr != null) {
-        lastUpdated = DateTime.tryParse(cachedStr)?.toLocal();
-      }
     }
 
     if (lastUpdated != null) {
       final remaining = const Duration(hours: 24) - DateTime.now().difference(lastUpdated);
       if (remaining > Duration.zero) {
-        // [ISSUE-21-REFINE] Static cooldown message. No time digits to avoid <1h edge cases and local/UTC drift.
         if (!mounted) return;
         showComebakSnackBar(context, 'Name can be changed once every 24 hours.', isError: true);
         return;
       }
     }
 
-    final newName = await showDialog<String>(
+    final newName = await showModalBottomSheet<String>(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => _EditNameDialog(initialName: currentName),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _EditNameBottomSheet(initialName: currentName),
     );
 
     if (!mounted) return;
@@ -98,52 +104,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showLogoutDialog(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
+  void _showLogoutBottomSheet(BuildContext context) async {
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: AppColors.surfaceElevated,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.radiusLarge),
-          side: const BorderSide(color: AppColors.borderSubtle),
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 340),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.space24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Log out?', style: AppTextStyles.titleMedium),
-                const SizedBox(height: AppSpacing.space8),
-                Text('Are you sure you want to log out?', style: AppTextStyles.bodyMedium),
-                const SizedBox(height: AppSpacing.space24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ComebakButton(
-                        text: 'Cancel',
-                        variant: ComebakButtonVariant.ghost,
-                        onPressed: () => Navigator.pop(context, false),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.space16),
-                    Expanded(
-                      child: ComebakButton(
-                        text: 'Logout',
-                        variant: ComebakButtonVariant.danger,
-                        onPressed: () => Navigator.pop(context, true),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _LogoutBottomSheet(),
     );
 
     if (confirmed == true) {
@@ -263,7 +229,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ComebakButton(
                     text: 'Logout',
                     variant: ComebakButtonVariant.danger,
-                    onPressed: () => _showLogoutDialog(context),
+                    onPressed: () => _showLogoutBottomSheet(context),
                   ),
                   const SizedBox(height: AppSpacing.space32),
                 ],
@@ -276,27 +242,114 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// [FIX] Extracted Edit Name Dialog to manage its own TextEditingController lifecycle.
-class _EditNameDialog extends StatefulWidget {
-  final String? initialName;
-
-  const _EditNameDialog({this.initialName});
+// [DRY] Shared base bottom sheet component for consistent styling and keyboard avoidance.
+class _ComebakBaseBottomSheet extends StatelessWidget {
+  final Widget child;
+  const _ComebakBaseBottomSheet({required this.child});
 
   @override
-  State<_EditNameDialog> createState() => _EditNameDialogState();
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.radiusLarge)),
+        border: Border(top: BorderSide(color: AppColors.borderSubtle)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom, // Pushes sheet up when keyboard opens
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // [UI] Standard Drag Handle
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.textMuted.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.space24, 
+                AppSpacing.space8, 
+                AppSpacing.space24, 
+                AppSpacing.space24
+              ),
+              child: child,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _EditNameDialogState extends State<_EditNameDialog> {
+// [UI] Logout Confirmation Bottom Sheet
+class _LogoutBottomSheet extends StatelessWidget {
+  const _LogoutBottomSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return _ComebakBaseBottomSheet(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Log out?', style: AppTextStyles.titleMedium),
+          const SizedBox(height: AppSpacing.space8),
+          Text('Are you sure you want to log out?', style: AppTextStyles.bodyMedium),
+          const SizedBox(height: AppSpacing.space24),
+          Row(
+            children: [
+              Expanded(
+                child: ComebakButton(
+                  text: 'Cancel',
+                  variant: ComebakButtonVariant.ghost,
+                  onPressed: () => Navigator.pop(context, false),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.space16),
+              Expanded(
+                child: ComebakButton(
+                  text: 'Logout',
+                  variant: ComebakButtonVariant.danger,
+                  onPressed: () => Navigator.pop(context, true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// [UI] Edit Name Bottom Sheet with inline validation
+class _EditNameBottomSheet extends StatefulWidget {
+  final String? initialName;
+
+  const _EditNameBottomSheet({this.initialName});
+
+  @override
+  State<_EditNameBottomSheet> createState() => _EditNameBottomSheetState();
+}
+
+class _EditNameBottomSheetState extends State<_EditNameBottomSheet> {
   late TextEditingController _controller;
   late bool _isValid;
+  String? _errorText;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialName);
-    // [ISSUE-21] Save disabled unless input is non-empty AND differs from initial name.
-    _isValid = _controller.text.trim().isNotEmpty &&
-        _controller.text.trim() != (widget.initialName ?? '').trim();
+    _validate(_controller.text);
   }
 
   @override
@@ -305,74 +358,76 @@ class _EditNameDialogState extends State<_EditNameDialog> {
     super.dispose();
   }
 
+  void _validate(String val) {
+    final trimmed = val.trim();
+    String? err;
+    if (trimmed.isNotEmpty && !RegExp(r'^[A-Za-z0-9_]+$').hasMatch(trimmed)) {
+      // [UI] User-friendly error text
+      err = 'Use only letters, numbers, and underscores.';
+    }
+    _errorText = err;
+    _isValid = trimmed.isNotEmpty &&
+        trimmed != (widget.initialName ?? '').trim() &&
+        err == null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: AppColors.surfaceElevated,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.radiusLarge),
-        side: const BorderSide(color: AppColors.borderSubtle),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 340),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.space24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    return _ComebakBaseBottomSheet(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Edit Name', style: AppTextStyles.titleMedium),
+          const SizedBox(height: AppSpacing.space16),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            style: AppTextStyles.body,
+            inputFormatters: [LengthLimitingTextInputFormatter(20)],
+            onChanged: (val) {
+              setState(() {
+                _validate(val);
+              });
+            },
+            decoration: InputDecoration(
+              hintText: 'Your name',
+              hintStyle: AppTextStyles.body.copyWith(color: AppColors.textMuted),
+              filled: true,
+              fillColor: AppColors.surfaceOverlay,
+              errorText: _errorText,
+              errorMaxLines: 2,
+              errorStyle: AppTextStyles.body.copyWith(color: AppColors.danger),
+              contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.space16, vertical: AppSpacing.space12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.radiusSmall),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.space24),
+          Row(
             children: [
-              Text('Edit Name', style: AppTextStyles.titleMedium),
-              const SizedBox(height: AppSpacing.space16),
-              TextField(
-                controller: _controller,
-                style: AppTextStyles.body,
-                // [ISSUE-21-REFINE] 20 char cap, matching DB constraint profiles_name_length_check.
-                inputFormatters: [LengthLimitingTextInputFormatter(20)],
-                onChanged: (val) {
-                  setState(() {
-                    // [ISSUE-21] Mirror initState gate on every keystroke.
-                    _isValid = val.trim().isNotEmpty &&
-                        val.trim() != (widget.initialName ?? '').trim();
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Your name',
-                  hintStyle: AppTextStyles.body.copyWith(color: AppColors.textMuted),
-                  filled: true,
-                  fillColor: AppColors.surfaceOverlay,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.space16, vertical: AppSpacing.space12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.radiusSmall),
-                    borderSide: BorderSide.none,
-                  ),
+              Expanded(
+                child: ComebakButton(
+                  text: 'Cancel',
+                  variant: ComebakButtonVariant.ghost,
+                  onPressed: () => Navigator.pop(context),
                 ),
               ),
-              const SizedBox(height: AppSpacing.space24),
-              Row(
-                children: [
-                  Expanded(
-                    child: ComebakButton(
-                      text: 'Cancel',
-                      variant: ComebakButtonVariant.ghost,
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.space16),
-                  Expanded(
-                    child: ComebakButton(
-                      text: 'Save',
-                      variant: ComebakButtonVariant.primary,
-                      // [FIX] Button is disabled if input is empty or unchanged. [ISSUE-21]
-                      onPressed: _isValid
-                          ? () => Navigator.pop(context, _controller.text.trim())
-                          : null,
-                    ),
-                  ),
-                ],
+              const SizedBox(width: AppSpacing.space16),
+              Expanded(
+                child: ComebakButton(
+                  text: 'Save',
+                  variant: ComebakButtonVariant.primary,
+                  onPressed: _isValid
+                      ? () => Navigator.pop(context, _controller.text.trim())
+                      : null,
+                ),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
