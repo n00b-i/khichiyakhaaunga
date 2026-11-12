@@ -23,6 +23,23 @@ import 'auth_variants/login_v1_rules.dart';
 class ComebakCatalogHome extends StatelessWidget {
   const ComebakCatalogHome({super.key});
 
+  // ============================================================================
+  // [HELPER] Fade Route — Creates a smooth dissolve transition
+  // ============================================================================
+  Route<T> _fadeRoute<T>(
+    Widget page, {
+    Duration duration = const Duration(milliseconds: 400),
+  }) {
+    return PageRouteBuilder<T>(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+      transitionDuration: duration,
+      reverseTransitionDuration: duration,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,9 +64,7 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: LucideIcons.flame,
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const ComebakStreakCardPage(),
-                  ),
+                  _fadeRoute(const ComebakStreakCardPage()),
                 ),
               ),
               const SizedBox(height: ComebakLayout.spaceXl),
@@ -64,9 +79,7 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: LucideIcons.palette,
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const ComebakFoundationsPage(),
-                  ),
+                  _fadeRoute(const ComebakFoundationsPage()),
                 ),
               ),
               _CatalogTile(
@@ -74,9 +87,7 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: LucideIcons.gamepad_2,
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const ComebakGameCardPage(),
-                  ),
+                  _fadeRoute(const ComebakGameCardPage()),
                 ),
               ),
               _CatalogTile(
@@ -84,9 +95,7 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: Icons.dashboard,
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const ComebakButtonTestPage(),
-                  ),
+                  _fadeRoute(const ComebakButtonTestPage()),
                 ),
               ),
               _CatalogTile(
@@ -128,30 +137,31 @@ class ComebakCatalogHome extends StatelessWidget {
                 onTap: () async {
                   final engine = ComebakRuleEngine();
                   final rule = await engine.pickRule();
-                  if (context.mounted) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (splashContext) => SplashV1RulesV2(
-                          rule: rule,
-                          onComplete: () {
-                            // Splash finished -> push Login screen
-                            Navigator.pushReplacement(
-                              splashContext,
-                              MaterialPageRoute(
-                                builder: (_) => LoginV1Rules(
-                                  onGoogleSignIn: () {
-                                    // In UI Lab, tapping Google just pops back to catalog
-                                    Navigator.pop(splashContext);
-                                  },
-                                ),
+                  if (!context.mounted) return;
+
+                  // 1. Fade into Splash
+                  Navigator.push(
+                    context,
+                    _fadeRoute(
+                      SplashV1RulesV2(
+                        rule: rule,
+                        onComplete: () {
+                          // 2. Fade from Splash into Login
+                          Navigator.pushReplacement(
+                            context,
+                            _fadeRoute(
+                              LoginV1Rules(
+                                onGoogleSignIn: () {
+                                  // In UI Lab, tapping Google just pops back to catalog
+                                  Navigator.pop(context);
+                                },
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  }
+                    ),
+                  );
                 },
               ),
 
@@ -160,9 +170,7 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: LucideIcons.layers,
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const ComebakAuthVariantsPage(),
-                  ),
+                  _fadeRoute(const ComebakAuthVariantsPage()),
                 ),
               ),
 
@@ -171,7 +179,7 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: LucideIcons.house,
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ComebakHomeFlow()),
+                  _fadeRoute(const ComebakHomeFlow()),
                 ),
               ),
               const SizedBox(height: ComebakLayout.spaceXl),
