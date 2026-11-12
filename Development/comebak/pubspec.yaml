@@ -51,6 +51,7 @@ dependencies:
   firebase_crashlytics: ^6.0.1
   firebase_analytics: ^13.0.1
   firebase_core: ^5.1.0
+  google_fonts: ^9.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -72,6 +73,11 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  shaders:
+    - shaders/fog.frag
+    - shaders/lava.frag
+    - shaders/grain.frag
 
   # To add assets to your application, add an assets section, like this:
   # assets:
