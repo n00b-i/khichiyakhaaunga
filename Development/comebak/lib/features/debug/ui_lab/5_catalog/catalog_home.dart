@@ -11,6 +11,7 @@ import 'comebak_game_card_page.dart';
 import 'game_flow/comebak_game_hud_page.dart';
 import 'game_flow/comebak_game_over_page.dart';
 import 'stats_flow/comebak_stats_page.dart';
+import 'profile_flow/comebak_profile_page.dart';
 
 // Auth Variants Imports
 import 'auth_variants/comebak_auth_variants_page.dart';
@@ -110,6 +111,14 @@ class ComebakCatalogHome extends StatelessWidget {
               // [FLOWS]
               // ==================================================================
               Text('FULL SCREENS', style: ComebakTypography.sectionSubtitle),
+              _CatalogTile(
+                title: 'PROFILE SCREEN',
+                icon: LucideIcons.user,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ComebakProfilePage()),
+                ),
+              ),
               const SizedBox(height: ComebakLayout.spaceSm),
 
               _CatalogTile(
