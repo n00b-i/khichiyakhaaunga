@@ -20,12 +20,16 @@ class ComebakCopy {
   static const String gameSmallDesc = 'Find the smallest number.';
   static const String gameSaitanTitle = 'Memory of Saitan';
   static const String gameSaitanDesc = 'Remember the sequence. Don\'t blink.';
+  static const String gameSpeedTitle = 'Speed Match';
+  static const String gameSpeedDesc = 'Match the elements before time runs out.';
   static const String navProfile = 'Navigate to Profile';
   static const String sectionMathBurst = 'Math Burst';
 
   // Catalog Index
   static const String catalogTitle = 'UI Lab Catalog';
   static const String catalogStreak = 'Streak Card';
+  static const String catalogFoundationsPage = 'Foundations';
+  static const String catalogGameCardPage = 'Game Card States';
   static const String catalogGame = 'Game Cards';
   static const String catalogHome = 'Home Screen Flow';
   static const String catalogFoundations = 'Foundations (Colors, Type, Layout)';

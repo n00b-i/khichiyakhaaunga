@@ -6,6 +6,8 @@ import '../3_molecules/comebak_sheets.dart'; // [NEW IMPORT]
 import 'comebak_home_flow.dart';
 import 'comebak_streak_card_page.dart';
 import 'comebak_button_test_page.dart';
+import 'comebak_foundations_page.dart';
+import 'comebak_game_card_page.dart';
 
 // ==============================================================================
 // [FLOW] ComebakCatalogHome
@@ -49,6 +51,22 @@ class ComebakCatalogHome extends StatelessWidget {
               // ==================================================================
               Text('OVERLAYS', style: ComebakTypography.sectionSubtitle),
               const SizedBox(height: ComebakLayout.spaceSm),
+              _CatalogTile(
+                title: ComebakCopy.catalogFoundationsPage,
+                icon: LucideIcons.palette,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ComebakFoundationsPage()),
+                ),
+              ),
+              _CatalogTile(
+                title: ComebakCopy.catalogGameCardPage,
+                icon: LucideIcons.gamepad_2,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ComebakGameCardPage()),
+                ),
+              ),
               _CatalogTile(
                 title: 'Button Layout Tests',
                 icon: Icons.dashboard,
