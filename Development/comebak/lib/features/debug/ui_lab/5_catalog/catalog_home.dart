@@ -11,7 +11,6 @@ import 'comebak_game_card_page.dart';
 import 'game_flow/comebak_game_hud_page.dart';
 import 'game_flow/comebak_game_over_page.dart';
 import 'stats_flow/comebak_stats_page.dart';
-import 'profile_flow/comebak_profile_page.dart';
 
 // Auth Variants Imports
 import 'auth_variants/comebak_auth_variants_page.dart';
@@ -111,14 +110,6 @@ class ComebakCatalogHome extends StatelessWidget {
               // [FLOWS]
               // ==================================================================
               Text('FULL SCREENS', style: ComebakTypography.sectionSubtitle),
-              _CatalogTile(
-                title: 'PROFILE SCREEN',
-                icon: LucideIcons.user,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ComebakProfilePage()),
-                ),
-              ),
               const SizedBox(height: ComebakLayout.spaceSm),
 
               _CatalogTile(
@@ -171,7 +162,16 @@ class ComebakCatalogHome extends StatelessWidget {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ComebakGameOverPage(),
+                    builder: (context) => const ComebakGameOverPage(
+                      score: 340,
+                      accuracy: 92,
+                      bestCombo: 8,
+                      xpChange: 45,
+                      isNewPb: true,
+                      gameName: 'MAD BURST',
+                      previousPBBrokenAfter: '45 minutes',
+                      gameBuilder: _dummyGameBuilder,
+                    ),
                   ),
                 ),
               ),
@@ -181,7 +181,9 @@ class ComebakCatalogHome extends StatelessWidget {
                 icon: LucideIcons.chart_bar,
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ComebakStatsPage()),
+                  MaterialPageRoute(
+                    builder: (context) => const ComebakStatsPage(),
+                  ),
                 ),
               ),
 
@@ -209,6 +211,19 @@ class ComebakCatalogHome extends StatelessWidget {
       ),
     );
   }
+}
+
+// Dummy builder for the UI Lab preview
+Widget _dummyGameBuilder() {
+  return const Scaffold(
+    backgroundColor: ComebakColors.canvas,
+    body: Center(
+      child: Text(
+        'Game Builder Placeholder',
+        style: TextStyle(color: ComebakColors.textPrimary),
+      ),
+    ),
+  );
 }
 
 class _CatalogTile extends StatelessWidget {

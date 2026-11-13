@@ -156,7 +156,7 @@ class UiLabScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: UiLabSpacing.lg),
                     _buildGameCard(
-                      title: 'Memory of Saitan',
+                      title: 'Devils Memory',
                       subtitle: 'Remember the sequence. Don\'t blink.',
                       color: UiLabColors.vibrantPink,
                       primaryIcon: LucideIcons.brain,

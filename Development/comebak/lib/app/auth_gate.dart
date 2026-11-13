@@ -1,10 +1,28 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../core/theme/app_theme.dart';
+
+// Core & Session
 import '../core/session/session_manager.dart';
-import '../features/auth/sign_in_screen.dart';
+import '../core/network/connectivity_service.dart';
+
+// UI Lab Components (Source of Truth)
+import '../features/debug/ui_lab/1_foundations/tokens/ui_lab_tokens.dart';
+import '../features/debug/ui_lab/5_catalog/auth_variants/splash_v1_rules_v2.dart';
+import '../features/debug/ui_lab/5_catalog/auth_variants/login_v1_rules.dart';
+import '../features/debug/ui_lab/5_catalog/auth_variants/comebak_rule_engine.dart';
+
+// Production Shell
 import '../features/shell/main_shell.dart';
 
+// ==============================================================================
+// [APP] AuthGate
+// ------------------------------------------------------------------------------
+// This is the root gatekeeper. It manages the entire authentication flow.
+// ==============================================================================
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
@@ -13,98 +31,209 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  bool _isSessionInitialized = false;
+  bool _isSplashComplete = false;
+  ComebakRule? _splashRule;
+
+  Session? _currentSession;
+  bool _isBlocked = false;
+  bool _isLoadingProfile = false;
+  bool _isSigningIn = false;
+
+  static const String _msgOffline =
+      'No internet connection. Please connect and try again.';
+  static const String _msgTimeout =
+      'Connection timed out. Check your internet and try again.';
+  static const String _msgConfigError = 'Unable to sign in. Please try again.';
+  static const String _msgGenericError =
+      'Something went wrong. Please check your internet.';
+  static const Duration _signInTimeout = Duration(seconds: 8);
 
   @override
   void initState() {
     super.initState();
-    
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _loadSplashRule();
+    _listenToAuthChanges();
+  }
+
+  Future<void> _loadSplashRule() async {
+    final engine = ComebakRuleEngine();
+    final rule = await engine.pickRule();
+    if (mounted) setState(() => _splashRule = rule);
+  }
+
+  void _listenToAuthChanges() {
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
       final session = data.session;
-      
       if (session != null) {
-        _initializeSession(session.user.id);
+        await _initializeSession(session.user.id);
       } else {
-        debugPrint('[AuthGate] Session became null. User logged out.');
-        _isSessionInitialized = false;
+        if (mounted) {
+          setState(() {
+            _currentSession = null;
+            _isBlocked = false;
+            _isSigningIn = false;
+          });
+        }
       }
     });
   }
 
   Future<void> _initializeSession(String userId) async {
-    debugPrint('[AuthGate] _initializeSession called for user: $userId');
-    
-    if (_isSessionInitialized) return;
-    _isSessionInitialized = true;
-
     await SessionManager().init(userId);
-    debugPrint('[AuthGate] SessionManager init complete');
-    
+
     try {
       await Supabase.instance.client
           .from('matches')
           .update({
-            'status': 'abandoned', 
-            'ended_at': DateTime.now().toIso8601String()
+            'status': 'abandoned',
+            'ended_at': DateTime.now().toIso8601String(),
           })
           .eq('user_id', userId)
           .eq('status', 'in_progress');
-      debugPrint('[AuthGate] Abandoned matches cleanup complete.');
     } catch (e) {
       debugPrint('[AuthGate] Failed to clean up abandoned matches: $e');
     }
+
+    await _checkProfileStatus(userId);
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_isSigningIn) return;
+
+    if (await ConnectivityService.instance.isOffline()) {
+      _showError(_msgOffline);
+      return;
+    }
+
+    setState(() {
+      _isSigningIn = true;
+    });
+
+    try {
+      const webClientId =
+          '836171717498-un6j40aatbi1622u1h686ijejrhc5dvt.apps.googleusercontent.com';
+      const iosClientId =
+          '836171717498-e2gq4g3219o0en1un4slfmpt2kc786f4.apps.googleusercontent.com';
+      const androidClientId =
+          '836171717498-2939anjueefjtd7ohc5jjs28gbr4e2ib.apps.googleusercontent.com';
+
+      await GoogleSignIn.instance.initialize(
+        clientId: Platform.isIOS ? iosClientId : androidClientId,
+        serverClientId: webClientId,
+      );
+
+      final GoogleSignInAccount googleUser = await GoogleSignIn.instance
+          .authenticate();
+      final String? idToken = googleUser.authentication.idToken;
+      if (idToken == null) throw 'No ID Token found.';
+
+      await Supabase.instance.client.auth
+          .signInWithIdToken(provider: OAuthProvider.google, idToken: idToken)
+          .timeout(_signInTimeout);
+    } on TimeoutException {
+      _showError(_msgTimeout);
+    } on AuthException {
+      _showError(_msgOffline);
+    } on GoogleSignInException catch (e) {
+      switch (e.code.name) {
+        case 'canceled':
+        case 'interrupted':
+          break;
+        case 'clientConfigurationError':
+        case 'providerConfigurationError':
+          _showError(_msgConfigError);
+          break;
+        default:
+          _showError(_msgOffline);
+          break;
+      }
+    } catch (e) {
+      _showError(_msgGenericError);
+    } finally {
+      if (mounted) setState(() => _isSigningIn = false);
+    }
+  }
+
+  Future<void> _checkProfileStatus(String userId) async {
+    setState(() => _isLoadingProfile = true);
+    try {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('status')
+          .eq('id', userId)
+          .single();
+
+      final isBlocked = profile['status'] != 'active';
+
+      if (mounted) {
+        setState(() {
+          _currentSession = Supabase.instance.client.auth.currentSession;
+          _isBlocked = isBlocked;
+          _isLoadingProfile = false;
+          _isSigningIn = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[AuthGate] Profile fetch failed: $e');
+      if (mounted) {
+        setState(() {
+          _currentSession = Supabase.instance.client.auth.currentSession;
+          _isBlocked = false;
+          _isLoadingProfile = false;
+          _isSigningIn = false;
+        });
+      }
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: ComebakColors.surface,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _onSplashComplete() {
+    setState(() => _isSplashComplete = true);
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: AppColors.background,
-            body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-          );
-        }
-
-        // [ISSUE-11] Handle auth stream errors (e.g., offline token refresh failure).
-        if (snapshot.hasError) {
-          return Scaffold(
-            backgroundColor: AppColors.background,
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Connection Error. Please check your internet.',
-                      style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    ElevatedButton(
-                      onPressed: () async {
-                        await Supabase.instance.client.auth.refreshSession();
-                        setState(() {});
-                      },
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
+    if (!_isSplashComplete || _splashRule == null) {
+      return SplashV1RulesV2(
+        rule:
+            _splashRule ??
+            const ComebakRule(
+              id: 'fallback',
+              hook: 'ALWAYS REMEMBER',
+              line: 'Giving up is not in the blood, sir!',
+              category: 'resilience',
             ),
-          );
-        }
+        onComplete: _onSplashComplete,
+      );
+    }
 
-        final session = snapshot.hasData ? snapshot.data!.session : null;
-        
-        if (session != null) {
-          return const MainShell();
-        }
+    if (_isLoadingProfile) {
+      return Scaffold(
+        backgroundColor: ComebakColors.canvas,
+        body: Center(
+          child: CircularProgressIndicator(color: ComebakColors.neonGreen),
+        ),
+      );
+    }
 
-        return const SignInScreen();
-      },
+    if (_currentSession != null && !_isBlocked) {
+      return const MainShell();
+    }
+
+    return LoginV1Rules(
+      onGoogleSignIn: _signInWithGoogle,
+      isBlocked: _isBlocked,
+      isLoading: _isSigningIn,
     );
   }
 }

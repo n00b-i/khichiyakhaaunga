@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import '../1_foundations/tokens/ui_lab_tokens.dart';
 import '../1_foundations/ui_lab_copy.dart';
-import '../2_atoms/comebak_logo.dart';
+// [IMPORT FIX] Pulling from the layers directory where the 3D logo lives
+import '../5_catalog/auth_variants/layers/comebak_clay_logo.dart';
 
-// [ORGANISM] The Top Header section.
-// Combines the Logo Atom and Typography. Includes the Profile Icon.
+// ==============================================================================
+// [ORGANISM] ComebakHeader
+// ------------------------------------------------------------------------------
+// PURPOSE: The top header section combining the 3D Logo and Typography.
+// ==============================================================================
 class ComebakHeader extends StatelessWidget {
   final VoidCallback onProfileTap;
 
@@ -18,7 +22,15 @@ class ComebakHeader extends StatelessWidget {
       children: [
         Row(
           children: [
-            const ComebakLogo(),
+            // [LOGO SWAP] Replaced the old flat logo with the 3D Clay Logo
+            const SizedBox(
+              width: ComebakLayout.spaceXxl,
+              height: ComebakLayout.spaceXxl,
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: ComebakClayLogo(pose: 4, time: 0, enableSparks: false),
+              ),
+            ),
             const SizedBox(width: ComebakLayout.spaceSm),
             Text(ComebakCopy.brand, style: ComebakTypography.brand),
           ],
@@ -26,8 +38,8 @@ class ComebakHeader extends StatelessWidget {
         GestureDetector(
           onTap: onProfileTap,
           child: const Icon(
-            LucideIcons.user, 
-            color: ComebakColors.textPrimary, 
+            LucideIcons.user,
+            color: ComebakColors.textPrimary,
             size: ComebakLayout.spaceXl,
           ),
         ),

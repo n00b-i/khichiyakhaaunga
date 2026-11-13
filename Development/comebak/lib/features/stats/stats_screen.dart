@@ -84,8 +84,8 @@ class _StatsScreenState extends State<StatsScreen> {
               'Mad Burst': data['mad_burst_pb'],
               'BODMAS Burst': data['bodmas_burst_pb'],
               'Small Burst': data['small_burst_pb'],
-              'Saitan +': data['saitan_add_pb'],
-              'Saitan X': data['saitan_mul_pb'],
+              'DevilsMemory +': data['devils_memory_add_pb'],
+              'DevilsMemory X': data['devils_memory_mul_pb'],
             };
 
             return RefreshIndicator(

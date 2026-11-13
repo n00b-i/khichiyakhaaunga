@@ -18,5 +18,5 @@ class AppColors {
   static const Color vibrantPurple = Color(0xFFB388FF);
   static const Color vibrantPink = Color(0xFFFF4081);
 
-  static const Color saitanGrid = Color(0xFF0A0A0A);
+  static const Color devilsMemoryGrid = Color(0xFF0A0A0A);
 }

@@ -54,8 +54,8 @@ class AppColors {
   static const Color vibrantYellow = Color(0xFFFFD600);
   static const Color vibrantPink = Color(0xFFFF4081);
   static const Color gameMath = Color(0xFFF97316);
-  static const Color gameSaitan = Color(0xFFA78BFA);
-  static const Color saitanGrid = Color(0xFF0A0A0A);
+  static const Color gameDevilsMemory = Color(0xFFA78BFA);
+  static const Color devilsMemoryGrid = Color(0xFF0A0A0A);
   static const Color gameMemory = Color(0xFF38BDF8);
   static const Color gameFocus = Color(0xFFF472B6);
   static const Color gameLogic = Color(0xFF4ADE80);

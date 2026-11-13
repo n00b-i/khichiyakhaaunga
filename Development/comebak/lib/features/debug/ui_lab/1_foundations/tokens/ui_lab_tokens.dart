@@ -75,17 +75,17 @@ class ComebakColors {
   static const Color smallTextDeep = Color(0xFF00284F);
   static const Color smallTextMid = Color(0xFF0066CC);
 
-  // Saitan
-  static const Color saitanTopStart = Color(0xFFFF80AB);
-  static const Color saitanTopEnd = Color(0xFFF50057);
-  static const Color saitanLeftStart = Color(0xFFC51162);
-  static const Color saitanLeftEnd = Color(0xFF880E4F);
-  static const Color saitanRightStart = Color(0xFF4A148C);
-  static const Color saitanRightEnd = Color(0xFF311B92);
-  static const Color saitanBaseLeft = Color(0xFF311B92);
-  static const Color saitanBaseRight = Color(0xFF1A0033);
-  static const Color saitanTextDeep = Color(0xFF1A0033);
-  static const Color saitanTextMid = Color(0xFF880E4F);
+  // DevilsMemory
+  static const Color devilsMemoryTopStart = Color(0xFFFF80AB);
+  static const Color devilsMemoryTopEnd = Color(0xFFF50057);
+  static const Color devilsMemoryLeftStart = Color(0xFFC51162);
+  static const Color devilsMemoryLeftEnd = Color(0xFF880E4F);
+  static const Color devilsMemoryRightStart = Color(0xFF4A148C);
+  static const Color devilsMemoryRightEnd = Color(0xFF311B92);
+  static const Color devilsMemoryBaseLeft = Color(0xFF311B92);
+  static const Color devilsMemoryBaseRight = Color(0xFF1A0033);
+  static const Color devilsMemoryTextDeep = Color(0xFF1A0033);
+  static const Color devilsMemoryTextMid = Color(0xFF880E4F);
 }
 
 class ComebakLayout {

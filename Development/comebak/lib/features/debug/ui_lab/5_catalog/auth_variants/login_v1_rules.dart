@@ -6,7 +6,15 @@ import '_google_cta.dart';
 
 class LoginV1Rules extends StatefulWidget {
   final VoidCallback onGoogleSignIn;
-  const LoginV1Rules({super.key, required this.onGoogleSignIn});
+  final bool isBlocked;
+  final bool isLoading;
+
+  const LoginV1Rules({
+    super.key,
+    required this.onGoogleSignIn,
+    this.isBlocked = false,
+    this.isLoading = false,
+  });
 
   @override
   State<LoginV1Rules> createState() => _LoginV1RulesState();
@@ -51,7 +59,6 @@ class _LoginV1RulesState extends State<LoginV1Rules>
               ),
             ),
           ),
-
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(
@@ -61,7 +68,6 @@ class _LoginV1RulesState extends State<LoginV1Rules>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Spacer(flex: 2),
-
                   Center(
                     child: AnimatedBuilder(
                       animation: _ctrl,
@@ -90,10 +96,44 @@ class _LoginV1RulesState extends State<LoginV1Rules>
                       },
                     ),
                   ),
-
                   const Spacer(flex: 1),
-
-                  // UPDATED COPY
+                  // Blocked banner
+                  if (widget.isBlocked) ...[
+                    Container(
+                      padding: const EdgeInsets.all(ComebakLayout.spaceMd),
+                      decoration: BoxDecoration(
+                        color: ComebakColors.vibrantRed.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(
+                          ComebakLayout.radiusMd,
+                        ),
+                        border: Border.all(
+                          color: ComebakColors.vibrantRed.withValues(
+                            alpha: 0.3,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.block,
+                            color: ComebakColors.vibrantRed,
+                            size: ComebakLayout.spaceXl,
+                          ),
+                          const SizedBox(width: ComebakLayout.spaceSm),
+                          Expanded(
+                            child: Text(
+                              'This account is not available. Please contact support.',
+                              style: ComebakTypography.labelSmall.copyWith(
+                                color: ComebakColors.vibrantRed,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: ComebakLayout.spaceLg),
+                  ],
+                  // Copy
                   Text(
                     'TIME TO COMEBAK!',
                     style: ComebakTypography.labelSmall.copyWith(
@@ -118,16 +158,13 @@ class _LoginV1RulesState extends State<LoginV1Rules>
                       height: 1.5,
                     ),
                   ),
-
                   const Spacer(flex: 2),
-
                   GoogleCta(
                     onPressed: widget.onGoogleSignIn,
                     label: 'Login with Google',
+                    isLoading: widget.isLoading,
                   ),
-
                   const SizedBox(height: ComebakLayout.spaceMd),
-
                   Center(
                     child: Text(
                       'By continuing you agree to our Terms & Privacy Policy.',
@@ -137,7 +174,6 @@ class _LoginV1RulesState extends State<LoginV1Rules>
                       ),
                     ),
                   ),
-                  // const SizedBox(height: ComebakLayout.spaceXl),
                   const Spacer(flex: 3),
                 ],
               ),
