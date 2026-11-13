@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_lucide/flutter_lucide.dart'; // [ADDED] For chevron_left
 import '../../1_foundations/tokens/ui_lab_tokens.dart';
+import '../../2_atoms/comebak_xp_icon.dart'; // [ADDED] For the XP icon
 import 'widgets/comebak_confetti.dart';
 
+// ==============================================================================
+// [SCREEN] ComebakGameOverPage
+// ------------------------------------------------------------------------------
+// PURPOSE: Production results dashboard.
+// FIXES APPLIED:
+// - Replaced "GO HOME" with a top-left back button.
+// - Added a top-right help icon that opens the XP rules bottom sheet.
+// - Added the 3D XP Icon to the "XP GAINED" stat.
+// ==============================================================================
 class ComebakGameOverPage extends StatefulWidget {
   final int score;
   final int accuracy;
@@ -40,10 +51,6 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
           if (widget.isNewPb) const Positioned.fill(child: ComebakConfetti()),
 
           SafeArea(
-            // [ARCHITECTURE: LAYOUT SAFETY]
-            // LayoutBuilder + SingleChildScrollView + IntrinsicHeight allows
-            // the screen to scroll if it runs out of space (e.g., on iPhone SE
-            // or with massive accessibility fonts), preventing RenderFlex overflow.
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return SingleChildScrollView(
@@ -62,7 +69,6 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
                             const Spacer(flex: 2),
 
                             // GAME NAME
-                            // [TOKEN] letterSpacing derived from spaceXs (4) * 0.75 = 3.0
                             Text(
                               widget.gameName.toUpperCase(),
                               style: ComebakTypography.greeting.copyWith(
@@ -74,7 +80,6 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
                             const SizedBox(height: ComebakLayout.spaceSm),
 
                             // SUBTITLE
-                            // [TOKEN] letterSpacing derived from spaceSm (8) * 0.75 = 6.0
                             Text(
                               'TIME\'S UP',
                               style: ComebakTypography.labelSmall.copyWith(
@@ -147,6 +152,14 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
                                           widget.xpChange > 0
                                               ? ComebakColors.neonGreen
                                               : ComebakColors.vibrantRed,
+                                          // [FIX] XP Icon added
+                                          iconWidget: ComebakXpIcon(
+                                            icon: Icons.bolt,
+                                            color: widget.xpChange > 0
+                                                ? ComebakColors.neonGreen
+                                                : ComebakColors.vibrantRed,
+                                            size: ComebakLayout.spaceLg,
+                                          ),
                                         ),
                                       ),
                                       Expanded(
@@ -164,7 +177,8 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
 
                             const Spacer(flex: 3),
 
-                            // PRIMARY ACTION
+                            // PRIMARY ACTION (PLAY AGAIN)
+                            // [FIX] Removed "GO HOME" button
                             SizedBox(
                               height: ComebakLayout.buttonHeight,
                               width: double.infinity,
@@ -195,40 +209,8 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: ComebakLayout.spaceMd),
-
-                            // SECONDARY ACTION
-                            SizedBox(
-                              height: ComebakLayout.buttonHeight,
-                              width: double.infinity,
-                              child: TextButton(
-                                onPressed: () => Navigator.popUntil(
-                                  context,
-                                  (route) => route.isFirst,
-                                ),
-                                style: TextButton.styleFrom(
-                                  backgroundColor:
-                                      ComebakColors.surfaceElevated,
-                                  foregroundColor: ComebakColors.textPrimary,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      ComebakLayout.radiusMd,
-                                    ),
-                                  ),
-                                ),
-                                child: Text(
-                                  'GO HOME',
-                                  style: ComebakTypography.titleMedium.copyWith(
-                                    color: ComebakColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                            ),
 
                             // [UX: THUMB ZONE LIFT]
-                            // Lifts the buttons up by exactly one button height.
-                            // IntrinsicHeight absorbs this safely without breaking
-                            // the layout or pushing content off-screen.
                             const Spacer(flex: 2),
                           ],
                         ),
@@ -237,6 +219,34 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
                   ),
                 );
               },
+            ),
+          ),
+
+          // [FIX] BACK BUTTON (Top Left)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + ComebakLayout.spaceMd,
+            left: ComebakLayout.spaceLg,
+            child: IconButton(
+              icon: const Icon(
+                LucideIcons.chevron_left,
+                color: ComebakColors.textPrimary,
+              ),
+              onPressed: () =>
+                  Navigator.of(context).popUntil((route) => route.isFirst),
+            ),
+          ),
+
+          // [FIX] HELP ICON (Top Right)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + ComebakLayout.spaceMd,
+            right: ComebakLayout.spaceLg,
+            child: GestureDetector(
+              onTap: () => _showRulesSheet(context),
+              child: const Icon(
+                Icons.help_outline,
+                color: ComebakColors.textSecondary,
+                size: ComebakLayout.spaceXl,
+              ),
             ),
           ),
         ],
@@ -260,9 +270,7 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
         boxShadow: [
           BoxShadow(
             color: ComebakColors.neonYellow.withValues(alpha: 0.2),
-            // [TOKEN] blurRadius = spaceMd (12)
             blurRadius: ComebakLayout.spaceMd,
-            // [TOKEN] spreadRadius = borderThin (1)
             spreadRadius: ComebakLayout.borderThin,
           ),
         ],
@@ -270,7 +278,6 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // [TOKEN] Icon size = spaceLg (16)
           const Icon(
             Icons.emoji_events_rounded,
             size: ComebakLayout.spaceLg,
@@ -282,7 +289,6 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
             style: ComebakTypography.labelSmall.copyWith(
               color: ComebakColors.neonYellow,
               fontWeight: FontWeight.w900,
-              // [TOKEN] letterSpacing = borderGradient (1.5)
               letterSpacing: ComebakLayout.borderGradient,
             ),
           ),
@@ -291,30 +297,148 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
     );
   }
 
-  Widget _buildCenteredStat(String label, String value, Color color) {
+  // [FIX] Added optional iconWidget parameter
+  Widget _buildCenteredStat(
+    String label,
+    String value,
+    Color color, {
+    Widget? iconWidget,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          value,
-          style: ComebakTypography.greeting.copyWith(
-            color: color,
-            fontWeight: FontWeight.w800,
-            // [TOKEN] fontSize = spaceXl (24)
-            fontSize: ComebakLayout.spaceXl,
-            height: 1.0,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              value,
+              style: ComebakTypography.greeting.copyWith(
+                color: color,
+                fontWeight: FontWeight.w800,
+                fontSize: ComebakLayout.spaceXl,
+                height: 1.0,
+              ),
+            ),
+            if (iconWidget != null) ...[
+              const SizedBox(width: ComebakLayout.spaceXs),
+              iconWidget,
+            ],
+          ],
         ),
-        // [TOKEN] Vertical gap = spaceSm (8)
         const SizedBox(height: ComebakLayout.spaceSm),
         Text(
           label,
           style: ComebakTypography.labelSmall.copyWith(
             color: ComebakColors.textSecondary,
-            // [TOKEN] letterSpacing = borderGradient (1.5)
             letterSpacing: ComebakLayout.borderGradient,
-            // [TOKEN] fontSize = spaceSm + spaceXs/2 (10)
             fontSize: ComebakLayout.spaceSm + ComebakLayout.spaceXs / 2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // [FIX] Added XP Rules Bottom Sheet
+  void _showRulesSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.8),
+      builder: (context) {
+        return GestureDetector(
+          onTap: () => Navigator.pop(context),
+          behavior: HitTestBehavior.opaque,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: GestureDetector(
+              onTap: () {},
+              child: Container(
+                padding: const EdgeInsets.all(ComebakLayout.spaceXl),
+                decoration: const BoxDecoration(
+                  color: ComebakColors.surface,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(ComebakLayout.radiusXl),
+                  ),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'SCORING RULES',
+                            style: ComebakTypography.titleLarge.copyWith(
+                              letterSpacing: 1.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: const Icon(
+                              Icons.close,
+                              color: ComebakColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: ComebakLayout.spaceXl),
+
+                      _buildRuleRow(
+                        'HOW TO EARN POSITIVE XP',
+                        'Maintain accuracy above 80%, build consecutive correct answers (combos), and finish the round before the timer ends.',
+                      ),
+                      const SizedBox(height: ComebakLayout.spaceLg),
+
+                      _buildRuleRow(
+                        'WHY IS MY XP NEGATIVE?',
+                        'Negative XP is a penalty for poor performance. It occurs when your accuracy falls below 50% or you fail to reach the minimum score threshold.',
+                      ),
+                      const SizedBox(height: ComebakLayout.spaceLg),
+
+                      _buildRuleRow(
+                        'ACCURACY',
+                        'Percentage of correct taps versus total taps. Spamming taps lowers this stat.',
+                      ),
+                      const SizedBox(height: ComebakLayout.spaceLg),
+
+                      _buildRuleRow(
+                        'BEST COMBO',
+                        'The longest uninterrupted streak of correct answers in a single session.',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRuleRow(String title, String desc) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: ComebakTypography.labelSmall.copyWith(
+            color: ComebakColors.neonGreen,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          desc,
+          style: ComebakTypography.bodyMedium.copyWith(
+            color: ComebakColors.textSecondary,
+            height: 1.5,
           ),
         ),
       ],
@@ -358,12 +482,10 @@ class _AnimatedScoreCounter extends StatelessWidget {
     return Text(
       value,
       style: ComebakTypography.greeting.copyWith(
-        // [TOKEN] fontSize = spaceXxl * 3.75 (120)
         fontSize: ComebakLayout.spaceXxl * 3.75,
         height: 0.9,
         color: color,
         fontWeight: FontWeight.w800,
-        // [TOKEN] letterSpacing = -(spaceXs / 2) (-2.0)
         letterSpacing: -ComebakLayout.spaceXs / 2,
       ),
     );
