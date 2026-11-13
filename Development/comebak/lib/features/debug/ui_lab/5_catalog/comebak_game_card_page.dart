@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/games/configs/game_configs.dart';
 import '../1_foundations/tokens/ui_lab_tokens.dart';
 import '../1_foundations/ui_lab_copy.dart';
 import '../2_atoms/comebak_add_burst_icon.dart';
@@ -34,8 +35,8 @@ class ComebakGameCardPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: ComebakGameCard(
-                    title: ComebakCopy.gameAddTitle,
-                    subtitle: ComebakCopy.gameAddDesc,
+                    title: AddBurstConfig.standard.title,
+                    subtitle: AddBurstConfig.standard.instructions,
                     accentColor: ComebakColors.neonOrange,
                     onTap: () {},
                     iconWidget: ComebakAddBurstIcon(size: ComebakLayout.gameIconSize),
@@ -44,8 +45,8 @@ class ComebakGameCardPage extends StatelessWidget {
                 const SizedBox(width: ComebakLayout.spaceLg),
                 Expanded(
                   child: ComebakGameCard(
-                    title: ComebakCopy.gameMadTitle,
-                    subtitle: ComebakCopy.gameMadDesc,
+                    title: MadBurstConfig.standard.title,
+                    subtitle: MadBurstConfig.standard.instructions,
                     accentColor: ComebakColors.neonGreen,
                     onTap: () {},
                     iconWidget: ComebakMadBurstIcon(size: ComebakLayout.gameIconSize),
@@ -61,8 +62,8 @@ class ComebakGameCardPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: ComebakGameCard(
-                    title: ComebakCopy.gameBodmasTitle,
-                    subtitle: ComebakCopy.gameBodmasDesc,
+                    title: BodmasBurstConfig.standard.title,
+                    subtitle: BodmasBurstConfig.standard.instructions,
                     accentColor: ComebakColors.neonPurple,
                     onTap: () {},
                     iconWidget: ComebakBodmasBurstIcon(size: ComebakLayout.gameIconSize),
@@ -71,8 +72,8 @@ class ComebakGameCardPage extends StatelessWidget {
                 const SizedBox(width: ComebakLayout.spaceLg),
                 Expanded(
                   child: ComebakGameCard(
-                    title: ComebakCopy.gameSmallTitle,
-                    subtitle: ComebakCopy.gameSmallDesc,
+                    title: NumberHuntConfig.standard.title,
+                    subtitle: NumberHuntConfig.standard.instructions,
                     accentColor: ComebakColors.neonBlue,
                     onTap: () {},
                     iconWidget: ComebakSmallBurstIcon(size: ComebakLayout.gameIconSize),
@@ -88,8 +89,8 @@ class ComebakGameCardPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: ComebakGameCard(
-                    title: ComebakCopy.gameDevilsMemoryTitle,
-                    subtitle: ComebakCopy.gameDevilsMemoryDesc,
+                    title: DevilsMemoryConfig.addition.title,
+                    subtitle: DevilsMemoryConfig.addition.instructions,
                     accentColor: ComebakColors.vibrantPink,
                     onTap: () {},
                     iconWidget: ComebakDevilsMemoryIcon(size: ComebakLayout.gameIconSize),

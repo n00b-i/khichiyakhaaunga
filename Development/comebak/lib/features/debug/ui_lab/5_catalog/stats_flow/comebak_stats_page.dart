@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../../../core/games/configs/game_configs.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // UI Lab Foundations
 import '../../1_foundations/tokens/ui_lab_tokens.dart';
-import '../../1_foundations/ui_lab_copy.dart';
 import '../../1_foundations/ui_lab_haptics.dart';
 
 // UI Lab Atoms
@@ -726,8 +726,8 @@ class _StatsEmpty extends StatelessWidget {
           children: [
             Expanded(
               child: ComebakGameCard(
-                title: ComebakCopy.gameSmallTitle,
-                subtitle: ComebakCopy.gameSmallDesc,
+                title: NumberHuntConfig.standard.title,
+                subtitle: NumberHuntConfig.standard.instructions,
                 accentColor: ComebakColors.neonBlue,
                 onTap: () {
                   ComebakHaptics.tap();
@@ -748,8 +748,8 @@ class _StatsEmpty extends StatelessWidget {
             const SizedBox(width: ComebakLayout.spaceLg),
             Expanded(
               child: ComebakGameCard(
-                title: ComebakCopy.gameBodmasTitle,
-                subtitle: ComebakCopy.gameBodmasDesc,
+                title: BodmasBurstConfig.standard.title,
+                subtitle: BodmasBurstConfig.standard.instructions,
                 accentColor: ComebakColors.neonPurple,
                 onTap: () {
                   ComebakHaptics.tap();

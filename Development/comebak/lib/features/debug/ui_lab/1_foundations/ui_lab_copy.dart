@@ -10,19 +10,6 @@ class ComebakCopy {
   static const String greetingSubtitle = 'Giving up should not be an option 🚀';
 
   // Game Cards
-  static const String gameAddTitle = 'Add Burst';
-  static const String gameAddDesc = 'Tap bubbles adding to sum';
-  static const String gameMadTitle = 'Mad Burst';
-  static const String gameMadDesc = 'Tap bubbles matching the product';
-  static const String gameBodmasTitle = 'School Math';
-  static const String gameBodmasDesc = 'Try to solve maximum problems';
-  static const String gameSmallTitle = 'Small Burst';
-  static const String gameSmallDesc = 'Tap the smallest number';
-  static const String gameDevilsMemoryTitle = 'Devil\'s Memory';
-  static const String gameDevilsMemoryDesc = 'Test your memory.\nDon\'t blink!';
-  static const String gameSpeedTitle = 'Speed Match';
-  static const String gameSpeedDesc =
-      'Match the elements before time runs out.';
   static const String navProfile = 'Navigate to Profile';
   static const String sectionMathBurst = 'Pick any, and start practice!';
 

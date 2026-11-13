@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/games/configs/game_configs.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -196,8 +197,8 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                     children: [
                       Expanded(
                         child: _gameCard(
-                          ComebakCopy.gameAddTitle,
-                          ComebakCopy.gameAddDesc,
+                          AddBurstConfig.standard.title,
+                          AddBurstConfig.standard.instructions,
                           ComebakColors.neonOrange,
                           const ComebakAddBurstIcon(
                             size: ComebakLayout.gameIconSize,
@@ -207,6 +208,7 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                             MaterialPageRoute(
                               builder: (_) => const AddBurstScreen(
                                 accentColor: ComebakColors.neonOrange,
+                                config: AddBurstConfig.standard,
                               ),
                             ),
                           ),
@@ -215,8 +217,8 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                       const SizedBox(width: ComebakLayout.spaceLg),
                       Expanded(
                         child: _gameCard(
-                          ComebakCopy.gameMadTitle,
-                          ComebakCopy.gameMadDesc,
+                          MadBurstConfig.standard.title,
+                          MadBurstConfig.standard.instructions,
                           ComebakColors.neonGreen,
                           const ComebakMadBurstIcon(
                             size: ComebakLayout.gameIconSize,
@@ -226,6 +228,7 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                             MaterialPageRoute(
                               builder: (_) => const MadBurstScreen(
                                 accentColor: ComebakColors.neonGreen,
+                                config: MadBurstConfig.standard,
                               ),
                             ),
                           ),
@@ -241,8 +244,8 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                     children: [
                       Expanded(
                         child: _gameCard(
-                          ComebakCopy.gameBodmasTitle,
-                          ComebakCopy.gameBodmasDesc,
+                          BodmasBurstConfig.standard.title,
+                          BodmasBurstConfig.standard.instructions,
                           ComebakColors.neonPurple,
                           const ComebakBodmasBurstIcon(
                             size: ComebakLayout.gameIconSize,
@@ -252,6 +255,7 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                             MaterialPageRoute(
                               builder: (_) => const BodmasBurstScreen(
                                 accentColor: ComebakColors.neonPurple,
+                                config: BodmasBurstConfig.standard,
                               ),
                             ),
                           ),
@@ -260,8 +264,8 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                       const SizedBox(width: ComebakLayout.spaceLg),
                       Expanded(
                         child: _gameCard(
-                          ComebakCopy.gameSmallTitle,
-                          ComebakCopy.gameSmallDesc,
+                          NumberHuntConfig.standard.title,
+                          NumberHuntConfig.standard.instructions,
                           ComebakColors.neonBlue,
                           const ComebakSmallBurstIcon(
                             size: ComebakLayout.gameIconSize,
@@ -271,6 +275,7 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                             MaterialPageRoute(
                               builder: (_) => const NumberHuntScreen(
                                 accentColor: ComebakColors.neonBlue,
+                                config: NumberHuntConfig.standard,
                               ),
                             ),
                           ),
@@ -286,8 +291,8 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                     children: [
                       Expanded(
                         child: _gameCard(
-                          ComebakCopy.gameDevilsMemoryTitle,
-                          ComebakCopy.gameDevilsMemoryDesc,
+                          DevilsMemoryConfig.addition.title,
+                          DevilsMemoryConfig.addition.instructions,
                           ComebakColors.vibrantPink,
                           const ComebakDevilsMemoryIcon(
                             size: ComebakLayout.gameIconSize,
@@ -297,6 +302,7 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                             MaterialPageRoute(
                               builder: (_) => const DevilsMemoryScreen(
                                 accentColor: ComebakColors.vibrantPink,
+                                config: DevilsMemoryConfig.addition,
                               ),
                             ),
                           ),
