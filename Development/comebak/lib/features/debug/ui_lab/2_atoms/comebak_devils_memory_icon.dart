@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import '../1_foundations/tokens/ui_lab_tokens.dart';
 
-class ComebakSaitanIcon extends StatelessWidget {
+class ComebakDevilsMemoryIcon extends StatelessWidget {
   final double size;
-  const ComebakSaitanIcon({super.key, required this.size});
+  const ComebakDevilsMemoryIcon({super.key, required this.size});
   @override
-  Widget build(BuildContext context) => SizedBox(width: size, height: size, child: CustomPaint(painter: _SaitanPainter()));
+  Widget build(BuildContext context) => SizedBox(width: size, height: size, child: CustomPaint(painter: _DevilsMemoryPainter()));
 }
 
-class _SaitanPainter extends CustomPainter {
+class _DevilsMemoryPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final double scale = size.width / 140.0;
@@ -16,7 +16,7 @@ class _SaitanPainter extends CustomPainter {
     
     // Softer, wider colored ambient shadow
     final shadowPaint = Paint()
-      ..color = ComebakColors.saitanBaseRight.withValues(alpha: 0.3)
+      ..color = ComebakColors.devilsMemoryBaseRight.withValues(alpha: 0.3)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 20 * scale);
     canvas.drawOval(Rect.fromCenter(center: Offset(10 * scale, 45 * scale), width: 110 * scale, height: 35 * scale), shadowPaint);
 
@@ -33,20 +33,20 @@ class _SaitanPainter extends CustomPainter {
     final w = ComebakLayout.isoCubeWidth * scale; final h = ComebakLayout.isoCubeHeight * scale; final e = ComebakLayout.isoCubeExtrusion * scale; final soft = ComebakLayout.isoEdgeSoftness * scale;
     final pTop = Offset(0, -h); final pRight = Offset(w, 0); final pBottom = Offset(0, h); final pLeft = Offset(-w, 0);
 
-    _drawSoftFace(canvas, Path()..moveTo(pLeft.dx, pLeft.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pBottom.dx, pBottom.dy + e)..lineTo(pLeft.dx, pLeft.dy + e)..close(), ComebakColors.saitanBaseLeft, soft);
-    _drawSoftFace(canvas, Path()..moveTo(pBottom.dx, pBottom.dy)..lineTo(pRight.dx, pRight.dy)..lineTo(pRight.dx, pRight.dy + e)..lineTo(pBottom.dx, pBottom.dy + e)..close(), ComebakColors.saitanBaseRight, soft);
-    _drawSoftFace(canvas, Path()..moveTo(pLeft.dx, pLeft.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pBottom.dx, pBottom.dy + e)..lineTo(pLeft.dx, pLeft.dy + e)..close(), Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [ComebakColors.saitanLeftStart, ComebakColors.saitanLeftEnd]).createShader(Rect.fromPoints(pLeft, Offset(pBottom.dx, pBottom.dy + e))), soft);
-    _drawSoftFace(canvas, Path()..moveTo(pRight.dx, pRight.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pBottom.dx, pBottom.dy + e)..lineTo(pRight.dx, pRight.dy + e)..close(), Paint()..shader = const LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [ComebakColors.saitanRightStart, ComebakColors.saitanRightEnd]).createShader(Rect.fromPoints(Offset(pBottom.dx, pBottom.dy), Offset(pRight.dx, pRight.dy + e))), soft);
+    _drawSoftFace(canvas, Path()..moveTo(pLeft.dx, pLeft.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pBottom.dx, pBottom.dy + e)..lineTo(pLeft.dx, pLeft.dy + e)..close(), ComebakColors.devilsMemoryBaseLeft, soft);
+    _drawSoftFace(canvas, Path()..moveTo(pBottom.dx, pBottom.dy)..lineTo(pRight.dx, pRight.dy)..lineTo(pRight.dx, pRight.dy + e)..lineTo(pBottom.dx, pBottom.dy + e)..close(), ComebakColors.devilsMemoryBaseRight, soft);
+    _drawSoftFace(canvas, Path()..moveTo(pLeft.dx, pLeft.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pBottom.dx, pBottom.dy + e)..lineTo(pLeft.dx, pLeft.dy + e)..close(), Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [ComebakColors.devilsMemoryLeftStart, ComebakColors.devilsMemoryLeftEnd]).createShader(Rect.fromPoints(pLeft, Offset(pBottom.dx, pBottom.dy + e))), soft);
+    _drawSoftFace(canvas, Path()..moveTo(pRight.dx, pRight.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pBottom.dx, pBottom.dy + e)..lineTo(pRight.dx, pRight.dy + e)..close(), Paint()..shader = const LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [ComebakColors.devilsMemoryRightStart, ComebakColors.devilsMemoryRightEnd]).createShader(Rect.fromPoints(Offset(pBottom.dx, pBottom.dy), Offset(pRight.dx, pRight.dy + e))), soft);
     
     final topPath = Path()..moveTo(pTop.dx, pTop.dy)..lineTo(pRight.dx, pRight.dy)..lineTo(pBottom.dx, pBottom.dy)..lineTo(pLeft.dx, pLeft.dy)..close();
-    _drawSoftFace(canvas, topPath, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [ComebakColors.saitanTopStart, ComebakColors.saitanTopEnd]).createShader(Rect.fromPoints(pTop, Offset(pRight.dx, pBottom.dy))), soft);
+    _drawSoftFace(canvas, topPath, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [ComebakColors.devilsMemoryTopStart, ComebakColors.devilsMemoryTopEnd]).createShader(Rect.fromPoints(pTop, Offset(pRight.dx, pBottom.dy))), soft);
     
     // Gloss Overlay
     final glossPath = Path()..moveTo(pTop.dx, pTop.dy)..lineTo(pLeft.dx / 2, pLeft.dy / 2)..lineTo(pBottom.dx / 2, pBottom.dy / 2)..lineTo(0, 0)..close();
     canvas.drawPath(glossPath, Paint()..color = Colors.white.withValues(alpha: 0.25));
 
     // Embossed Text (Larger font size)
-    _drawEmbossedText(canvas, isSmall ? '×' : '🧠', scale, isSmall ? 50 : 55, ComebakColors.saitanTextDeep, ComebakColors.saitanTextMid);
+    _drawEmbossedText(canvas, isSmall ? '×' : '🧠', scale, isSmall ? 50 : 55, ComebakColors.devilsMemoryTextDeep, ComebakColors.devilsMemoryTextMid);
   }
 
   void _drawSoftFace(Canvas canvas, Path path, dynamic p, double s) {

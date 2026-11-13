@@ -7,7 +7,7 @@ import '../2_atoms/comebak_add_burst_icon.dart';
 import '../2_atoms/comebak_mad_burst_icon.dart';
 import '../2_atoms/comebak_bodmas_burst_icon.dart';
 import '../2_atoms/comebak_small_burst_icon.dart';
-import '../2_atoms/comebak_saitan_icon.dart';
+import '../2_atoms/comebak_devils_memory_icon.dart';
 import '../3_molecules/comebak_game_card.dart';
 import '../3_molecules/comebak_streak_card.dart';
 import '../4_organisms/comebak_header.dart';
@@ -18,7 +18,7 @@ import '../../../games/add_burst/add_burst_screen.dart';
 import '../../../games/mad_burst/mad_burst_screen.dart';
 import '../../../games/bodmas_burst/bodmas_burst_screen.dart';
 import '../../../games/number_hunt/number_hunt_screen.dart';
-import '../../../games/memory_of_saitan/memory_of_saitan_screen.dart';
+import '../../../games/devils_memory/devils_memory_screen.dart';
 
 // ==============================================================================
 // [FLOW] ComebakHomeFlow
@@ -253,21 +253,21 @@ class ComebakHomeFlow extends StatelessWidget {
                     children: [
                       Expanded(
                         child: ComebakGameCard(
-                          title: ComebakCopy.gameSaitanTitle,
-                          subtitle: ComebakCopy.gameSaitanDesc,
+                          title: ComebakCopy.gameDevilsMemoryTitle,
+                          subtitle: ComebakCopy.gameDevilsMemoryDesc,
                           accentColor: ComebakColors.vibrantPink,
                           onTap: () {
                             ComebakHaptics.tap();
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const MemoryOfSaitanScreen(
+                                builder: (_) => const DevilsMemoryScreen(
                                   accentColor: ComebakColors.vibrantPink,
                                 ),
                               ),
                             );
                           },
-                          iconWidget: ComebakSaitanIcon(
+                          iconWidget: ComebakDevilsMemoryIcon(
                             size: ComebakLayout.gameIconSize,
                           ),
                         ),

@@ -47,20 +47,20 @@ class BodmasBurstConfig {
   );
 }
 
-class SaitanConfig {
+class DevilsMemoryConfig {
   static const addition = GameConfig(
-    gameId: 'saitan_add',
+    gameId: 'devils_memory_add',
     duration: Duration(seconds: 60),
     hudOperationPrefix: '+',
-    title: 'Saitan +',
+    title: 'DevilsMemory +',
     instructions: 'Memorize the grid. Add to target.',
   );
 
   static const multiplication = GameConfig(
-    gameId: 'saitan_mul',
+    gameId: 'devils_memory_mul',
     duration: Duration(seconds: 60),
     hudOperationPrefix: 'x',
-    title: 'Saitan X',
+    title: 'DevilsMemory X',
     instructions: 'Memorize the grid. Multiply to target.',
   );
 }

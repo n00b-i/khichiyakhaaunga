@@ -18,8 +18,8 @@ class ComebakCopy {
   static const String gameBodmasDesc = 'Solve maximum BODMAS problems.';
   static const String gameSmallTitle = 'Small Burst';
   static const String gameSmallDesc = 'Find the smallest number.';
-  static const String gameSaitanTitle = 'Devil\'s Memory';
-  static const String gameSaitanDesc = 'Remember the sequence. Don\'t blink.';
+  static const String gameDevilsMemoryTitle = 'Devil\'s Memory';
+  static const String gameDevilsMemoryDesc = 'Remember the sequence. Don\'t blink.';
   static const String gameSpeedTitle = 'Speed Match';
   static const String gameSpeedDesc = 'Match the elements before time runs out.';
   static const String navProfile = 'Navigate to Profile';

@@ -5,7 +5,7 @@ import '../2_atoms/comebak_add_burst_icon.dart';
 import '../2_atoms/comebak_mad_burst_icon.dart';
 import '../2_atoms/comebak_bodmas_burst_icon.dart';
 import '../2_atoms/comebak_small_burst_icon.dart';
-import '../2_atoms/comebak_saitan_icon.dart';
+import '../2_atoms/comebak_devils_memory_icon.dart';
 import '../3_molecules/comebak_game_card.dart';
 
 class ComebakGameCardPage extends StatelessWidget {
@@ -88,11 +88,11 @@ class ComebakGameCardPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: ComebakGameCard(
-                    title: ComebakCopy.gameSaitanTitle,
-                    subtitle: ComebakCopy.gameSaitanDesc,
+                    title: ComebakCopy.gameDevilsMemoryTitle,
+                    subtitle: ComebakCopy.gameDevilsMemoryDesc,
                     accentColor: ComebakColors.vibrantPink,
                     onTap: () {},
-                    iconWidget: ComebakSaitanIcon(size: ComebakLayout.gameIconSize),
+                    iconWidget: ComebakDevilsMemoryIcon(size: ComebakLayout.gameIconSize),
                   ),
                 ),
                 const SizedBox(width: ComebakLayout.spaceLg),

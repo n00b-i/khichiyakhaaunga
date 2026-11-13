@@ -8,7 +8,7 @@ import '../../2_atoms/comebak_add_burst_icon.dart';
 import '../../2_atoms/comebak_mad_burst_icon.dart';
 import '../../2_atoms/comebak_bodmas_burst_icon.dart';
 import '../../2_atoms/comebak_small_burst_icon.dart';
-import '../../2_atoms/comebak_saitan_icon.dart';
+import '../../2_atoms/comebak_devils_memory_icon.dart';
 import '../../3_molecules/comebak_game_card.dart';
 import '../game_flow/comebak_game_hud_page.dart';
 
@@ -185,7 +185,7 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
                     _buildLedgerRow(
                       'Devil\'s Memory',
                       '95',
-                      const ComebakSaitanIcon(size: ComebakLayout.spaceXxl),
+                      const ComebakDevilsMemoryIcon(size: ComebakLayout.spaceXxl),
                       isLocked: true,
                       onTap: _launchGame,
                     ),
