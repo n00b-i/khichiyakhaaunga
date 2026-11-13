@@ -1,0 +1,287 @@
+================================================================================
+COMEBAK HOME SCREEN — LOGIC & STATE SPECIFICATION
+Last updated: 2026-11-13
+Purpose: Single source of truth for the Home Streak Card state machine.
+         Any AI or developer reading this file must be able to reproduce the
+         exact behavior without reading the code.
+================================================================================
+
+--------------------------------------------------------------------------------
+SECTION 1: DATA SOURCES
+--------------------------------------------------------------------------------
+
+The Home screen fetches two payloads in parallel via Future.wait:
+
+  1. StatsRepository.getUserStats()
+     Returns a Map from Supabase view `user_stats`:
+       - total_games         (int)  — lifetime completed matches
+       - total_xp            (int)  — server-computed via FLOOR(score/10) sum
+       - last_played_at      (timestamptz) — from `matches`, most recent completed
+       - delta_xp_today      (int, optional) — not yet wired in view
+       - delta_xp_yesterday  (int, optional) — not yet wired in view
+     WARNING: delta_xp_today and delta_xp_yesterday are NOT in the current
+     user_stats view. They must be computed from `matches` before the card
+     can show real deltas. Until then they default to 0.
+
+  2. ProfileRepository.getProfile()
+     Returns a Map from Supabase table `profiles`:
+       - current_streak      (int)
+       - name, email, status, created_at, last_played_at
+
+Both repositories use static in-memory caches (_inMemoryStats, _inMemoryProfile).
+They fetch from network ONCE per session. Cache is invalidated when:
+  - GameRepository.endMatch() completes (stats cache)
+  - ProfileRepository.updateUsername() succeeds (profile cache)
+  - Explicit clearCache() is called (logout)
+
+--------------------------------------------------------------------------------
+SECTION 2: TIME-BASED GREETING
+--------------------------------------------------------------------------------
+
+hour = DateTime.now().hour  (0..23)
+
+  hour >= 0  && hour < 12  → "Good morning"
+  hour >= 12 && hour < 16  → "Good afternoon"
+  hour >= 16 && hour < 24  → "Good evening"
+
+Rendering: RichText with two spans
+  - "Good "         → ComebakColors.textPrimary (white)
+  - "morning"/...   → ComebakColors.neonGreen (green)
+
+Below greeting: static subtitle "Time to go high..." (ComebakCopy.greetingSubtitle)
+
+--------------------------------------------------------------------------------
+SECTION 3: PLAYED TODAY / YESTERDAY DETECTION
+--------------------------------------------------------------------------------
+
+Reference date = DateTime.now()  (local time)
+
+playedToday = lastPlayed exists AND
+              lastPlayed.year == now.year AND
+              lastPlayed.month == now.month AND
+              lastPlayed.day == now.day
+
+playedYesterday = lastPlayed exists AND
+                  lastPlayed.year == yesterday.year AND
+                  lastPlayed.month == yesterday.month AND
+                  lastPlayed.day == yesterday.day
+                  (where yesterday = now - 1 day)
+
+--------------------------------------------------------------------------------
+SECTION 4: DELTA XP STRING & COLOR
+--------------------------------------------------------------------------------
+
+Order of precedence:
+
+  IF playedToday:
+    deltaXp = delta_xp_today
+    IF deltaXp > 0:  "↑ +{formatIndian(deltaXp)} XP Today"   color neonGreen
+    IF deltaXp < 0:  "↓ -{formatIndian(|deltaXp|)} XP Today" color vibrantRed
+    IF deltaXp == 0: "0 XP Today"                            color textSecondary
+
+  ELSE IF playedYesterday:
+    deltaXp = delta_xp_yesterday
+    IF deltaXp > 0:  "↑ +{formatIndian(deltaXp)} XP Yesterday"   color neonGreen
+    IF deltaXp < 0:  "↓ -{formatIndian(|deltaXp|)} XP Yesterday" color vibrantRed
+    IF deltaXp == 0: "0 XP Yesterday"                            color textSecondary
+
+  ELSE:
+    "0 XP Today"  color textSecondary
+
+--------------------------------------------------------------------------------
+SECTION 5: INDIAN NUMBER FORMATTING
+--------------------------------------------------------------------------------
+
+Rule: group digits as Lakh/Crore for numbers with 4+ digits.
+
+  abs < 1000         → no separator            e.g. 999       → "999"
+  abs < 100000       → last 3 digits grouped   e.g. 14710     → "14,710"
+  abs >= 100000      → pairs then last 3       e.g. 147100    → "1,47,100"
+  abs >= 10000000    →                          e.g. 14710000  → "1,47,10,000"
+  Negative sign preserved:  -235235 → "-2,35,235"
+
+--------------------------------------------------------------------------------
+SECTION 6: STATE RESOLUTION — STREAK CARD
+--------------------------------------------------------------------------------
+
+Inputs: totalGames, totalXp, streak, playedToday, playedYesterday, hour, minute
+
+Priority order (first match wins):
+
+  STATE S1 — FIRST TIME
+    Condition: totalGames == 0
+    Title:     "Ready to start?"
+    Subtitle:  "Your first game awaits."
+    Icon:      LucideIcons.sparkles  (FLAT, neonGreen)
+    XP Row:    HIDDEN (totalXpText = null)
+
+  STATE S11/S12 — BROKEN / FUMBLED
+    Condition: totalGames > 0 AND streak == 0
+    Title:     "Fumbled! Time to Comebak."
+    Subtitle:  "Bounce Back, Start Fresh!"
+    Icon:      LucideIcons.rotate_ccw  (FLAT, textSecondary)
+    XP Row:    VISIBLE, using delta rules from Section 4
+    Total XP:  red if totalXp < 0 else green
+
+  STATE S9/S10 — ONGOING, NOT YET PLAYED TODAY
+    Condition: streak > 0 AND playedToday == false
+
+    Sub-branch by hour:
+
+      hour < 18 (before 6 PM):
+        Title:    "Maintain Momentum!"
+        Subtitle: "60s all it takes, do it!"
+        Icon:     ComebakFlame3D (3D atom, orange default)
+        IconBox:  no decoration
+
+      hour >= 18 AND hour < 23 (6 PM to 11 PM):
+        hoursLeft = 23 - hour
+        Title:    "{streak} Day(s) at risk"
+        Subtitle: "⏳ {hoursLeft}h left to save your streak!"
+        Icon:     LucideIcons.hourglass (FLAT, vibrantRed)
+
+      hour >= 23 (after 11 PM):
+        minsLeft = 60 - minute
+        Title:    "{streak} Day(s) at risk"
+        Subtitle: "⏳ {minsLeft} mins left to save your streak!"
+        Icon:     LucideIcons.hourglass (FLAT, vibrantRed)
+
+    XP Row: VISIBLE using delta rules (will be "0 XP Today" unless
+            delta_xp_today exists)
+
+  STATE S2–S8 — ONGOING, PLAYED TODAY
+    Condition: streak > 0 AND playedToday == true
+
+    Title: "{streak} Day(s) streak"
+    Icon:  ComebakFlame3D (3D atom)
+
+    Subtitle — depends on two factors:
+
+      A. If totalGames == 1 AND streak == 1  (day 1, first ever):
+           deltaXp > 0 → "Great start. Comebak soon!"
+           deltaXp <= 0 → "Just a start, long way to go!"
+
+      B. Otherwise, based on current streak value:
+           streak 1..6    → "Yes!!! This time its personal"
+           streak 7..13   → "You're becoming unstoppable!"
+           streak 14..29  → "No compromise on consistency!"
+           streak 30..90  → "Hell Yeah! Unstoppable!"
+           streak 91..99  → "Keep pushing, century soon!"
+           streak == 100  → "Just getting started, kudos!"
+           streak 101+    → "This year, Comebak year!!!"
+
+    XP Row: VISIBLE using delta rules
+
+--------------------------------------------------------------------------------
+SECTION 7: XP DISPLAY COLORS (TOTAL XP)
+--------------------------------------------------------------------------------
+
+isNegativeXp = totalXp < 0
+
+Text color:
+  isNegativeXp ? ComebakColors.vibrantRed : ComebakColors.neonGreen
+
+Icon color (ComebakXpIcon):
+  isNegativeXp ? ComebakColors.vibrantRed : ComebakColors.neonGreen
+
+Both text and icon must match. Never white for positive XP.
+
+--------------------------------------------------------------------------------
+SECTION 8: ICON RULES — 3D vs FLAT
+--------------------------------------------------------------------------------
+
+The ComebakStreakCard renders the icon as:
+
+  icon == LucideIcons.flame
+    ? const ComebakFlame3D(size: ComebakLayout.spaceXl)   // 3D clay atom
+    : Icon(icon, color: iconColor, size: ComebakLayout.spaceXl)  // flat Lucide
+
+Container wrapping the icon:
+  - width:  ComebakLayout.iconBoxPrimary (42)
+  - height: ComebakLayout.iconBoxPrimary (42)
+  - NO decoration, NO background, NO border radius
+    (previously had BoxDecoration, removed intentionally)
+
+Which states use 3D flame:
+  S2, S3, S4, S5, S6, S7, S8, S9 (active streak with flame)
+Which states use flat icons:
+  S1  (sparkles)
+  S10 (hourglass)
+  S11 (rotate_ccw)
+
+--------------------------------------------------------------------------------
+SECTION 9: TAP BEHAVIOR
+--------------------------------------------------------------------------------
+
+Entire Streak Card → Navigator.push → ComebakStatsPage
+
+No separate tap targets inside the card. No haptic on the card itself
+(the Stats page handles its own haptics).
+
+--------------------------------------------------------------------------------
+SECTION 10: LOADING & ERROR STATES
+--------------------------------------------------------------------------------
+
+LOADING (FutureBuilder.connectionState == waiting):
+  Container height = ComebakLayout.cardIconContainer + ComebakLayout.spaceXxl
+  color = surfaceElevated
+  borderRadius = ComebakLayout.radiusLg
+  No spinner, no text.
+
+ERROR (snapshot.hasError):
+  Container with border
+  Text: "Could not load streak." (textSecondary)
+  TextButton: "RETRY" (neonGreen) → calls _loadData()
+
+--------------------------------------------------------------------------------
+SECTION 11: KNOWN GAPS (not yet implemented)
+--------------------------------------------------------------------------------
+
+1. delta_xp_today and delta_xp_yesterday are NOT computed in the
+   user_stats view. They always return 0/absent. The card will show
+   "0 XP Today" even after a match, until either:
+     (a) the view is extended to compute today/yesterday deltas, OR
+     (b) GameRepository.endMatch() writes delta to a local cache.
+
+2. The Home Streak Card is currently read-only from the cache. After
+   a match ends, invalidateCache() clears memory but the card does not
+   auto-refresh until the user navigates away and back.
+
+3. S9 "Maintain Momentum!" triggers for any hour < 18 when the user
+   has not played today. In real use, this means a user who plays at
+   11 PM and opens the app at 1 AM will see "Maintain Momentum!" even
+   though the streak is at risk. Logic may need refinement to use
+   hours-since-last-play rather than absolute clock hour.
+
+--------------------------------------------------------------------------------
+SECTION 12: FILE MAP
+--------------------------------------------------------------------------------
+
+Home flow:      lib/features/debug/ui_lab/5_catalog/comebak_home_flow.dart
+Streak card:    lib/features/debug/ui_lab/3_molecules/comebak_streak_card.dart
+3D flame atom:  lib/features/debug/ui_lab/2_atoms/comebak_flame_3d.dart
+3D xp atom:     lib/features/debug/ui_lab/2_atoms/comebak_xp_icon.dart
+Tokens:         lib/features/debug/ui_lab/1_foundations/tokens/ui_lab_tokens.dart
+Stats repo:     lib/core/stats/stats_repository.dart
+Profile repo:   lib/core/profile/profile_repository.dart
+User stats DB:  Supabase view `user_stats`
+Profiles DB:    Supabase table `profiles`
+
+--------------------------------------------------------------------------------
+SECTION 13: RULES FOR ANY AI EDITING THIS CODE
+--------------------------------------------------------------------------------
+
+1. Never hardcode colors. All colors come from ComebakColors.
+2. Never hardcode sizes. All sizes come from ComebakLayout.
+3. Never hardcode text styles. All text styles come from ComebakTypography.
+4. The Icon container must never have a BoxDecoration (removed intentionally).
+5. Flame must use ComebakFlame3D atom, never a Lucide flame.
+6. Positive total XP text AND icon must be neonGreen, not white.
+7. Negative total XP text AND icon must be vibrantRed.
+8. The streak card has exactly 4 visible states: S1, S11, S9/S10, S2-S8.
+9. There is no "milestone" icon swap — all ongoing streaks use the flame.
+10. When in doubt, read this file before reading the code.
+
+================================================================================
+END OF FILE
+================================================================================

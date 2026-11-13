@@ -1,4 +1,4 @@
-// [ARCHITECTURE] The Verbiage Bible. 
+// [ARCHITECTURE] The Verbiage Bible.
 // [RULE 7] All text must be pulled from here. No raw string literals in UI widgets.
 class ComebakCopy {
   ComebakCopy._();
@@ -7,23 +7,24 @@ class ComebakCopy {
   static const String brand = 'Comebak';
   static const String greetingPrefix = 'Good ';
   static const String greetingHighlight = 'evening!';
-  static const String greetingSubtitle = 'Time to go high and higher 🚀';
+  static const String greetingSubtitle = 'Giving up should not be an option 🚀';
 
   // Game Cards
   static const String gameAddTitle = 'Add Burst';
-  static const String gameAddDesc = 'Add two numbers to hit the target.';
+  static const String gameAddDesc = 'Tap bubbles adding to sum';
   static const String gameMadTitle = 'Mad Burst';
-  static const String gameMadDesc = 'Multiply two numbers to hit the target.';
-  static const String gameBodmasTitle = 'BODMAS Burst';
-  static const String gameBodmasDesc = 'Solve maximum BODMAS problems.';
+  static const String gameMadDesc = 'Tap bubbles matching the product';
+  static const String gameBodmasTitle = 'School Math';
+  static const String gameBodmasDesc = 'Try to solve maximum problems';
   static const String gameSmallTitle = 'Small Burst';
-  static const String gameSmallDesc = 'Find the smallest number.';
+  static const String gameSmallDesc = 'Tap the smallest number';
   static const String gameDevilsMemoryTitle = 'Devil\'s Memory';
-  static const String gameDevilsMemoryDesc = 'Remember the sequence. Don\'t blink.';
+  static const String gameDevilsMemoryDesc = 'Test your memory.\nDon\'t blink!';
   static const String gameSpeedTitle = 'Speed Match';
-  static const String gameSpeedDesc = 'Match the elements before time runs out.';
+  static const String gameSpeedDesc =
+      'Match the elements before time runs out.';
   static const String navProfile = 'Navigate to Profile';
-  static const String sectionMathBurst = 'Tap to Play';
+  static const String sectionMathBurst = 'Pick any, and start practice!';
 
   // Catalog Index
   static const String catalogTitle = 'UI Lab Catalog';
@@ -36,13 +37,15 @@ class ComebakCopy {
 
   // Milestone Banner
   static const String milestoneTitle = 'You\'re on a roll!';
-  static const String milestoneSubtitle = 'Just 2 more days to unlock next milestone.';
+  static const String milestoneSubtitle =
+      'Just 2 more days to unlock next milestone.';
   static const String milestoneCta = 'View Progress';
 
   // Bottom Sheets
   static const String editNameTitle = 'Edit Name';
   static const String editNameHint = 'Your name';
-  static const String editNameError = 'Use only letters, numbers, and underscores.';
+  static const String editNameError =
+      'Use only letters, numbers, and underscores.';
   static const String btnCancel = 'Cancel';
   static const String btnSave = 'Save';
   static const String logoutTitle = 'Log out?';
@@ -63,24 +66,26 @@ class ComebakCopy {
   // Streak Card States
   static const String streakFirstTimeTitle = 'Ready to start?';
   static const String streakFirstTimeSubtitle = 'Your first game awaits.';
-  
+
   static const String streakDay1Title = 'Day 1. A new beginning.';
   static const String streakDay1Subtitle = 'Great start. Come back tomorrow!';
-  
+
   static const String streakDay3Title = '3 Days Streak';
-  static const String streakDay3Subtitle = "You're on fire! Keep the chain alive.";
-  
+  static const String streakDay3Subtitle =
+      "You're on fire! Keep the chain alive.";
+
   static const String streak7Title = '7 Days Streak!';
   static const String streak30Title = '30 Days Streak!';
   static const String streak100Title = '100 Days Streak!';
-  
+
   static const String streakAtRiskTitle = 'Don\'t lose momentum!';
   static const String streakAtRiskSubtitle = 'Play today to keep your streak.';
   static const String streakCriticalTitle = '3 Days at risk!';
   static const String streakCriticalSubtitle = '⏳ 2h left to save your streak!';
-  
+
   static const String streakBrokenTitle = 'Fumbled. Time to Comebak.';
-  static const String streakBrokenSubtitle = 'Every master was once a disaster.';
+  static const String streakBrokenSubtitle =
+      'Every master was once a disaster.';
   static const String streakFloorTitle = 'Fumbled. Time to Comebak.';
   static const String streakFloorSubtitle = 'Bounce back. Start fresh.';
 
