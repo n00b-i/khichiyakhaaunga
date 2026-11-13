@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../../../../core/games/configs/game_configs.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-// UI Lab Foundations
-import '../../1_foundations/tokens/ui_lab_tokens.dart';
 import '../../1_foundations/ui_lab_haptics.dart';
-
-// UI Lab Atoms
+import '../../3_molecules/comebak_game_card.dart';
+import '../../../../games/add_burst/add_burst_screen.dart';
+import '../../../../games/mad_burst/mad_burst_screen.dart';
+import '../../../../games/bodmas_burst/bodmas_burst_screen.dart';
+import '../../../../games/number_hunt/number_hunt_screen.dart';
+import '../../../../games/devils_memory/devils_memory_screen.dart';
+import '../../1_foundations/tokens/ui_lab_tokens.dart';
 import '../../2_atoms/comebak_flame_3d.dart';
 import '../../2_atoms/comebak_xp_icon.dart';
 import '../../2_atoms/comebak_add_burst_icon.dart';
@@ -14,69 +15,19 @@ import '../../2_atoms/comebak_mad_burst_icon.dart';
 import '../../2_atoms/comebak_bodmas_burst_icon.dart';
 import '../../2_atoms/comebak_small_burst_icon.dart';
 import '../../2_atoms/comebak_devils_memory_icon.dart';
-
-// UI Lab Molecules
-import '../../3_molecules/comebak_game_card.dart';
-
-// Repositories (SSOT for data)
 import '../../../../../core/stats/stats_repository.dart';
 import '../../../../../core/profile/profile_repository.dart';
-
-// Game Screens (for row tap navigation)
-import '../../../../games/add_burst/add_burst_screen.dart';
-import '../../../../games/mad_burst/mad_burst_screen.dart';
-import '../../../../games/bodmas_burst/bodmas_burst_screen.dart';
-import '../../../../games/number_hunt/number_hunt_screen.dart';
-import '../../../../games/devils_memory/devils_memory_screen.dart';
+// [SSOT] Game Configs for the empty state cards
+import '../../../../../core/games/configs/game_configs.dart';
 
 // ==============================================================================
-// [DEV STATE MACHINE]
-// Covers every possible edge case for QA without touching the database.
-// ==============================================================================
-enum _DevStatsState {
-  db,
-  empty,
-  populated,
-  negativeXp,
-  zeroStreak,
-  negativeScores,
-  hugeNumbers,
-  playedButZero,
-  oneGamePlayed,
-}
-
-// ==============================================================================
-// [HELPER] Indian Number Formatter (Lakh / Crore grouping)
+// [SCREEN] ComebakStatsPage
 // ------------------------------------------------------------------------------
-// Converts 1042 -> "1,042", 147100 -> "1,47,100", -15 -> "-15".
-// This is the standard Indian numbering system, NOT the Western grouping.
+// PURPOSE: Production-ready stats dashboard.
+// FIXES APPLIED:
+// - AC-5: Removed the bug icon and dev popup menu.
+// - AC-6: Commented out and removed all mock data logic (_DevStatsState).
 // ==============================================================================
-String _formatIndian(int number) {
-  final String sign = number < 0 ? '-' : '';
-  String str = number.abs().toString();
-
-  if (str.length <= 3) return '$sign$str';
-
-  final String lastThree = str.substring(str.length - 3);
-  String otherNumbers = str.substring(0, str.length - 3);
-
-  if (otherNumbers.length <= 2) {
-    return '$sign$otherNumbers,$lastThree';
-  }
-
-  // Group the remaining digits in pairs (Indian system: 2,2,2...)
-  String result = '';
-  for (int i = otherNumbers.length - 1; i >= 0; i--) {
-    result = otherNumbers[i] + result;
-    final int distanceFromEnd = otherNumbers.length - i;
-    if (distanceFromEnd.isEven && i != 0) {
-      result = ',$result';
-    }
-  }
-
-  return '$sign$result,$lastThree';
-}
-
 class ComebakStatsPage extends StatefulWidget {
   const ComebakStatsPage({super.key});
 
@@ -85,7 +36,6 @@ class ComebakStatsPage extends StatefulWidget {
 }
 
 class _ComebakStatsPageState extends State<ComebakStatsPage> {
-  _DevStatsState _devState = _DevStatsState.db;
   late Future<List<dynamic>> _combinedFuture;
 
   @override
@@ -94,130 +44,14 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
     _loadData();
   }
 
-  /// [DATA FETCH]
-  /// Real DB path uses Future.wait to fetch stats + profile in parallel.
-  /// Dev path returns instant mock data for UI testing.
   void _loadData() {
+    // [AC-6] Always fetch real data. Mock logic purged.
     setState(() {
-      if (_devState == _DevStatsState.db) {
-        _combinedFuture = Future.wait([
-          StatsRepository(Supabase.instance.client).getUserStats(),
-          ProfileRepository(Supabase.instance.client).getProfile(),
-        ]);
-      } else {
-        _combinedFuture = Future.value(_getMockData());
-      }
+      _combinedFuture = Future.wait([
+        StatsRepository(Supabase.instance.client).getUserStats(),
+        ProfileRepository(Supabase.instance.client).getProfile(),
+      ]);
     });
-  }
-
-  // [MOCK DATA FACTORY] — used only by the Dev Bug Menu
-  List<dynamic> _getMockData() {
-    switch (_devState) {
-      case _DevStatsState.empty:
-        return [
-          {
-            'total_games': 0,
-            'total_xp': 0,
-            'add_burst_pb': 0,
-            'mad_burst_pb': 0,
-            'bodmas_burst_pb': 0,
-            'small_burst_pb': 0,
-            'saitan_add_pb': 0,
-          },
-          {'current_streak': 0},
-        ];
-      case _DevStatsState.negativeXp:
-        return [
-          {
-            'total_games': 5,
-            'total_xp': -15,
-            'add_burst_pb': 10,
-            'mad_burst_pb': 20,
-            'bodmas_burst_pb': 0,
-            'small_burst_pb': 15,
-            'saitan_add_pb': 0,
-          },
-          {'current_streak': 0},
-        ];
-      case _DevStatsState.zeroStreak:
-        return [
-          {
-            'total_games': 12,
-            'total_xp': 450,
-            'add_burst_pb': 150,
-            'mad_burst_pb': 200,
-            'bodmas_burst_pb': 50,
-            'small_burst_pb': 300,
-            'saitan_add_pb': 100,
-          },
-          {'current_streak': 0},
-        ];
-      case _DevStatsState.negativeScores:
-        return [
-          {
-            'total_games': 3,
-            'total_xp': -45,
-            'add_burst_pb': -20,
-            'mad_burst_pb': -10,
-            'bodmas_burst_pb': 0,
-            'small_burst_pb': -15,
-            'saitan_add_pb': 0,
-          },
-          {'current_streak': 0},
-        ];
-      case _DevStatsState.hugeNumbers:
-        return [
-          {
-            'total_games': 9999,
-            'total_xp': 147100,
-            'add_burst_pb': 99999,
-            'mad_burst_pb': 88888,
-            'bodmas_burst_pb': 77777,
-            'small_burst_pb': 66666,
-            'saitan_add_pb': 55555,
-          },
-          {'current_streak': 365},
-        ];
-      case _DevStatsState.playedButZero:
-        return [
-          {
-            'total_games': 5,
-            'total_xp': 0,
-            'add_burst_pb': 0,
-            'mad_burst_pb': 0,
-            'bodmas_burst_pb': 0,
-            'small_burst_pb': 0,
-            'saitan_add_pb': 0,
-          },
-          {'current_streak': 0},
-        ];
-      case _DevStatsState.oneGamePlayed:
-        return [
-          {
-            'total_games': 1,
-            'total_xp': 15,
-            'add_burst_pb': 150,
-            'mad_burst_pb': null,
-            'bodmas_burst_pb': null,
-            'small_burst_pb': null,
-            'saitan_add_pb': null,
-          },
-          {'current_streak': 1},
-        ];
-      default:
-        return [
-          {
-            'total_games': 84,
-            'total_xp': 1471,
-            'add_burst_pb': 460,
-            'mad_burst_pb': 640,
-            'bodmas_burst_pb': 490,
-            'small_burst_pb': 1042,
-            'saitan_add_pb': 90,
-          },
-          {'current_streak': 4},
-        ];
-    }
   }
 
   @override
@@ -226,7 +60,6 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
       backgroundColor: ComebakColors.canvas,
       body: Stack(
         children: [
-          // Creative BG Glow (Top-Right)
           Positioned(
             top: -ComebakLayout.bgGlowSize / 4,
             right: -ComebakLayout.bgGlowSize / 4,
@@ -246,7 +79,6 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
               ),
             ),
           ),
-
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -264,8 +96,6 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: ComebakLayout.spaceXxl),
-
-                            // HEADER
                             Text(
                               'YOUR STATS',
                               style: ComebakTypography.greeting.copyWith(
@@ -287,8 +117,6 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
                             const SizedBox(
                               height: ComebakLayout.spaceXxl * 1.5,
                             ),
-
-                            // ASYNC DATA RESOLUTION
                             Expanded(
                               child: FutureBuilder<List<dynamic>>(
                                 future: _combinedFuture,
@@ -317,7 +145,6 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
                                       profileData?['current_streak'] as int? ??
                                       0;
 
-                                  // EMPTY STATE: New user OR all-zero data
                                   if (statsData == null || matchesPlayed == 0) {
                                     return const _StatsEmpty();
                                   }
@@ -339,70 +166,13 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
               },
             ),
           ),
-
-          // DEV STATE SWITCHER (Bug Icon)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + ComebakLayout.spaceMd,
-            right: ComebakLayout.spaceLg,
-            child: PopupMenuButton<_DevStatsState>(
-              icon: const Icon(
-                Icons.bug_report,
-                color: ComebakColors.textSecondary,
-              ),
-              color: ComebakColors.surfaceElevated,
-              onSelected: (state) {
-                _devState = state;
-                _loadData();
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: _DevStatsState.db,
-                  child: Text('Real DB Data'),
-                ),
-                const PopupMenuItem(
-                  value: _DevStatsState.empty,
-                  child: Text('Empty (New User)'),
-                ),
-                const PopupMenuItem(
-                  value: _DevStatsState.populated,
-                  child: Text('Populated (Normal)'),
-                ),
-                const PopupMenuItem(
-                  value: _DevStatsState.zeroStreak,
-                  child: Text('Zero Streak'),
-                ),
-                const PopupMenuItem(
-                  value: _DevStatsState.negativeXp,
-                  child: Text('Negative XP'),
-                ),
-                const PopupMenuItem(
-                  value: _DevStatsState.negativeScores,
-                  child: Text('Negative Scores'),
-                ),
-                const PopupMenuItem(
-                  value: _DevStatsState.hugeNumbers,
-                  child: Text('Huge Numbers (Lakh/Crore)'),
-                ),
-                const PopupMenuItem(
-                  value: _DevStatsState.playedButZero,
-                  child: Text('Played but Zero'),
-                ),
-                const PopupMenuItem(
-                  value: _DevStatsState.oneGamePlayed,
-                  child: Text('One Game Played'),
-                ),
-              ],
-            ),
-          ),
+          // [AC-5] Bug icon and PopupMenuButton removed.
         ],
       ),
     );
   }
 }
 
-// ==============================================================================
-// [WIDGET] _StatsPopulated
-// ==============================================================================
 class _StatsPopulated extends StatelessWidget {
   final Map<String, dynamic> statsData;
   final int totalXp;
@@ -416,14 +186,12 @@ class _StatsPopulated extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Extract all 5 PBs (Devil's Memory uses saitan_add_pb only)
     final int addPb = statsData['add_burst_pb'] as int? ?? 0;
     final int madPb = statsData['mad_burst_pb'] as int? ?? 0;
     final int bodmasPb = statsData['bodmas_burst_pb'] as int? ?? 0;
     final int smallPb = statsData['small_burst_pb'] as int? ?? 0;
     final int devilsPb = statsData['saitan_add_pb'] as int? ?? 0;
 
-    // Dynamic highlight: find the max value
     final int maxPb = [
       addPb,
       madPb,
@@ -435,7 +203,6 @@ class _StatsPopulated extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // HERO CARD
         Container(
           padding: const EdgeInsets.all(ComebakLayout.spaceLg),
           decoration: BoxDecoration(
@@ -453,7 +220,6 @@ class _StatsPopulated extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Streak
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -470,7 +236,6 @@ class _StatsPopulated extends StatelessWidget {
                   ),
                 ],
               ),
-              // XP
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -507,7 +272,6 @@ class _StatsPopulated extends StatelessWidget {
 
         const SizedBox(height: ComebakLayout.spaceXxl * 1.5),
 
-        // LEDGER HEADER
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -531,9 +295,6 @@ class _StatsPopulated extends StatelessWidget {
         ),
         const SizedBox(height: ComebakLayout.spaceMd),
 
-        // LEDGER ROWS
-        // [COMMA FIX] Every highScore is now passed as int and formatted via _formatIndian.
-        // [COLOR FIX] Negative PB = Red, Highest PB = Green, Default = White.
         _buildLedgerRow(
           context,
           'Add Burst',
@@ -543,8 +304,10 @@ class _StatsPopulated extends StatelessWidget {
           () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) =>
-                  const AddBurstScreen(accentColor: ComebakColors.neonOrange),
+              builder: (_) => const AddBurstScreen(
+                accentColor: ComebakColors.neonOrange,
+                config: AddBurstConfig.standard,
+              ),
             ),
           ),
         ),
@@ -557,14 +320,16 @@ class _StatsPopulated extends StatelessWidget {
           () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) =>
-                  const MadBurstScreen(accentColor: ComebakColors.neonGreen),
+              builder: (_) => const MadBurstScreen(
+                accentColor: ComebakColors.neonGreen,
+                config: MadBurstConfig.standard,
+              ),
             ),
           ),
         ),
         _buildLedgerRow(
           context,
-          'BODMAS Burst',
+          'School Math',
           bodmasPb,
           const ComebakBodmasBurstIcon(size: ComebakLayout.spaceXxl),
           bodmasPb == maxPb && bodmasPb > 0,
@@ -573,27 +338,30 @@ class _StatsPopulated extends StatelessWidget {
             MaterialPageRoute(
               builder: (_) => const BodmasBurstScreen(
                 accentColor: ComebakColors.neonPurple,
+                config: BodmasBurstConfig.standard,
               ),
             ),
           ),
         ),
         _buildLedgerRow(
           context,
-          'Number Hunt',
+          'Small Burst',
           smallPb,
           const ComebakSmallBurstIcon(size: ComebakLayout.spaceXxl),
           smallPb == maxPb && smallPb > 0,
           () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) =>
-                  const NumberHuntScreen(accentColor: ComebakColors.neonBlue),
+              builder: (_) => const NumberHuntScreen(
+                accentColor: ComebakColors.neonBlue,
+                config: NumberHuntConfig.standard,
+              ),
             ),
           ),
         ),
         _buildLedgerRow(
           context,
-          'Devils Memory',
+          'Devil\'s Memory',
           devilsPb,
           const ComebakDevilsMemoryIcon(size: ComebakLayout.spaceXxl),
           devilsPb == maxPb && devilsPb > 0,
@@ -602,6 +370,7 @@ class _StatsPopulated extends StatelessWidget {
             MaterialPageRoute(
               builder: (_) => const DevilsMemoryScreen(
                 accentColor: ComebakColors.vibrantPink,
+                config: DevilsMemoryConfig.addition,
               ),
             ),
           ),
@@ -618,10 +387,6 @@ class _StatsPopulated extends StatelessWidget {
     bool isHighest,
     VoidCallback onTap,
   ) {
-    // [COLOR LOGIC]
-    // 1. Negative PB → Vibrant Red (penalty, losing)
-    // 2. Highest PB → Neon Green (achievement)
-    // 3. Default → White (neutral)
     final Color scoreColor;
     if (highScore < 0) {
       scoreColor = ComebakColors.vibrantRed;
@@ -656,7 +421,6 @@ class _StatsPopulated extends StatelessWidget {
                 ),
               ),
             ),
-            // [COMMA FIX] Indian numbering system applied here
             Text(
               _formatIndian(highScore),
               style: ComebakTypography.titleLarge.copyWith(
@@ -669,11 +433,24 @@ class _StatsPopulated extends StatelessWidget {
       ),
     );
   }
+
+  String _formatIndian(int number) {
+    final String sign = number < 0 ? '-' : '';
+    String str = number.abs().toString();
+    if (str.length <= 3) return '$sign$str';
+    final String lastThree = str.substring(str.length - 3);
+    String otherNumbers = str.substring(0, str.length - 3);
+    if (otherNumbers.length <= 2) return '$sign$otherNumbers,$lastThree';
+    String result = '';
+    for (int i = otherNumbers.length - 1; i >= 0; i--) {
+      result = otherNumbers[i] + result;
+      final int distanceFromEnd = otherNumbers.length - i;
+      if (distanceFromEnd.isEven && i != 0) result = ',$result';
+    }
+    return '$sign$result,$lastThree';
+  }
 }
 
-// ==============================================================================
-// [WIDGET] _StatsEmpty
-// ==============================================================================
 class _StatsEmpty extends StatelessWidget {
   const _StatsEmpty();
 
@@ -736,6 +513,7 @@ class _StatsEmpty extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => const NumberHuntScreen(
                         accentColor: ComebakColors.neonBlue,
+                        config: NumberHuntConfig.standard,
                       ),
                     ),
                   );
@@ -758,6 +536,7 @@ class _StatsEmpty extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => const BodmasBurstScreen(
                         accentColor: ComebakColors.neonPurple,
+                        config: BodmasBurstConfig.standard,
                       ),
                     ),
                   );
@@ -775,12 +554,8 @@ class _StatsEmpty extends StatelessWidget {
   }
 }
 
-// ==============================================================================
-// [WIDGET] _StatsSkeleton
-// ==============================================================================
 class _StatsSkeleton extends StatelessWidget {
   const _StatsSkeleton();
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -809,13 +584,9 @@ class _StatsSkeleton extends StatelessWidget {
   }
 }
 
-// ==============================================================================
-// [WIDGET] _StatsError
-// ==============================================================================
 class _StatsError extends StatelessWidget {
   final VoidCallback onRetry;
   const _StatsError({required this.onRetry});
-
   @override
   Widget build(BuildContext context) {
     return Center(

@@ -1,37 +1,56 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../../../core/games/configs/game_configs.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// [UI LAB TOKENS]
 import '../1_foundations/tokens/ui_lab_tokens.dart';
 import '../1_foundations/ui_lab_copy.dart';
 import '../1_foundations/ui_lab_haptics.dart';
 
+// [UI LAB ATOMS]
 import '../2_atoms/comebak_add_burst_icon.dart';
 import '../2_atoms/comebak_mad_burst_icon.dart';
 import '../2_atoms/comebak_bodmas_burst_icon.dart';
 import '../2_atoms/comebak_small_burst_icon.dart';
 import '../2_atoms/comebak_devils_memory_icon.dart';
+import 'auth_variants/layers/comebak_clay_logo.dart';
 
+// [UI LAB MOLECULES & ORGANISMS]
 import '../3_molecules/comebak_game_card.dart';
 import '../3_molecules/comebak_streak_card.dart';
 import '../4_organisms/comebak_header.dart';
 
+// [FLOWS]
 import 'profile_flow/comebak_profile_page.dart';
 import 'stats_flow/comebak_stats_page.dart';
 import 'streak_debug/streak_debug_panel.dart';
 import 'streak_debug/streak_debug_payload.dart';
 
+// [SSOT REPOSITORIES]
 import '../../../../core/stats/stats_repository.dart';
 import '../../../../core/profile/profile_repository.dart';
 
+// [SSOT GAME CONFIGS]
+import '../../../../core/games/configs/game_configs.dart';
+
+// [GAME SCREENS]
 import '../../../games/add_burst/add_burst_screen.dart';
 import '../../../games/mad_burst/mad_burst_screen.dart';
 import '../../../games/bodmas_burst/bodmas_burst_screen.dart';
 import '../../../games/number_hunt/number_hunt_screen.dart';
 import '../../../games/devils_memory/devils_memory_screen.dart';
 
+// ==============================================================================
+// [SCREEN] ComebakHomeFlow
+// ------------------------------------------------------------------------------
+// PURPOSE: The main authenticated landing screen.
+// FIXES APPLIED:
+// - Restored from atomic refactor corruption.
+// - Injected Clay Logo footer with "Experimenting in India" text.
+// - Removed the `if (streak > 0)` guard so "0 Days" always renders.
+// - Debug bug icon removed; debug panel accessible via long-press on greeting.
+// ==============================================================================
 class ComebakHomeFlow extends StatefulWidget {
   const ComebakHomeFlow({super.key});
 
@@ -41,8 +60,6 @@ class ComebakHomeFlow extends StatefulWidget {
 
 class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
   late Future<List<dynamic>> _dataFuture;
-
-  // [DEBUG] Overrides the real DB data if a payload is injected.
   StreakDebugPayload? _debugPayload;
 
   @override
@@ -54,10 +71,8 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
   void _loadData() {
     setState(() {
       if (_debugPayload != null) {
-        // Return mock data instantly for UI testing
         _dataFuture = Future.value([null, null]);
       } else {
-        // Fetch real data from Supabase (uses in-memory cache)
         _dataFuture = Future.wait([
           StatsRepository(Supabase.instance.client).getUserStats(),
           ProfileRepository(Supabase.instance.client).getProfile(),
@@ -66,18 +81,13 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
     });
   }
 
-  /// [INDIAN NUMBER FORMATTER]
-  /// Converts 1471 -> "1,471", 147100 -> "1,47,100", -15 -> "-15".
   String _formatIndian(int number) {
     final String sign = number < 0 ? '-' : '';
     String str = number.abs().toString();
     if (str.length <= 3) return '$sign$str';
-
     final String lastThree = str.substring(str.length - 3);
     String otherNumbers = str.substring(0, str.length - 3);
-
     if (otherNumbers.length <= 2) return '$sign$otherNumbers,$lastThree';
-
     String result = '';
     for (int i = otherNumbers.length - 1; i >= 0; i--) {
       result = otherNumbers[i] + result;
@@ -93,6 +103,7 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
       backgroundColor: ComebakColors.canvas,
       body: Stack(
         children: [
+          // [CREATIVE BG] Soft green atmospheric glow
           Positioned(
             top: ComebakLayout.offsetBgGlow.dy,
             right: ComebakLayout.offsetBgGlow.dx,
@@ -118,6 +129,7 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 1. [ORGANISM] Header
                   ComebakHeader(
                     onProfileTap: () => Navigator.push(
                       context,
@@ -128,8 +140,7 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                   ),
                   const SizedBox(height: ComebakLayout.spaceXxl),
 
-                  // 1. [GREETING] Time-Based Logic
-                  // Long-press to open the Debug Panel
+                  // 2. [GREETING] Long-press to open Debug Panel
                   GestureDetector(
                     onLongPress: kDebugMode
                         ? () async {
@@ -145,15 +156,14 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                         : null,
                     child: _buildGreeting(),
                   ),
-
                   const SizedBox(height: ComebakLayout.spaceSm),
                   Text(
-                    "Giving up should not be an option 🚀",
+                    ComebakCopy.greetingSubtitle,
                     style: ComebakTypography.greetingSubtitle,
                   ),
                   const SizedBox(height: ComebakLayout.spaceXxl),
 
-                  // 2. [STREAK CARD] Async Data Resolution
+                  // 3. [STREAK CARD] Async Data Resolution
                   FutureBuilder<List<dynamic>>(
                     future: _dataFuture,
                     builder: (context, snapshot) {
@@ -163,7 +173,6 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                       if (snapshot.hasError) {
                         return _StreakCardError(onRetry: _loadData);
                       }
-
                       return _buildStreakCard(
                         snapshot.data?[0] as Map<String, dynamic>?,
                         snapshot.data?[1] as Map<String, dynamic>?,
@@ -171,8 +180,8 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                     },
                   ),
                   const SizedBox(height: ComebakLayout.spaceXxl),
-
-                  // 3. [GAMES GRID]
+                  const SizedBox(height: ComebakLayout.spaceXs),
+                  // 4. [GAMES GRID]
                   Row(
                     children: [
                       Container(
@@ -189,7 +198,7 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: ComebakLayout.spaceLg),
+                  const SizedBox(height: ComebakLayout.spaceXl),
 
                   // ROW 1
                   Row(
@@ -322,6 +331,43 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                     ],
                   ),
                   const SizedBox(height: ComebakLayout.spaceXxl * 2),
+
+                  // 5. [FOOTER] Version + Experimenting in India
+                  Center(
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(
+                              width: ComebakLayout.spaceXl,
+                              height: ComebakLayout.spaceXl,
+                              child: FittedBox(
+                                fit: BoxFit.contain,
+                                child: ComebakClayLogo(
+                                  pose: 4,
+                                  time: 0,
+                                  enableSparks: false,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: ComebakLayout.spaceXs),
+                            Text(
+                              'Comebak - Your Comeback',
+                              style: ComebakTypography.greetingSubtitle
+                                  .copyWith(
+                                    color: ComebakColors.neonGreen.withValues(
+                                      alpha: 0.8,
+                                    ),
+                                  ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: ComebakLayout.spaceXs),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: ComebakLayout.spaceXxl * 2),
                 ],
               ),
             ),
@@ -332,7 +378,7 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
   }
 
   // ============================================================================
-  // [GREETING BUILDER] - Includes the exclamation mark as requested
+  // [GREETING BUILDER]
   // ============================================================================
   Widget _buildGreeting() {
     DateTime now = DateTime.now();
@@ -363,13 +409,12 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
   }
 
   // ============================================================================
-  // [STREAK CARD BUILDER] - The Locked State Engine
+  // [STREAK CARD BUILDER]
   // ============================================================================
   Widget _buildStreakCard(
     Map<String, dynamic>? statsData,
     Map<String, dynamic>? profileData,
   ) {
-    // 1. Data Extraction (Debug Payload vs Real DB)
     final int totalGames =
         _debugPayload?.totalGames ?? statsData?['total_games'] as int? ?? 0;
     final int totalXp =
@@ -377,7 +422,6 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
     final int streak =
         _debugPayload?.streak ?? profileData?['current_streak'] as int? ?? 0;
 
-    // 2. Time Context
     DateTime now = DateTime.now();
     if (_debugPayload?.debugNow != null) {
       now = DateTime.parse(_debugPayload!.debugNow!).toLocal();
@@ -386,7 +430,6 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
     final int hour = now.hour;
     final int minute = now.minute;
 
-    // 3. Played Today / Yesterday Detection
     DateTime? lastPlayed;
     final rawLastPlayed =
         _debugPayload?.lastPlayedAt ??
@@ -411,7 +454,6 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
           lastPlayed.day == yesterday.day;
     }
 
-    // 4. Delta XP String & Color
     final int deltaXp = playedToday
         ? (_debugPayload?.deltaXpToday ??
               statsData?['delta_xp_today'] as int? ??
@@ -443,52 +485,43 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
       }
     }
 
-    // 5. State Resolution Variables
     String title = "";
     String subtitle = "";
     IconData icon = LucideIcons.flame;
     Color iconColor = ComebakColors.neonOrange;
     bool showXpRow = true;
 
-    // Total XP colors
     final bool isNegativeXp = totalXp < 0;
     final Color totalXpTextColor = ComebakColors.textPrimary;
     final Color totalXpIconColor = isNegativeXp
         ? ComebakColors.vibrantRed
         : ComebakColors.neonGreen;
 
-    // 6. The State Machine
     if (totalGames == 0) {
-      // STATE S1 — FIRST TIME
       title = "Ready to start?";
       subtitle = "Your first game awaits.";
       icon = LucideIcons.sparkles;
       iconColor = ComebakColors.neonGreen;
       showXpRow = false;
     } else if (streak == 0) {
-      // STATE S11/S12 — BROKEN / FUMBLED
       title = "Fumbled! Time to Comebak.";
       subtitle = "Bounce Back, Start Fresh!";
       icon = LucideIcons.rotate_ccw;
       iconColor = ComebakColors.textSecondary;
       showXpRow = true;
     } else {
-      // ONGOING STREAK (streak > 0)
       if (playedToday) {
-        // STATE S2–S8 — ONGOING, PLAYED TODAY
         title = "$streak ${streak == 1 ? 'Day' : 'Days'} Streak";
         icon = LucideIcons.flame;
         iconColor = ComebakColors.neonOrange;
 
         if (totalGames == 1 && streak == 1) {
-          // First ever game
           if (deltaXp > 0) {
             subtitle = "Great start. Comebak soon!";
           } else {
             subtitle = "Just a start, long way to go!";
           }
         } else {
-          // Milestone brackets
           if (streak <= 6) {
             subtitle = "Yes!!! This time its personal";
           } else if (streak <= 13) {
@@ -506,22 +539,18 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
           }
         }
       } else {
-        // STATE S9/S10 — ONGOING, NOT PLAYED TODAY
         if (hour < 18) {
-          // S9: MAINTAIN MOMENTUM (Before 6 PM)
           title = "Maintain Momentum!";
           subtitle = "60s all it takes, do it!";
           icon = LucideIcons.flame;
           iconColor = ComebakColors.neonOrange;
         } else if (hour >= 18 && hour < 23) {
-          // S10: CRITICAL HOURS (6 PM to 11 PM)
           final int hoursLeft = 23 - hour;
           title = "$streak ${streak == 1 ? 'Day' : 'Days'} at risk";
           subtitle = "⏳ ${hoursLeft}h left to save your streak!";
           icon = LucideIcons.hourglass;
           iconColor = ComebakColors.vibrantRed;
         } else {
-          // S10: CRITICAL MINUTES (After 11 PM)
           final int minsLeft = 60 - minute;
           title = "$streak ${streak == 1 ? 'Day' : 'Days'} at risk";
           subtitle =

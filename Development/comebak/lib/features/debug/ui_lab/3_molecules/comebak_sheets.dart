@@ -9,7 +9,10 @@ import 'comebak_bottom_sheet.dart';
 // [MOLECULE] ComebakLogoutSheet
 // ------------------------------------------------------------------------------
 // PURPOSE: Asks the user to confirm logging out.
-// ARCHITECTURE: Uses the ComebakButton atom for consistent styling.
+// FIXES APPLIED:
+// - Upgraded title from titleLarge to brand (larger, bolder).
+// - Upgraded body text from bodyMedium to titleMedium.
+// - Buttons untouched.
 // ==============================================================================
 class ComebakLogoutSheet extends StatelessWidget {
   const ComebakLogoutSheet({super.key});
@@ -20,31 +23,31 @@ class ComebakLogoutSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(ComebakCopy.logoutTitle, style: ComebakTypography.titleLarge),
+          // [FONT UPGRADE]
+          Text(ComebakCopy.logoutTitle, style: ComebakTypography.brand),
           const SizedBox(height: ComebakLayout.spaceSm),
-          
-          // [TEXT] Using RichText to highlight the brand name "Comebak" in Green.
+
           RichText(
             text: TextSpan(
-              style: ComebakTypography.bodyMedium,
+              // [FONT UPGRADE]
+              style: ComebakTypography.titleMedium,
               children: [
                 TextSpan(text: ComebakCopy.logoutSubtitlePart1),
                 TextSpan(
                   text: ComebakCopy.logoutSubtitleHighlight,
-                  style: ComebakTypography.bodyMedium.copyWith(
+                  style: ComebakTypography.titleMedium.copyWith(
                     color: ComebakColors.neonGreen,
-                    fontWeight: FontWeight.w700, // Optional: make it bold
+                    fontWeight: FontWeight.w800, // Made bolder to pop
                   ),
                 ),
                 TextSpan(text: ComebakCopy.logoutSubtitlePart2),
               ],
             ),
           ),
-          
+
           const SizedBox(height: ComebakLayout.spaceXl),
           Row(
             children: [
-              // [LOGOUT ON LEFT] White font
               Expanded(
                 child: ComebakButton(
                   text: ComebakCopy.btnLogout,
@@ -53,7 +56,6 @@ class ComebakLogoutSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: ComebakLayout.spaceMd),
-              // [CANCEL ON RIGHT] Red font
               Expanded(
                 child: ComebakButton(
                   text: ComebakCopy.btnCancel,
@@ -73,7 +75,10 @@ class ComebakLogoutSheet extends StatelessWidget {
 // [MOLECULE] ComebakEditNameSheet
 // ------------------------------------------------------------------------------
 // PURPOSE: Allows the user to update their display name.
-// ARCHITECTURE: Contains local state for the TextField, validation, and error text.
+// FIXES APPLIED:
+// - Upgraded title from titleLarge to brand.
+// - Upgraded input text and hints from bodyMedium to titleMedium.
+// - Upgraded error text from labelSmall to bodyMedium.
 // ==============================================================================
 class ComebakEditNameSheet extends StatefulWidget {
   final String? initialName;
@@ -104,12 +109,12 @@ class _ComebakEditNameSheetState extends State<ComebakEditNameSheet> {
   void _validate(String val) {
     final trimmed = val.trim();
     String? err;
-    // [VALIDATION] Only letters, numbers, underscores.
     if (trimmed.isNotEmpty && !RegExp(r'^[A-Za-z0-9_]+$').hasMatch(trimmed)) {
       err = ComebakCopy.editNameError;
     }
     _errorText = err;
-    _isValid = trimmed.isNotEmpty &&
+    _isValid =
+        trimmed.isNotEmpty &&
         trimmed != (widget.initialName ?? '').trim() &&
         err == null;
   }
@@ -120,25 +125,35 @@ class _ComebakEditNameSheetState extends State<ComebakEditNameSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(ComebakCopy.editNameTitle, style: ComebakTypography.titleLarge),
+          // [FONT UPGRADE]
+          Text(ComebakCopy.editNameTitle, style: ComebakTypography.brand),
           const SizedBox(height: ComebakLayout.spaceLg),
           TextField(
             controller: _controller,
             autofocus: true,
-            style: ComebakTypography.bodyMedium.copyWith(color: ComebakColors.textPrimary),
+            // [FONT UPGRADE]
+            style: ComebakTypography.titleMedium.copyWith(
+              color: ComebakColors.textPrimary,
+            ),
             inputFormatters: [LengthLimitingTextInputFormatter(20)],
             onChanged: (val) => setState(() => _validate(val)),
             decoration: InputDecoration(
               hintText: ComebakCopy.editNameHint,
-              hintStyle: ComebakTypography.bodyMedium,
+              // [FONT UPGRADE]
+              hintStyle: ComebakTypography.titleMedium.copyWith(
+                color: ComebakColors.textSecondary,
+              ),
               filled: true,
               fillColor: ComebakColors.surfaceElevated,
               errorText: _errorText,
               errorMaxLines: 2,
-              errorStyle: ComebakTypography.labelSmall.copyWith(color: ComebakColors.vibrantRed),
+              // [FONT UPGRADE]
+              errorStyle: ComebakTypography.bodyMedium.copyWith(
+                color: ComebakColors.vibrantRed,
+              ),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: ComebakLayout.spaceLg, 
-                vertical: ComebakLayout.spaceMd
+                horizontal: ComebakLayout.spaceLg,
+                vertical: ComebakLayout.spaceMd,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(ComebakLayout.radiusMd),
@@ -149,7 +164,6 @@ class _ComebakEditNameSheetState extends State<ComebakEditNameSheet> {
           const SizedBox(height: ComebakLayout.spaceXl),
           Row(
             children: [
-              // [CANCEL ON LEFT] White font
               Expanded(
                 child: ComebakButton(
                   text: ComebakCopy.btnCancel,
@@ -158,11 +172,12 @@ class _ComebakEditNameSheetState extends State<ComebakEditNameSheet> {
                 ),
               ),
               const SizedBox(width: ComebakLayout.spaceMd),
-              // [SAVE ON RIGHT] Green font (Valid) or Muted Green (Invalid)
               Expanded(
                 child: ComebakButton(
                   text: ComebakCopy.btnSave,
-                  variant: _isValid ? ComebakButtonVariant.success : ComebakButtonVariant.successMuted,
+                  variant: _isValid
+                      ? ComebakButtonVariant.success
+                      : ComebakButtonVariant.successMuted,
                   onPressed: _isValid
                       ? () => Navigator.pop(context, _controller.text.trim())
                       : null,

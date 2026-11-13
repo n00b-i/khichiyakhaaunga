@@ -7,7 +7,8 @@ class ComebakCopy {
   static const String brand = 'Comebak';
   static const String greetingPrefix = 'Good ';
   static const String greetingHighlight = 'evening!';
-  static const String greetingSubtitle = 'Giving up should not be an option 🚀';
+  static const String greetingSubtitle =
+      'Nobody believes in you until you do 🚀';
 
   // Game Cards
   static const String navProfile = 'Navigate to Profile';

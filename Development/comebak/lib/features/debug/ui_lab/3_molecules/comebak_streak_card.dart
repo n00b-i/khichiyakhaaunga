@@ -8,14 +8,8 @@ import '../2_atoms/comebak_xp_icon.dart';
 // [MOLECULE] ComebakStreakCard
 // ------------------------------------------------------------------------------
 // PURPOSE: Renders the streak status, title, subtitle, and XP data.
-// ARCHITECTURE:
-//   - The icon is a 3D Clay Flame IF the state engine passes a flame icon.
-//     Otherwise, it falls back to a standard flat Lucide icon.
-//   - The icon container has NO BoxDecoration (no square box/background).
-//   - The subtitle uses maxLines: 1 + ellipsis to prevent layout overflow
-//     on long strings (e.g., "No compromise on consistency!") at high font scales.
-//   - Total XP text and icon colors are driven by separate parameters
-//     (totalXpColor, totalXpIconColor) to handle the green/red logic correctly.
+// FIXES APPLIED:
+// - Added a right-aligned chevron icon in the header to indicate clickability.
 // ==============================================================================
 class ComebakStreakCard extends StatelessWidget {
   final String title;
@@ -60,7 +54,6 @@ class ComebakStreakCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // [ICON] 3D Flame vs Flat Lucide
-              // NO decoration, background, or border radius on this container.
               SizedBox(
                 width: ComebakLayout.iconBoxPrimary,
                 height: ComebakLayout.iconBoxPrimary,
@@ -98,6 +91,14 @@ class ComebakStreakCard extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              // [AFFORDANCE] Right Chevron
+              // Indicates the card is tappable and navigates to Stats.
+              const SizedBox(width: ComebakLayout.spaceSm),
+              const Icon(
+                LucideIcons.chevron_right,
+                color: ComebakColors.textSecondary,
+                size: ComebakLayout.spaceXl,
               ),
             ],
           ),
