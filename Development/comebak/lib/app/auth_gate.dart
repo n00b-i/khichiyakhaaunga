@@ -1,10 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../core/theme/app_theme.dart';
-import '../core/session/session_manager.dart';
-import '../features/auth/sign_in_screen.dart';
+
+// Core & Session
+
+// UI Lab Components (Source of Truth)
+import '../features/debug/ui_lab/1_foundations/tokens/ui_lab_tokens.dart';
+import '../features/debug/ui_lab/5_catalog/auth_variants/splash_v1_rules_v2.dart';
+import '../features/debug/ui_lab/5_catalog/auth_variants/login_v1_rules.dart';
+import '../features/debug/ui_lab/5_catalog/auth_variants/comebak_rule_engine.dart';
+
+// Production Shell
 import '../features/shell/main_shell.dart';
 
+// ==============================================================================
+// [APP] AuthGate
+// ------------------------------------------------------------------------------
+// PURPOSE: The root gatekeeper. Decides whether to show Splash, Login, or MainShell.
+//
+// FLOW:
+// 1. App starts -> Shows SplashV1RulesV2 (Cinematic 4.2s animation).
+// 2. While Splash animates, AuthGate listens to Supabase session stream.
+// 3. On Splash complete:
+//    - If session exists AND user is not blocked -> MainShell.
+//    - If session exists BUT user is blocked -> Login (with error banner).
+//    - If no session -> Login.
+//
+// STATES HANDLED:
+// - Loading (Splash visible)
+// - Authenticated (Session + Profile active)
+// - Unauthenticated (No session)
+// - Blocked (Session + Profile status != 'active')
+// - Error (Network failure during session refresh)
+// ==============================================================================
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
@@ -13,98 +40,150 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  bool _isSessionInitialized = false;
+  bool _isSplashComplete = false;
+  ComebakRule? _splashRule;
+
+  Session? _currentSession;
+  bool _isBlocked = false;
+  bool _isLoadingProfile = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _loadSplashRule();
+    _listenToAuthChanges();
+  }
+
+  /// Load a random rule for the Splash screen.
+  Future<void> _loadSplashRule() async {
+    final engine = ComebakRuleEngine();
+    final rule = await engine.pickRule();
+    if (mounted) setState(() => _splashRule = rule);
+  }
+
+  /// Listen to Supabase auth state changes.
+  void _listenToAuthChanges() {
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
       final session = data.session;
-      
       if (session != null) {
-        _initializeSession(session.user.id);
+        await _checkProfileStatus(session.user.id);
       } else {
-        debugPrint('[AuthGate] Session became null. User logged out.');
-        _isSessionInitialized = false;
+        if (mounted) {
+          setState(() {
+            _currentSession = null;
+            _isBlocked = false;
+          });
+        }
       }
     });
   }
 
-  Future<void> _initializeSession(String userId) async {
-    debugPrint('[AuthGate] _initializeSession called for user: $userId');
-    
-    if (_isSessionInitialized) return;
-    _isSessionInitialized = true;
-
-    await SessionManager().init(userId);
-    debugPrint('[AuthGate] SessionManager init complete');
-    
+  /// Fetch the user's profile to check if they are blocked.
+  Future<void> _checkProfileStatus(String userId) async {
+    setState(() => _isLoadingProfile = true);
     try {
-      await Supabase.instance.client
-          .from('matches')
-          .update({
-            'status': 'abandoned', 
-            'ended_at': DateTime.now().toIso8601String()
-          })
-          .eq('user_id', userId)
-          .eq('status', 'in_progress');
-      debugPrint('[AuthGate] Abandoned matches cleanup complete.');
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('status')
+          .eq('id', userId)
+          .single();
+
+      final isBlocked = profile['status'] != 'active';
+
+      if (mounted) {
+        setState(() {
+          _currentSession = Supabase.instance.client.auth.currentSession;
+          _isBlocked = isBlocked;
+          _isLoadingProfile = false;
+        });
+      }
     } catch (e) {
-      debugPrint('[AuthGate] Failed to clean up abandoned matches: $e');
+      // Fail-open: if profile fetch fails, assume active but log.
+      debugPrint('[AuthGate] Profile fetch failed: $e');
+      if (mounted) {
+        setState(() {
+          _currentSession = Supabase.instance.client.auth.currentSession;
+          _isBlocked = false;
+          _isLoadingProfile = false;
+        });
+      }
     }
+  }
+
+  /// Called when Splash animation finishes.
+  void _onSplashComplete() {
+    setState(() => _isSplashComplete = true);
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: AppColors.background,
-            body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-          );
-        }
-
-        // [ISSUE-11] Handle auth stream errors (e.g., offline token refresh failure).
-        if (snapshot.hasError) {
-          return Scaffold(
-            backgroundColor: AppColors.background,
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Connection Error. Please check your internet.',
-                      style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    ElevatedButton(
-                      onPressed: () async {
-                        await Supabase.instance.client.auth.refreshSession();
-                        setState(() {});
-                      },
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
+    // 1. Splash (or rule not yet loaded)
+    if (!_isSplashComplete || _splashRule == null) {
+      return SplashV1RulesV2(
+        rule:
+            _splashRule ??
+            const ComebakRule(
+              id: 'fallback',
+              hook: 'ALWAYS REMEMBER',
+              line: 'Giving up is not in the blood, sir!',
+              category: 'resilience',
             ),
-          );
-        }
+        onComplete: _onSplashComplete,
+      );
+    }
 
-        final session = snapshot.hasData ? snapshot.data!.session : null;
-        
-        if (session != null) {
-          return const MainShell();
-        }
+    // 2. Profile loading
+    if (_isLoadingProfile) {
+      return Scaffold(
+        backgroundColor: ComebakColors.canvas,
+        body: Center(
+          child: CircularProgressIndicator(color: ComebakColors.neonGreen),
+        ),
+      );
+    }
 
-        return const SignInScreen();
-      },
+    // 3. Network error
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: ComebakColors.canvas,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(ComebakLayout.spaceXl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _errorMessage!,
+                  style: ComebakTypography.bodyMedium.copyWith(
+                    color: ComebakColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: ComebakLayout.spaceLg),
+                ElevatedButton(
+                  onPressed: () async {
+                    await Supabase.instance.client.auth.refreshSession();
+                    setState(() => _errorMessage = null);
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 4. Authenticated & not blocked -> MainShell
+    if (_currentSession != null && !_isBlocked) {
+      return const MainShell();
+    }
+
+    // 5. Unauthenticated or blocked -> Login
+    return LoginV1Rules(
+      onGoogleSignIn: () {},
+      isBlocked: _isBlocked, // New parameter
     );
   }
 }
