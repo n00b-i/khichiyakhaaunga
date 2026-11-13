@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="2000" height="2000">
+  <defs>
+    <radialGradient id="fog" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1200">
+      <stop offset="0%"  stop-color="#00E676" stop-opacity="0.32"/>
+      <stop offset="12%" stop-color="#00E676" stop-opacity="0.18"/>
+      <stop offset="30%" stop-color="#00C853" stop-opacity="0.07"/>
+      <stop offset="55%" stop-color="#00C853" stop-opacity="0.02"/>
+      <stop offset="80%" stop-color="#0B0F19" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leftBolt" gradientUnits="userSpaceOnUse" x1="40" y1="40" x2="260" y2="360">
+      <stop offset="0%" stop-color="#00E676"/>
+      <stop offset="100%" stop-color="#00C853"/>
+    </linearGradient>
+    <linearGradient id="rightBolt" gradientUnits="userSpaceOnUse" x1="40" y1="40" x2="260" y2="360">
+      <stop offset="0%" stop-color="#69F0AE"/>
+      <stop offset="100%" stop-color="#00E676"/>
+    </linearGradient>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@800&amp;display=swap');
+      .wordmark {
+        font-family: 'Urbanist', 'Inter', system-ui, -apple-system, sans-serif;
+        font-weight: 800;
+        font-size: 150px;
+        letter-spacing: -2.7px;
+        fill: #FFFFFF;
+      }
+    </style>
+  </defs>
+
+  <rect width="1000" height="1000" fill="#0B0F19"/>
+  <rect width="1000" height="1000" fill="url(#fog)"/>
+
+  <text x="500" y="200" text-anchor="middle" class="wordmark">Comebak</text>
+
+  <g transform="translate(500,575) scale(11.0) translate(-28,-36)">
+    <g transform="translate(28,36) rotate(45) scale(1,-1) translate(-28,-36)">
+      <g transform="scale(0.1866666667)">
+        <g transform="translate(6,6)">
+          <path d="M80 40 L140 200 L100 200 L150 360 L60 220 L100 220 L40 100 Z" fill="#003D16"/>
+        </g>
+        <g transform="translate(7.2,7.2)">
+          <path d="M220 40 L160 200 L200 200 L150 360 L240 220 L200 220 L260 100 Z" fill="#003D16"/>
+        </g>
+        <path d="M80 40 L140 200 L100 200 L150 360 L60 220 L100 220 L40 100 Z" fill="url(#leftBolt)"/>
+        <path d="M220 40 L160 200 L200 200 L150 360 L240 220 L200 220 L260 100 Z" fill="url(#rightBolt)"/>
+      </g>
+    </g>
+  </g>
+</svg>
