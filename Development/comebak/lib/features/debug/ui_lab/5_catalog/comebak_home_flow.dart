@@ -45,11 +45,30 @@ import '../../../games/devils_memory/devils_memory_screen.dart';
 // [SCREEN] ComebakHomeFlow
 // ------------------------------------------------------------------------------
 // PURPOSE: The main authenticated landing screen.
-// FIXES APPLIED:
-// - Restored from atomic refactor corruption.
-// - Injected Clay Logo footer with "Experimenting in India" text.
-// - Removed the `if (streak > 0)` guard so "0 Days" always renders.
-// - Debug bug icon removed; debug panel accessible via long-press on greeting.
+//
+// DATA FLOW (SSOT):
+//   - totalGames / totalXp  -> user_stats (total_xp is authoritative)
+//   - streak                -> profiles.current_streak
+//   - today / yesterday XP  -> computed from matches:
+//                              xp_per_match = floor(score / 10)
+//                              today_xp    = Σ xp_per_match where ended_at is today
+//                              yesterday_xp = Σ xp_per_match where ended_at is yesterday
+//
+// XP FORMULA (locked):
+//   `score ~/ 10` per match, then summed. NOT flat-summed then divided —
+//   per-match floor loses fractional XP on scores not divisible by 10, which
+//   is exactly how the DB trigger populates user_stats.total_xp. Using this
+//   formula keeps Home card and Stats page within 0 of each other.
+//
+// TIMEZONE:
+//   The DB trigger uses `Asia/Kolkata` for the "today" boundary. This widget
+//   uses the device's local time. For Indian users these are identical.
+//   If you ship to non-IST regions, swap `DateTime.now()` for an explicit
+//   IST conversion here. Not needed for MVP.
+//
+// REFRESH:
+//   - Every game screen is awaited; when the user pops back, _loadData() re-runs.
+//   - Profile cache is cleared in GameRepository.endMatch() so streak is fresh.
 // ==============================================================================
 class ComebakHomeFlow extends StatefulWidget {
   const ComebakHomeFlow({super.key});
@@ -59,8 +78,12 @@ class ComebakHomeFlow extends StatefulWidget {
 }
 
 class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
-  late Future<List<dynamic>> _dataFuture;
+  late Future<_HomeData> _dataFuture;
   StreakDebugPayload? _debugPayload;
+
+  // [XP FORMULA] Single source of truth — if the DB formula ever changes,
+  // change this one constant and both sides stay in sync.
+  static const int _scoreToXpDivisor = 10;
 
   @override
   void initState() {
@@ -68,19 +91,89 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
     _loadData();
   }
 
+  /// Central loader. Debug payload short-circuits the network path so QA can
+  /// preview every state without touching the DB.
   void _loadData() {
     setState(() {
-      if (_debugPayload != null) {
-        _dataFuture = Future.value([null, null]);
-      } else {
-        _dataFuture = Future.wait([
-          StatsRepository(Supabase.instance.client).getUserStats(),
-          ProfileRepository(Supabase.instance.client).getProfile(),
-        ]);
-      }
+      _dataFuture = _debugPayload != null
+          ? Future.value(_HomeData.fromDebug(_debugPayload!))
+          : _fetchHomeData();
     });
   }
 
+  /// Fetches stats + profile in parallel, then derives today/yesterday XP from
+  /// the matches table. Per-match XP uses `score ~/ 10` (floor) to match the
+  /// DB trigger exactly. If the matches query fails (offline), deltas fall
+  /// back to 0 so the card never shows a stale fake number.
+  Future<_HomeData> _fetchHomeData() async {
+    final client = Supabase.instance.client;
+
+    final results = await Future.wait([
+      StatsRepository(client).getUserStats(),
+      ProfileRepository(client).getProfile(),
+    ]);
+
+    final stats = results[0] as Map<String, dynamic>?;
+    final profile = results[1] as Map<String, dynamic>?;
+
+    DateTime now = DateTime.now();
+    if (_debugPayload?.debugNow != null) {
+      now = DateTime.parse(_debugPayload!.debugNow!).toLocal();
+    }
+
+    final startToday = DateTime(now.year, now.month, now.day);
+    final startYesterday = startToday.subtract(const Duration(days: 1));
+
+    int todayXp = 0;
+    int yesterdayXp = 0;
+    bool playedToday = false;
+    bool playedYesterday = false;
+
+    final userId = client.auth.currentUser?.id;
+    if (userId != null) {
+      try {
+        final rows = await client
+            .from('matches')
+            .select('score, ended_at')
+            .eq('user_id', userId)
+            .eq('status', 'completed')
+            .gte('ended_at', startYesterday.toUtc().toIso8601String())
+            .order('ended_at', ascending: false);
+
+        for (final row in (rows as List)) {
+          final ended = DateTime.parse(row['ended_at'] as String).toLocal();
+          final rawScore = (row['score'] as int?) ?? 0;
+          // [XP FORMULA] Per-match floor. Do NOT change to `sum(score) ~/ 10`
+          // — that loses accuracy because floor is not distributive over sum.
+          final matchXp = rawScore ~/ _scoreToXpDivisor;
+
+          if (!ended.isBefore(startToday)) {
+            todayXp += matchXp;
+            playedToday = true;
+          } else if (!ended.isBefore(startYesterday)) {
+            yesterdayXp += matchXp;
+            playedYesterday = true;
+          }
+        }
+      } catch (e) {
+        // Offline / query failed: leave deltas at 0. totalXp still comes from
+        // the cached user_stats row, so the left side remains correct.
+        debugPrint('[HomeFlow] Failed to derive today/yesterday XP: $e');
+      }
+    }
+
+    return _HomeData(
+      stats: stats,
+      profile: profile,
+      todayXp: todayXp,
+      yesterdayXp: yesterdayXp,
+      playedToday: playedToday,
+      playedYesterday: playedYesterday,
+    );
+  }
+
+  /// Indian comma grouping (1,25,000). Kept local because only the Home card
+  /// uses it; Stats page has its own formatter.
   String _formatIndian(int number) {
     final String sign = number < 0 ? '-' : '';
     String str = number.abs().toString();
@@ -164,7 +257,7 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                   const SizedBox(height: ComebakLayout.spaceXxl),
 
                   // 3. [STREAK CARD] Async Data Resolution
-                  FutureBuilder<List<dynamic>>(
+                  FutureBuilder<_HomeData>(
                     future: _dataFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -173,14 +266,12 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
                       if (snapshot.hasError) {
                         return _StreakCardError(onRetry: _loadData);
                       }
-                      return _buildStreakCard(
-                        snapshot.data?[0] as Map<String, dynamic>?,
-                        snapshot.data?[1] as Map<String, dynamic>?,
-                      );
+                      return _buildStreakCard(snapshot.data!);
                     },
                   ),
                   const SizedBox(height: ComebakLayout.spaceXxl),
                   const SizedBox(height: ComebakLayout.spaceXs),
+
                   // 4. [GAMES GRID]
                   Row(
                     children: [
@@ -410,59 +501,38 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
 
   // ============================================================================
   // [STREAK CARD BUILDER]
+  // ----------------------------------------------------------------------------
+  // SSOT RULE:
+  //   - totalGames / totalXp  -> data.stats (from user_stats — authoritative)
+  //   - streak                -> data.profile
+  //   - today / yesterday XP  -> data.todayXp / data.yesterdayXp
+  //                              (already XP, not raw score — conversion happened
+  //                               in _fetchHomeData with floor(score/10))
+  //   - played flags          -> data.playedToday / data.playedYesterday
+  // No column named delta_xp_* is trusted here; those are legacy/optional.
   // ============================================================================
-  Widget _buildStreakCard(
-    Map<String, dynamic>? statsData,
-    Map<String, dynamic>? profileData,
-  ) {
+  Widget _buildStreakCard(_HomeData data) {
     final int totalGames =
-        _debugPayload?.totalGames ?? statsData?['total_games'] as int? ?? 0;
+        _debugPayload?.totalGames ?? data.stats?['total_games'] as int? ?? 0;
     final int totalXp =
-        _debugPayload?.totalXp ?? statsData?['total_xp'] as int? ?? 0;
+        _debugPayload?.totalXp ?? data.stats?['total_xp'] as int? ?? 0;
     final int streak =
-        _debugPayload?.streak ?? profileData?['current_streak'] as int? ?? 0;
+        _debugPayload?.streak ?? data.profile?['current_streak'] as int? ?? 0;
 
     DateTime now = DateTime.now();
     if (_debugPayload?.debugNow != null) {
       now = DateTime.parse(_debugPayload!.debugNow!).toLocal();
     }
-
     final int hour = now.hour;
     final int minute = now.minute;
 
-    DateTime? lastPlayed;
-    final rawLastPlayed =
-        _debugPayload?.lastPlayedAt ??
-        statsData?['last_played_at'] as String? ??
-        profileData?['last_played_at'] as String?;
+    final bool playedToday = data.playedToday;
+    final bool playedYesterday = data.playedYesterday;
+    final int deltaXp = playedToday ? data.todayXp : data.yesterdayXp;
 
-    if (rawLastPlayed != null) {
-      lastPlayed = DateTime.parse(rawLastPlayed).toLocal();
-    }
-
-    bool playedToday = false;
-    bool playedYesterday = false;
-    if (lastPlayed != null) {
-      playedToday =
-          lastPlayed.year == now.year &&
-          lastPlayed.month == now.month &&
-          lastPlayed.day == now.day;
-      final yesterday = now.subtract(const Duration(days: 1));
-      playedYesterday =
-          lastPlayed.year == yesterday.year &&
-          lastPlayed.month == yesterday.month &&
-          lastPlayed.day == yesterday.day;
-    }
-
-    final int deltaXp = playedToday
-        ? (_debugPayload?.deltaXpToday ??
-              statsData?['delta_xp_today'] as int? ??
-              0)
-        : (_debugPayload?.deltaXpYesterday ??
-              statsData?['delta_xp_yesterday'] as int? ??
-              0);
-
-    String deltaText = "0 XP Today";
+    // [DELTA TEXT] Neutral by default; positive/negative only when a session
+    // actually exists. This prevents "0 XP" from looking green when idle.
+    String deltaText = ComebakCopy.xpTodayNeutral;
     Color deltaColor = ComebakColors.textSecondary;
 
     if (playedToday) {
@@ -580,28 +650,87 @@ class _ComebakHomeFlowState extends State<ComebakHomeFlow> {
     );
   }
 
+  /// Wraps every game card so that returning from a game triggers a reload.
+  /// Without this the card would still show yesterday's numbers until restart.
   Widget _gameCard(
     String title,
     String subtitle,
     Color color,
     Widget icon,
-    VoidCallback onTap,
+    Future<dynamic> Function() onTap,
   ) {
     return ComebakGameCard(
       title: title,
       subtitle: subtitle,
       accentColor: color,
-      onTap: () {
+      onTap: () async {
         ComebakHaptics.tap();
-        onTap();
+        await onTap();
+        if (mounted) _loadData();
       },
       iconWidget: icon,
     );
   }
 }
 
+// ------------------------------------------------------------------------------
+// [DATA MODEL] _HomeData
+// ------------------------------------------------------------------------------
+// Carries everything the streak card needs in one immutable object so the
+// widget tree has a single source of truth per frame.
+// ------------------------------------------------------------------------------
+class _HomeData {
+  final Map<String, dynamic>? stats;
+  final Map<String, dynamic>? profile;
+  final int todayXp;
+  final int yesterdayXp;
+  final bool playedToday;
+  final bool playedYesterday;
+
+  const _HomeData({
+    required this.stats,
+    required this.profile,
+    required this.todayXp,
+    required this.yesterdayXp,
+    required this.playedToday,
+    required this.playedYesterday,
+  });
+
+  /// Debug path: trusts the injected payload verbatim. `lastPlayedAt` is
+  /// parsed only to decide which label ("Today" vs "Yesterday") to render.
+  factory _HomeData.fromDebug(StreakDebugPayload d) {
+    DateTime now = DateTime.now();
+    if (d.debugNow != null) {
+      now = DateTime.parse(d.debugNow!).toLocal();
+    }
+
+    bool playedToday = false;
+    bool playedYesterday = false;
+    if (d.lastPlayedAt != null) {
+      final last = DateTime.parse(d.lastPlayedAt!).toLocal();
+      playedToday =
+          last.year == now.year &&
+          last.month == now.month &&
+          last.day == now.day;
+      final y = now.subtract(const Duration(days: 1));
+      playedYesterday =
+          last.year == y.year && last.month == y.month && last.day == y.day;
+    }
+
+    return _HomeData(
+      stats: null,
+      profile: null,
+      todayXp: d.deltaXpToday,
+      yesterdayXp: d.deltaXpYesterday,
+      playedToday: playedToday,
+      playedYesterday: playedYesterday,
+    );
+  }
+}
+
 class _StreakCardSkeleton extends StatelessWidget {
   const _StreakCardSkeleton();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -617,6 +746,7 @@ class _StreakCardSkeleton extends StatelessWidget {
 class _StreakCardError extends StatelessWidget {
   final VoidCallback onRetry;
   const _StreakCardError({required this.onRetry});
+
   @override
   Widget build(BuildContext context) {
     return Container(

@@ -44,7 +44,7 @@ class StatsRepository {
 
       if (response != null) {
         // [ISSUE-9] Save to memory and disk for instant subsequent reads.
-        _inMemoryStats = response; 
+        _inMemoryStats = response;
         await prefs.setString(_cacheKey, jsonEncode(response));
       }
       return response;
@@ -56,6 +56,9 @@ class StatsRepository {
 
   // [ISSUE-9] Called by GameRepository.endMatch() when a new game is played.
   // Clears the in-memory cache so the next Stats tab visit fetches fresh data.
+  // NOTE: This repo intentionally knows nothing about profiles. The profile
+  // cache is cleared from GameRepository.endMatch() alongside this call, so
+  // both caches stay in sync without coupling repos.
   void invalidateCache() {
     _inMemoryStats = null;
   }

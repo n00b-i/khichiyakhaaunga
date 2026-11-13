@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 import '../../session/session_manager.dart';
 import '../../stats/stats_repository.dart'; // [ISSUE-9] Import for cache invalidation
+import '../../profile/profile_repository.dart'; // [SSOT] Profile cache invalidation
 
 class MatchResult {
   final bool isNewPB;
@@ -22,7 +23,7 @@ class GameRepository {
   Future<String?> startMatch(String gameId) async {
     final userId = _supabase.auth.currentUser?.id;
     final sessionId = SessionManager().currentSessionId;
-    
+
     if (userId == null || sessionId == null) return null;
 
     final matchId = _uuid.v4();
@@ -38,9 +39,11 @@ class GameRepository {
       });
       debugPrint('[GameRepository] Match started online: $matchId');
     } catch (e) {
-      debugPrint('[GameRepository] Offline start. Match will be queued on completion: $e');
+      debugPrint(
+        '[GameRepository] Offline start. Match will be queued on completion: $e',
+      );
     }
-    
+
     return matchId;
   }
 
@@ -87,7 +90,9 @@ class GameRepository {
           previousPBBrokenAfter = DateTime.now().toUtc().difference(prevDate);
         }
       }
-      debugPrint('[GameRepository] Old PB: $oldPb | New Score: $score | isNewPB: $isNewPB');
+      debugPrint(
+        '[GameRepository] Old PB: $oldPb | New Score: $score | isNewPB: $isNewPB',
+      );
     } catch (e) {
       debugPrint('[GameRepository] Failed to fetch PB: $e');
     }
@@ -95,13 +100,16 @@ class GameRepository {
     final endedAt = DateTime.now().toUtc().toIso8601String();
 
     try {
-      await _supabase.from('matches').update({
-        'status': 'completed',
-        'score': score,
-        'accuracy': accuracy,
-        'duration_seconds': durationSeconds,
-        'ended_at': endedAt,
-      }).eq('id', matchId);
+      await _supabase
+          .from('matches')
+          .update({
+            'status': 'completed',
+            'score': score,
+            'accuracy': accuracy,
+            'duration_seconds': durationSeconds,
+            'ended_at': endedAt,
+          })
+          .eq('id', matchId);
 
       debugPrint('[GameRepository] Match completed online: $matchId');
 
@@ -111,13 +119,22 @@ class GameRepository {
 
       // [ISSUE-9] Invalidate in-memory cache so StatsScreen fetches fresh data once.
       StatsRepository(_supabase).invalidateCache();
-      
+
+      // [SSOT] A completed match may have moved current_streak, last_played_at,
+      // and any derived profile fields. Clear the profile cache too so the
+      // Home streak card reflects the just-finished match on return, instead
+      // of showing yesterday's snapshot until app restart.
+      ProfileRepository.clearCache();
     } catch (e) {
-      debugPrint('[GameRepository] Network failed on match end. Queuing for sync: $e');
+      debugPrint(
+        '[GameRepository] Network failed on match end. Queuing for sync: $e',
+      );
 
       final prefs = await SharedPreferences.getInstance();
       final pendingRaw = prefs.getString('pending_matches');
-      List<dynamic> pendingMatches = pendingRaw != null ? jsonDecode(pendingRaw) : [];
+      List<dynamic> pendingMatches = pendingRaw != null
+          ? jsonDecode(pendingRaw)
+          : [];
 
       final payload = {
         'id': matchId,
@@ -128,7 +145,10 @@ class GameRepository {
         'score': score,
         'accuracy': accuracy,
         'duration_seconds': durationSeconds,
-        'started_at': DateTime.now().subtract(Duration(seconds: durationSeconds)).toUtc().toIso8601String(),
+        'started_at': DateTime.now()
+            .subtract(Duration(seconds: durationSeconds))
+            .toUtc()
+            .toIso8601String(),
         'ended_at': endedAt,
       };
 
@@ -136,6 +156,9 @@ class GameRepository {
       await prefs.setString('pending_matches', jsonEncode(pendingMatches));
     }
 
-    return MatchResult(isNewPB: isNewPB, previousPBBrokenAfter: previousPBBrokenAfter);
+    return MatchResult(
+      isNewPB: isNewPB,
+      previousPBBrokenAfter: previousPBBrokenAfter,
+    );
   }
 }
