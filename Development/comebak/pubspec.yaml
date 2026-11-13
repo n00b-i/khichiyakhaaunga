@@ -16,7 +16,17 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.1+2
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "../../design_work/branding/comebak_1000.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#0A0A0A"   # matches ComebakColors.canvas
+  adaptive_icon_foreground: "../../design_work/branding/comebak_1000.png"
+  remove_alpha_ios: true
+
 
 environment:
   sdk: ^3.12.0
@@ -53,6 +63,7 @@ dependencies:
   firebase_core: ^5.1.0
   google_fonts: ^9.0.0
 dev_dependencies:
+  flutter_launcher_icons: ^0.14.1
   flutter_test:
     sdk: flutter
 

@@ -30,7 +30,7 @@
   <rect width="1000" height="1000" fill="#0B0F19"/>
   <rect width="1000" height="1000" fill="url(#fog)"/>
 
-  <text x="500" y="200" text-anchor="middle" class="wordmark">Comebak</text>
+  <text x="500" y="225" text-anchor="middle" class="wordmark">Comebak</text>
 
   <g transform="translate(500,575) scale(11.0) translate(-28,-36)">
     <g transform="translate(28,36) rotate(45) scale(1,-1) translate(-28,-36)">
