@@ -12,12 +12,23 @@ import '../3_molecules/comebak_game_card.dart';
 import '../3_molecules/comebak_streak_card.dart';
 import '../4_organisms/comebak_header.dart';
 import '../4_organisms/comebak_milestone_banner.dart';
+import 'profile_flow/comebak_profile_page.dart';
+import 'stats_flow/comebak_stats_page.dart';
+import '../../../games/add_burst/add_burst_screen.dart';
+import '../../../games/mad_burst/mad_burst_screen.dart';
+import '../../../games/bodmas_burst/bodmas_burst_screen.dart';
+import '../../../games/number_hunt/number_hunt_screen.dart';
+import '../../../games/memory_of_saitan/memory_of_saitan_screen.dart';
 
 // ==============================================================================
 // [FLOW] ComebakHomeFlow
 // ------------------------------------------------------------------------------
 // PURPOSE: The final stitched Home Screen.
 // ARCHITECTURE: Uses the 2-column grid layout and the 3D CustomPainter icons.
+// NAVIGATION:
+// - Header Profile Tap -> ComebakProfilePage
+// - Streak Card Tap -> ComebakStatsPage
+// - Game Card Tap -> Respective Game Screen
 // ==============================================================================
 class ComebakHomeFlow extends StatelessWidget {
   const ComebakHomeFlow({super.key});
@@ -39,14 +50,16 @@ class ComebakHomeFlow extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    ComebakColors.neonGreen.withValues(alpha: ComebakLayout.opacityAvatarGlow),
-                    ComebakColors.transparent, 
+                    ComebakColors.neonGreen.withValues(
+                      alpha: ComebakLayout.opacityAvatarGlow,
+                    ),
+                    ComebakColors.transparent,
                   ],
                 ),
               ),
             ),
           ),
-          
+
           // [MAIN CONTENT] Scrollable safe area.
           SafeArea(
             child: SingleChildScrollView(
@@ -54,11 +67,14 @@ class ComebakHomeFlow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. [ORGANISM] Header
+                  // 1. [ORGANISM] Header (Profile Tap -> Profile Page)
                   ComebakHeader(
                     onProfileTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text(ComebakCopy.navProfile)),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ComebakProfilePage(),
+                        ),
                       );
                     },
                   ),
@@ -69,24 +85,43 @@ class ComebakHomeFlow extends StatelessWidget {
                     text: TextSpan(
                       style: ComebakTypography.greeting,
                       children: [
-                        const TextSpan(text: ComebakCopy.greetingPrefix, style: TextStyle(color: ComebakColors.textPrimary)),
-                        const TextSpan(text: ComebakCopy.greetingHighlight, style: TextStyle(color: ComebakColors.neonGreen)),
+                        const TextSpan(
+                          text: ComebakCopy.greetingPrefix,
+                          style: TextStyle(color: ComebakColors.textPrimary),
+                        ),
+                        const TextSpan(
+                          text: ComebakCopy.greetingHighlight,
+                          style: TextStyle(color: ComebakColors.neonGreen),
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: ComebakLayout.spaceSm),
-                  Text(ComebakCopy.greetingSubtitle, style: ComebakTypography.greetingSubtitle),
+                  Text(
+                    ComebakCopy.greetingSubtitle,
+                    style: ComebakTypography.greetingSubtitle,
+                  ),
                   const SizedBox(height: ComebakLayout.spaceXxl),
 
-                  // 3. [MOLECULE] Streak Card
-                  const ComebakStreakCard(
-                    title: ComebakCopy.streakDay3Title,
-                    subtitle: ComebakCopy.streakDay3Subtitle,
-                    icon: LucideIcons.flame,
-                    iconColor: ComebakColors.neonOrange,
-                    totalXpText: '1,250 XP',
-                    deltaXpText: ComebakCopy.xpTodayPositive,
-                    deltaXpColor: ComebakColors.neonGreen,
+                  // 3. [MOLECULE] Streak Card (Tap -> Stats Page)
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ComebakStatsPage(),
+                        ),
+                      );
+                    },
+                    child: const ComebakStreakCard(
+                      title: ComebakCopy.streakDay3Title,
+                      subtitle: ComebakCopy.streakDay3Subtitle,
+                      icon: LucideIcons.flame,
+                      iconColor: ComebakColors.neonOrange,
+                      totalXpText: '1,250 XP',
+                      deltaXpText: ComebakCopy.xpTodayPositive,
+                      deltaXpColor: ComebakColors.neonGreen,
+                    ),
                   ),
                   const SizedBox(height: ComebakLayout.spaceXxl),
 
@@ -94,12 +129,17 @@ class ComebakHomeFlow extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        width: ComebakLayout.spaceXs, 
-                        height: ComebakLayout.spaceXl, 
-                        color: ComebakColors.neonGreen, 
-                        margin: const EdgeInsets.only(right: ComebakLayout.spaceSm)
+                        width: ComebakLayout.spaceXs,
+                        height: ComebakLayout.spaceXl,
+                        color: ComebakColors.neonGreen,
+                        margin: const EdgeInsets.only(
+                          right: ComebakLayout.spaceSm,
+                        ),
                       ),
-                      Text(ComebakCopy.sectionMathBurst, style: ComebakTypography.titleLarge),
+                      Text(
+                        ComebakCopy.sectionMathBurst,
+                        style: ComebakTypography.titleLarge,
+                      ),
                     ],
                   ),
                   const SizedBox(height: ComebakLayout.spaceLg),
@@ -114,8 +154,20 @@ class ComebakHomeFlow extends StatelessWidget {
                           title: ComebakCopy.gameAddTitle,
                           subtitle: ComebakCopy.gameAddDesc,
                           accentColor: ComebakColors.neonOrange,
-                          onTap: () { ComebakHaptics.tap(); },
-                          iconWidget: ComebakAddBurstIcon(size: ComebakLayout.gameIconSize),
+                          onTap: () {
+                            ComebakHaptics.tap();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AddBurstScreen(
+                                  accentColor: ComebakColors.neonOrange,
+                                ),
+                              ),
+                            );
+                          },
+                          iconWidget: ComebakAddBurstIcon(
+                            size: ComebakLayout.gameIconSize,
+                          ),
                         ),
                       ),
                       const SizedBox(width: ComebakLayout.spaceLg),
@@ -124,8 +176,20 @@ class ComebakHomeFlow extends StatelessWidget {
                           title: ComebakCopy.gameMadTitle,
                           subtitle: ComebakCopy.gameMadDesc,
                           accentColor: ComebakColors.neonGreen,
-                          onTap: () { ComebakHaptics.tap(); },
-                          iconWidget: ComebakMadBurstIcon(size: ComebakLayout.gameIconSize),
+                          onTap: () {
+                            ComebakHaptics.tap();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const MadBurstScreen(
+                                  accentColor: ComebakColors.neonGreen,
+                                ),
+                              ),
+                            );
+                          },
+                          iconWidget: ComebakMadBurstIcon(
+                            size: ComebakLayout.gameIconSize,
+                          ),
                         ),
                       ),
                     ],
@@ -141,8 +205,20 @@ class ComebakHomeFlow extends StatelessWidget {
                           title: ComebakCopy.gameBodmasTitle,
                           subtitle: ComebakCopy.gameBodmasDesc,
                           accentColor: ComebakColors.neonPurple,
-                          onTap: () { ComebakHaptics.tap(); },
-                          iconWidget: ComebakBodmasBurstIcon(size: ComebakLayout.gameIconSize),
+                          onTap: () {
+                            ComebakHaptics.tap();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const BodmasBurstScreen(
+                                  accentColor: ComebakColors.neonPurple,
+                                ),
+                              ),
+                            );
+                          },
+                          iconWidget: ComebakBodmasBurstIcon(
+                            size: ComebakLayout.gameIconSize,
+                          ),
                         ),
                       ),
                       const SizedBox(width: ComebakLayout.spaceLg),
@@ -151,8 +227,20 @@ class ComebakHomeFlow extends StatelessWidget {
                           title: ComebakCopy.gameSmallTitle,
                           subtitle: ComebakCopy.gameSmallDesc,
                           accentColor: ComebakColors.neonBlue,
-                          onTap: () { ComebakHaptics.tap(); },
-                          iconWidget: ComebakSmallBurstIcon(size: ComebakLayout.gameIconSize),
+                          onTap: () {
+                            ComebakHaptics.tap();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const NumberHuntScreen(
+                                  accentColor: ComebakColors.neonBlue,
+                                ),
+                              ),
+                            );
+                          },
+                          iconWidget: ComebakSmallBurstIcon(
+                            size: ComebakLayout.gameIconSize,
+                          ),
                         ),
                       ),
                     ],
@@ -168,8 +256,20 @@ class ComebakHomeFlow extends StatelessWidget {
                           title: ComebakCopy.gameSaitanTitle,
                           subtitle: ComebakCopy.gameSaitanDesc,
                           accentColor: ComebakColors.vibrantPink,
-                          onTap: () { ComebakHaptics.tap(); },
-                          iconWidget: ComebakSaitanIcon(size: ComebakLayout.gameIconSize),
+                          onTap: () {
+                            ComebakHaptics.tap();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const MemoryOfSaitanScreen(
+                                  accentColor: ComebakColors.vibrantPink,
+                                ),
+                              ),
+                            );
+                          },
+                          iconWidget: ComebakSaitanIcon(
+                            size: ComebakLayout.gameIconSize,
+                          ),
                         ),
                       ),
                       const SizedBox(width: ComebakLayout.spaceLg),
@@ -181,7 +281,7 @@ class ComebakHomeFlow extends StatelessWidget {
                           accentColor: ComebakColors.textSecondary,
                           isLocked: true,
                           onTap: () {},
-                          iconWidget: const SizedBox(), 
+                          iconWidget: const SizedBox(),
                         ),
                       ),
                     ],
