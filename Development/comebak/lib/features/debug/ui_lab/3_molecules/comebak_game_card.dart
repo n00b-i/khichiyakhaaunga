@@ -73,7 +73,7 @@ class _ComebakGameCardState extends State<ComebakGameCard> {
                   Expanded(
                     child: Center(
                       child: widget.isLocked 
-                          ? const Icon(LucideIcons.lock, size: 40, color: ComebakColors.textSecondary)
+                          ? const Icon(LucideIcons.lock, size: ComebakLayout.avatarSize, color: ComebakColors.textSecondary)
                           : widget.iconWidget,
                     ),
                   ),

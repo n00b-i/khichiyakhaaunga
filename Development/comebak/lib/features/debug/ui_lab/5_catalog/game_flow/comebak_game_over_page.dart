@@ -103,9 +103,8 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
                   Text(
                     'MAD BURST',
                     style: ComebakTypography.greeting.copyWith(
-                      fontSize: 26,
                       color: ComebakColors.textPrimary,
-                      letterSpacing: 3.0,
+        letterSpacing: ComebakLayout.spaceXs * 0.75,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -116,9 +115,8 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
                     'TIME\'S UP',
                     style: ComebakTypography.labelSmall.copyWith(
                       color: ComebakColors.textSecondary,
-                      letterSpacing: 8.0,
+                      letterSpacing: ComebakLayout.spaceSm,
                       fontWeight: FontWeight.w800,
-                      fontSize: 12,
                     ),
                   ),
 
@@ -307,7 +305,7 @@ class _ComebakGameOverPageState extends State<ComebakGameOverPage> {
         children: [
           const Icon(
             Icons.emoji_events_rounded,
-            size: 16,
+            size: ComebakLayout.spaceLg,
             color: ComebakColors.neonYellow,
           ),
           const SizedBox(width: 8),

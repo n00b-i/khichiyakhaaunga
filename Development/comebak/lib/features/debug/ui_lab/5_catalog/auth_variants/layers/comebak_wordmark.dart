@@ -22,9 +22,9 @@ class ComebakWordmark extends StatelessWidget {
       text: TextSpan(
         text: 'comebak',
         style: ComebakTypography.greeting.copyWith(
-          fontSize: 62,
+          fontSize: ComebakLayout.cardIconContainer,
           fontWeight: FontWeight.w800,
-          letterSpacing: -1.5,
+          letterSpacing: -ComebakLayout.borderGradient,
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -37,7 +37,7 @@ class ComebakWordmark extends StatelessWidget {
         painter: _WordmarkPainter(
           charCount: charCount,
           brightness: brightness,
-          fontSize: 62,
+          fontSize: ComebakLayout.cardIconContainer,
           time: time,
           enableSparks: enableSparks,
         ),
@@ -72,7 +72,7 @@ class _WordmarkPainter extends CustomPainter {
     final textStyle = ComebakTypography.greeting.copyWith(
       fontSize: fontSize,
       fontWeight: FontWeight.w800,
-      letterSpacing: -1.5,
+      letterSpacing: -ComebakLayout.borderGradient,
       color: Colors.white,
     );
 

@@ -73,7 +73,7 @@ class ComebakProfilePage extends StatelessWidget {
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: ComebakColors.neonGreen.withValues(
-                              alpha: 0.3,
+                              alpha: ComebakLayout.opacityBorderAccent,
                             ),
                             width: ComebakLayout.borderThick,
                           ),
@@ -110,7 +110,7 @@ class ComebakProfilePage extends StatelessWidget {
                               _joinDate,
                               style: ComebakTypography.labelSmall.copyWith(
                                 color: ComebakColors.textSecondary.withValues(
-                                  alpha: 0.6,
+                                  alpha: ComebakLayout.opacityGradientStart,
                                 ),
                               ),
                             ),
@@ -237,7 +237,7 @@ class ComebakProfilePage extends StatelessWidget {
                       'COMEBAK v1.0.0',
                       style: ComebakTypography.labelSmall.copyWith(
                         color: ComebakColors.textSecondary.withValues(
-                          alpha: 0.3,
+                          alpha: ComebakLayout.opacityBorderAccent,
                         ),
                         letterSpacing: ComebakLayout.spaceXs / 2,
                       ),

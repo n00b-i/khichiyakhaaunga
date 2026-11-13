@@ -33,7 +33,7 @@ class _ComebakGameHudPageState extends State<ComebakGameHudPage> {
 
   void _startTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    _timer = Timer.periodic(ComebakMotion.press, (timer) {
       if (!mounted) return;
       setState(() {
         if (_timeLeft > 0) {
@@ -113,7 +113,7 @@ class _ComebakGameHudPageState extends State<ComebakGameHudPage> {
               Text(
                 '${_timeLeft.ceil()}s',
                 style: ComebakTypography.greeting.copyWith(
-                  fontSize: 32,
+                  fontSize: ComebakLayout.spaceXxl,
                   color: isLowTime
                       ? ComebakColors.vibrantRed
                       : ComebakColors.textPrimary,
@@ -124,7 +124,7 @@ class _ComebakGameHudPageState extends State<ComebakGameHudPage> {
                 'TIME',
                 style: ComebakTypography.labelSmall.copyWith(
                   color: ComebakColors.textSecondary,
-                  letterSpacing: 1.5,
+                  letterSpacing: ComebakLayout.borderGradient,
                 ),
               ),
             ],
@@ -136,7 +136,7 @@ class _ComebakGameHudPageState extends State<ComebakGameHudPage> {
                 Text(
                   '$_operationPrefix$_targetValue',
                   style: ComebakTypography.greeting.copyWith(
-                    fontSize: 48,
+                    fontSize: ComebakLayout.buttonHeight,
                     height: 1.0,
                     color: ComebakColors.neonGreen,
                   ),
@@ -145,13 +145,13 @@ class _ComebakGameHudPageState extends State<ComebakGameHudPage> {
                   'TARGET',
                   style: ComebakTypography.labelSmall.copyWith(
                     color: ComebakColors.textSecondary,
-                    letterSpacing: 1.5,
+                    letterSpacing: ComebakLayout.borderGradient,
                   ),
                 ),
               ],
             )
           else
-            const SizedBox(width: 48),
+            const SizedBox(width: ComebakLayout.buttonHeight),
 
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -159,7 +159,7 @@ class _ComebakGameHudPageState extends State<ComebakGameHudPage> {
               Text(
                 '$_score',
                 style: ComebakTypography.greeting.copyWith(
-                  fontSize: 32,
+                  fontSize: ComebakLayout.spaceXxl,
                   color: ComebakColors.textPrimary,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
@@ -168,7 +168,7 @@ class _ComebakGameHudPageState extends State<ComebakGameHudPage> {
                 'SCORE',
                 style: ComebakTypography.labelSmall.copyWith(
                   color: ComebakColors.textSecondary,
-                  letterSpacing: 1.5,
+                  letterSpacing: ComebakLayout.borderGradient,
                 ),
               ),
             ],

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_lucide/flutter_lucide.dart';
 import '../../1_foundations/tokens/ui_lab_tokens.dart';
 import '../../1_foundations/ui_lab_copy.dart';
 import '../../1_foundations/ui_lab_haptics.dart';
@@ -13,7 +12,7 @@ import '../../2_atoms/comebak_saitan_icon.dart';
 import '../../3_molecules/comebak_game_card.dart';
 import '../game_flow/comebak_game_hud_page.dart';
 
-enum _StatsState { populated, empty, partial, overflow, brokenStreak }
+enum _StatsState { populated, empty, partial, brokenStreak }
 
 class ComebakStatsPage extends StatefulWidget {
   const ComebakStatsPage({super.key});
@@ -71,8 +70,7 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
                   Text(
                     'YOUR STATS',
                     style: ComebakTypography.greeting.copyWith(
-                      fontSize: 36,
-                      letterSpacing: -1.0,
+                      letterSpacing: -ComebakLayout.spaceXs / 4,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -81,7 +79,7 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
                     'LIFETIME PERFORMANCE',
                     style: ComebakTypography.labelSmall.copyWith(
                       color: ComebakColors.textSecondary,
-                      letterSpacing: 2.4,
+                      letterSpacing: ComebakLayout.spaceXs * 0.6,
                     ),
                   ),
 
@@ -95,7 +93,7 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
                       'XP STATES',
                       style: ComebakTypography.labelSmall.copyWith(
                         color: ComebakColors.textSecondary,
-                        letterSpacing: 1.5,
+                        letterSpacing: ComebakLayout.borderGradient,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -137,7 +135,7 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
                           'BY CHALLENGE',
                           style: ComebakTypography.labelSmall.copyWith(
                             color: ComebakColors.textSecondary,
-                            letterSpacing: 1.5,
+                            letterSpacing: ComebakLayout.borderGradient,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -145,7 +143,7 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
                           'PERSONAL BEST',
                           style: ComebakTypography.labelSmall.copyWith(
                             color: ComebakColors.textSecondary,
-                            letterSpacing: 1.5,
+                            letterSpacing: ComebakLayout.borderGradient,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -213,7 +211,6 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
     required String xp, 
     required Color xpColor,
     required String flameKey,
-    bool isBroken = false,
   }) {
     return Container(
       padding: const EdgeInsets.all(ComebakLayout.spaceLg),
@@ -236,7 +233,7 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ComebakFlame3D(size: 32, key: ValueKey(flameKey)),
+              ComebakFlame3D(size: ComebakLayout.spaceXxl, key: ValueKey(flameKey)),
               const SizedBox(width: ComebakLayout.spaceSm),
               Text(
                 '$streak DAYS',
@@ -257,7 +254,7 @@ class _ComebakStatsPageState extends State<ComebakStatsPage> {
               const ComebakXpIcon(
                 icon: Icons.bolt,
                 color: ComebakColors.neonGreen,
-                size: 28,
+                size: ComebakLayout.spaceXl + ComebakLayout.spaceXs,
               ),
               const SizedBox(width: ComebakLayout.spaceSm),
               Text(

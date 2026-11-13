@@ -64,7 +64,6 @@ class ComebakButton extends StatelessWidget {
           text,
           style: ComebakTypography.titleMedium.copyWith(
             color: fgColor,
-            fontWeight: FontWeight.w700,
           ),
         ),
       ),

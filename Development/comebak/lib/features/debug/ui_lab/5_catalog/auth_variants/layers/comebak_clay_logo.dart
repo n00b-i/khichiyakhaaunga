@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../../1_foundations/tokens/ui_lab_tokens.dart';
 
 class ComebakClayLogo extends StatelessWidget {
   final int pose;
@@ -64,7 +65,7 @@ class _ClayLogoPainter extends CustomPainter {
 
     // 1. THE EXTRUSION (Back 3D Body - Solid, no shadow)
     final backPaint = Paint()
-      ..color = const Color(0xFF003D16).withValues(alpha: p.brightness);
+      ..color = ComebakColors.madBaseRight.withValues(alpha: p.brightness);
 
     canvas.save();
     canvas.translate(ex, ey);
@@ -77,16 +78,16 @@ class _ClayLogoPainter extends CustomPainter {
     canvas.restore();
 
     // 2. THE FRONT FACES (The colored clay)
-    final leftGradient = const LinearGradient(
+    final leftGradient = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFF00E676), Color(0xFF00C853)],
+      colors: [ComebakColors.neonGreen, ComebakColors.madLeftStart],
     ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
-    final rightGradient = const LinearGradient(
+    final rightGradient = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFF69F0AE), Color(0xFF00E676)],
+      colors: [ComebakColors.madTopStart, ComebakColors.neonGreen],
     ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
     canvas.drawPath(
@@ -103,7 +104,6 @@ class _ClayLogoPainter extends CustomPainter {
         ..style = PaintingStyle.fill,
     );
 
-    // NO white borders, NO inner blur shadows. Clean flat 3D.
     canvas.restore();
   }
 
