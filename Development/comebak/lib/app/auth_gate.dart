@@ -1,7 +1,13 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Core & Session
+import '../core/session/session_manager.dart';
+import '../core/network/connectivity_service.dart';
 
 // UI Lab Components (Source of Truth)
 import '../features/debug/ui_lab/1_foundations/tokens/ui_lab_tokens.dart';
@@ -15,22 +21,7 @@ import '../features/shell/main_shell.dart';
 // ==============================================================================
 // [APP] AuthGate
 // ------------------------------------------------------------------------------
-// PURPOSE: The root gatekeeper. Decides whether to show Splash, Login, or MainShell.
-//
-// FLOW:
-// 1. App starts -> Shows SplashV1RulesV2 (Cinematic 4.2s animation).
-// 2. While Splash animates, AuthGate listens to Supabase session stream.
-// 3. On Splash complete:
-//    - If session exists AND user is not blocked -> MainShell.
-//    - If session exists BUT user is blocked -> Login (with error banner).
-//    - If no session -> Login.
-//
-// STATES HANDLED:
-// - Loading (Splash visible)
-// - Authenticated (Session + Profile active)
-// - Unauthenticated (No session)
-// - Blocked (Session + Profile status != 'active')
-// - Error (Network failure during session refresh)
+// This is the root gatekeeper. It manages the entire authentication flow.
 // ==============================================================================
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -46,7 +37,16 @@ class _AuthGateState extends State<AuthGate> {
   Session? _currentSession;
   bool _isBlocked = false;
   bool _isLoadingProfile = false;
-  String? _errorMessage;
+  bool _isSigningIn = false;
+
+  static const String _msgOffline =
+      'No internet connection. Please connect and try again.';
+  static const String _msgTimeout =
+      'Connection timed out. Check your internet and try again.';
+  static const String _msgConfigError = 'Unable to sign in. Please try again.';
+  static const String _msgGenericError =
+      'Something went wrong. Please check your internet.';
+  static const Duration _signInTimeout = Duration(seconds: 8);
 
   @override
   void initState() {
@@ -55,31 +55,105 @@ class _AuthGateState extends State<AuthGate> {
     _listenToAuthChanges();
   }
 
-  /// Load a random rule for the Splash screen.
   Future<void> _loadSplashRule() async {
     final engine = ComebakRuleEngine();
     final rule = await engine.pickRule();
     if (mounted) setState(() => _splashRule = rule);
   }
 
-  /// Listen to Supabase auth state changes.
   void _listenToAuthChanges() {
     Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
       final session = data.session;
       if (session != null) {
-        await _checkProfileStatus(session.user.id);
+        await _initializeSession(session.user.id);
       } else {
         if (mounted) {
           setState(() {
             _currentSession = null;
             _isBlocked = false;
+            _isSigningIn = false;
           });
         }
       }
     });
   }
 
-  /// Fetch the user's profile to check if they are blocked.
+  Future<void> _initializeSession(String userId) async {
+    await SessionManager().init(userId);
+
+    try {
+      await Supabase.instance.client
+          .from('matches')
+          .update({
+            'status': 'abandoned',
+            'ended_at': DateTime.now().toIso8601String(),
+          })
+          .eq('user_id', userId)
+          .eq('status', 'in_progress');
+    } catch (e) {
+      debugPrint('[AuthGate] Failed to clean up abandoned matches: $e');
+    }
+
+    await _checkProfileStatus(userId);
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_isSigningIn) return;
+
+    if (await ConnectivityService.instance.isOffline()) {
+      _showError(_msgOffline);
+      return;
+    }
+
+    setState(() {
+      _isSigningIn = true;
+    });
+
+    try {
+      const webClientId =
+          '836171717498-un6j40aatbi1622u1h686ijejrhc5dvt.apps.googleusercontent.com';
+      const iosClientId =
+          '836171717498-e2gq4g3219o0en1un4slfmpt2kc786f4.apps.googleusercontent.com';
+      const androidClientId =
+          '836171717498-2939anjueefjtd7ohc5jjs28gbr4e2ib.apps.googleusercontent.com';
+
+      await GoogleSignIn.instance.initialize(
+        clientId: Platform.isIOS ? iosClientId : androidClientId,
+        serverClientId: webClientId,
+      );
+
+      final GoogleSignInAccount googleUser = await GoogleSignIn.instance
+          .authenticate();
+      final String? idToken = googleUser.authentication.idToken;
+      if (idToken == null) throw 'No ID Token found.';
+
+      await Supabase.instance.client.auth
+          .signInWithIdToken(provider: OAuthProvider.google, idToken: idToken)
+          .timeout(_signInTimeout);
+    } on TimeoutException {
+      _showError(_msgTimeout);
+    } on AuthException {
+      _showError(_msgOffline);
+    } on GoogleSignInException catch (e) {
+      switch (e.code.name) {
+        case 'canceled':
+        case 'interrupted':
+          break;
+        case 'clientConfigurationError':
+        case 'providerConfigurationError':
+          _showError(_msgConfigError);
+          break;
+        default:
+          _showError(_msgOffline);
+          break;
+      }
+    } catch (e) {
+      _showError(_msgGenericError);
+    } finally {
+      if (mounted) setState(() => _isSigningIn = false);
+    }
+  }
+
   Future<void> _checkProfileStatus(String userId) async {
     setState(() => _isLoadingProfile = true);
     try {
@@ -96,29 +170,39 @@ class _AuthGateState extends State<AuthGate> {
           _currentSession = Supabase.instance.client.auth.currentSession;
           _isBlocked = isBlocked;
           _isLoadingProfile = false;
+          _isSigningIn = false;
         });
       }
     } catch (e) {
-      // Fail-open: if profile fetch fails, assume active but log.
       debugPrint('[AuthGate] Profile fetch failed: $e');
       if (mounted) {
         setState(() {
           _currentSession = Supabase.instance.client.auth.currentSession;
           _isBlocked = false;
           _isLoadingProfile = false;
+          _isSigningIn = false;
         });
       }
     }
   }
 
-  /// Called when Splash animation finishes.
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: ComebakColors.surface,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   void _onSplashComplete() {
     setState(() => _isSplashComplete = true);
   }
 
   @override
   Widget build(BuildContext context) {
-    // 1. Splash (or rule not yet loaded)
     if (!_isSplashComplete || _splashRule == null) {
       return SplashV1RulesV2(
         rule:
@@ -133,7 +217,6 @@ class _AuthGateState extends State<AuthGate> {
       );
     }
 
-    // 2. Profile loading
     if (_isLoadingProfile) {
       return Scaffold(
         backgroundColor: ComebakColors.canvas,
@@ -143,47 +226,14 @@ class _AuthGateState extends State<AuthGate> {
       );
     }
 
-    // 3. Network error
-    if (_errorMessage != null) {
-      return Scaffold(
-        backgroundColor: ComebakColors.canvas,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(ComebakLayout.spaceXl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _errorMessage!,
-                  style: ComebakTypography.bodyMedium.copyWith(
-                    color: ComebakColors.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: ComebakLayout.spaceLg),
-                ElevatedButton(
-                  onPressed: () async {
-                    await Supabase.instance.client.auth.refreshSession();
-                    setState(() => _errorMessage = null);
-                  },
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    // 4. Authenticated & not blocked -> MainShell
     if (_currentSession != null && !_isBlocked) {
       return const MainShell();
     }
 
-    // 5. Unauthenticated or blocked -> Login
     return LoginV1Rules(
-      onGoogleSignIn: () {},
-      isBlocked: _isBlocked, // New parameter
+      onGoogleSignIn: _signInWithGoogle,
+      isBlocked: _isBlocked,
+      isLoading: _isSigningIn,
     );
   }
 }

@@ -7,11 +7,13 @@ import '_google_cta.dart';
 class LoginV1Rules extends StatefulWidget {
   final VoidCallback onGoogleSignIn;
   final bool isBlocked;
+  final bool isLoading;
 
   const LoginV1Rules({
     super.key,
     required this.onGoogleSignIn,
     this.isBlocked = false,
+    this.isLoading = false,
   });
 
   @override
@@ -160,6 +162,7 @@ class _LoginV1RulesState extends State<LoginV1Rules>
                   GoogleCta(
                     onPressed: widget.onGoogleSignIn,
                     label: 'Login with Google',
+                    isLoading: widget.isLoading,
                   ),
                   const SizedBox(height: ComebakLayout.spaceMd),
                   Center(

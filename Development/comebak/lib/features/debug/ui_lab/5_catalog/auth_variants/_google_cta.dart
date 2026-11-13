@@ -3,23 +3,21 @@ import '../../1_foundations/tokens/ui_lab_tokens.dart';
 import '../../2_atoms/comebak_google_mark.dart';
 
 // ==============================================================================
-// [LOCAL ATOM] _GoogleCta
+// [LOCAL ATOM] GoogleCta
 // ------------------------------------------------------------------------------
 // PURPOSE: Full-width Google sign-in CTA with the 4-color G mark.
-// WHY LOCAL: ComebakButton does not expose `leading` or `expand`. Rather than
-//   modify the production atom (risk), this replicates its exact visual spec
-//   (surfaceElevated bg / buttonHeight / radiusMd / titleMedium w700).
-// DELETE WHEN: ComebakButton gains `leading` + `expand` params. Then replace
-//   all usages with ComebakButton directly.
+// UPDATED: Added `isLoading` to show a spinner during authentication.
 // ==============================================================================
 class GoogleCta extends StatelessWidget {
   final VoidCallback onPressed;
   final String label;
+  final bool isLoading;
 
   const GoogleCta({
     super.key,
     required this.onPressed,
     this.label = 'Continue with Google',
+    this.isLoading = false,
   });
 
   @override
@@ -28,7 +26,7 @@ class GoogleCta extends StatelessWidget {
       height: ComebakLayout.buttonHeight,
       width: double.infinity,
       child: TextButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: TextButton.styleFrom(
           backgroundColor: ComebakColors.surface,
           foregroundColor: ComebakColors.textPrimary,
@@ -36,21 +34,30 @@ class GoogleCta extends StatelessWidget {
             borderRadius: BorderRadius.circular(ComebakLayout.radiusMd),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const ComebakGoogleMark(size: 18),
-            const SizedBox(width: ComebakLayout.spaceMd),
-            Text(
-              label,
-              style: ComebakTypography.titleMedium.copyWith(
-                color: ComebakColors.textPrimary,
-                fontWeight: FontWeight.w700,
+        child: isLoading
+            ? SizedBox(
+                width: ComebakLayout.spaceXl,
+                height: ComebakLayout.spaceXl,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: ComebakColors.neonGreen,
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const ComebakGoogleMark(size: 18),
+                  const SizedBox(width: ComebakLayout.spaceMd),
+                  Text(
+                    label,
+                    style: ComebakTypography.titleMedium.copyWith(
+                      color: ComebakColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
