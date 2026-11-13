@@ -1,11 +1,13 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+
+// Core Dev & Harness
 import '../../core/dev/dev_harness_controller.dart';
 import '../../core/dev/dev_haptics.dart';
-import '../../core/theme/app_tokens.dart';
-import '../../core/ui/components/comebak_button.dart';
-import '../../core/ui/components/comebak_chip.dart';
+
+// UI Lab Tokens (SSOT)
+import '../debug/ui_lab/1_foundations/tokens/ui_lab_tokens.dart';
 
 class GameResultScreen extends StatefulWidget {
   final int score;
@@ -69,10 +71,14 @@ class _GameResultScreenState extends State<GameResultScreen>
   void _triggerCelebration() {
     _goldOverlayController.forward(from: 0);
     DevHaptics.selectionClick(source: 'GameResult.pb1');
-    Future.delayed(const Duration(milliseconds: 80),
-        () => DevHaptics.selectionClick(source: 'GameResult.pb2'));
-    Future.delayed(const Duration(milliseconds: 160),
-        () => DevHaptics.selectionClick(source: 'GameResult.pb3'));
+    Future.delayed(
+      const Duration(milliseconds: 80),
+      () => DevHaptics.selectionClick(source: 'GameResult.pb2'),
+    );
+    Future.delayed(
+      const Duration(milliseconds: 160),
+      () => DevHaptics.selectionClick(source: 'GameResult.pb3'),
+    );
   }
 
   bool _canNavigate() {
@@ -96,135 +102,249 @@ class _GameResultScreenState extends State<GameResultScreen>
   @override
   Widget build(BuildContext context) {
     final disableAnimations = MediaQuery.disableAnimationsOf(context);
-    
-    // [ISSUE-30] Ensure confetti and celebration only run if there is an actual score above 0.
-    // This prevents accidental confetti flashes on 0 or negative scores.
-    final showCelebration = widget.isNewPB && widget.score > 0 && !disableAnimations;
+    final showCelebration =
+        widget.isNewPB && widget.score > 0 && !disableAnimations;
     final brokenRecordText = _formatBrokenRecord(widget.previousPBBrokenAfter);
 
     return Scaffold(
-      backgroundColor: AppColors.canvas,
+      backgroundColor: ComebakColors.canvas,
       body: Stack(
         children: [
+          // [LAYER 1: MAIN CONTENT]
           SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.space24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            "Time's Up",
-                            style: AppTextStyles.display.copyWith(fontWeight: FontWeight.w800),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: AppSpacing.space24),
-                          
-                          if (showCelebration) ...[
-                            Center(
-                              child: ComebakChip(
-                                text: 'New Personal Best!',
-                                variant: ComebakChipVariant.neon,
-                              ).animate().fadeIn(delay: 200.ms).scaleXY(begin: 0.9),
+            // [ARCHITECTURE: LAYOUT SAFETY]
+            // We use LayoutBuilder + SingleChildScrollView + IntrinsicHeight.
+            // This guarantees that on smaller screens (iPhone SE) or with large
+            // accessibility fonts, the content becomes scrollable instead of
+            // throwing a "RenderFlex Overflow" error.
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: ComebakLayout.spaceXl,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // [SPACER: TOP ANCHOR]
+                            const Spacer(flex: 2),
+
+                            // TITLE
+                            Text(
+                              "Time's Up",
+                              style: ComebakTypography.greeting.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: ComebakColors.textPrimary,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            if (brokenRecordText != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: AppSpacing.space8),
-                                child: Text(
-                                  brokenRecordText,
-                                  style: AppTextStyles.labelXSmall.copyWith(color: AppColors.textMuted),
-                                  textAlign: TextAlign.center,
-                                ).animate().fadeIn(delay: 400.ms),
+                            const SizedBox(height: ComebakLayout.spaceXl),
+
+                            // PB BANNER
+                            if (showCelebration) ...[
+                              Center(
+                                child:
+                                    Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: ComebakLayout.spaceLg,
+                                            vertical: ComebakLayout.spaceSm,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: ComebakColors.neonYellow
+                                                .withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(
+                                              ComebakLayout.radiusXl,
+                                            ),
+                                            border: Border.all(
+                                              color: ComebakColors.neonYellow
+                                                  .withValues(alpha: 0.8),
+                                              width: ComebakLayout.borderThick,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'New Personal Best!',
+                                            style: ComebakTypography.labelSmall
+                                                .copyWith(
+                                                  color:
+                                                      ComebakColors.neonYellow,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                          ),
+                                        )
+                                        .animate()
+                                        .fadeIn(delay: 200.ms)
+                                        .scaleXY(begin: 0.9),
                               ),
-                            const SizedBox(height: AppSpacing.space32),
-                          ],
-
-                          // [ISSUE-30] Extracted to its own widget to prevent route transition jank.
-                          _ScoreRollup(
-                            score: widget.score, 
-                            disableAnimations: disableAnimations,
-                          ),
-
-                          Text(
-                            'SCORE',
-                            style: AppTextStyles.labelSmall,
-                            textAlign: TextAlign.center,
-                          ),
-                          
-                          const SizedBox(height: AppSpacing.space32),
-
-                          Row(
-                            children: [
-                              Expanded(
-                                flex: 1,
-                                child: Column(
-                                  children: [
-                                    Text('${widget.accuracy}%', style: AppTextStyles.hudMedium),
-                                    const Text('Accuracy', style: AppTextStyles.labelSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  ],
+                              if (brokenRecordText != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: ComebakLayout.spaceSm,
+                                  ),
+                                  child: Text(
+                                    brokenRecordText,
+                                    style: ComebakTypography.labelSmall
+                                        .copyWith(
+                                          color: ComebakColors.textSecondary,
+                                        ),
+                                    textAlign: TextAlign.center,
+                                  ).animate().fadeIn(delay: 400.ms),
                                 ),
-                              ),
-                              const SizedBox(width: AppSpacing.space16),
-                              Expanded(
-                                flex: 1,
-                                child: Column(
-                                  children: [
-                                    Text('x${widget.bestCombo}', style: AppTextStyles.hudMedium),
-                                    const Text('Best Combo', style: AppTextStyles.labelSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  ],
-                                ),
-                              ),
+                              const SizedBox(height: ComebakLayout.spaceXxl),
                             ],
-                          ),
-                        ],
+
+                            // SCORE ROLLUP
+                            _ScoreRollup(
+                              score: widget.score,
+                              disableAnimations: disableAnimations,
+                            ),
+
+                            Text(
+                              'SCORE',
+                              style: ComebakTypography.labelSmall.copyWith(
+                                color: ComebakColors.textSecondary,
+                                letterSpacing: ComebakLayout.borderGradient,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+
+                            const SizedBox(height: ComebakLayout.spaceXxl),
+
+                            // STATS ROW
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 1,
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        '${widget.accuracy}%',
+                                        style: ComebakTypography.titleLarge,
+                                      ),
+                                      Text(
+                                        'Accuracy',
+                                        style: ComebakTypography.labelSmall
+                                            .copyWith(
+                                              color:
+                                                  ComebakColors.textSecondary,
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: ComebakLayout.spaceLg),
+                                Expanded(
+                                  flex: 1,
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        'x${widget.bestCombo}',
+                                        style: ComebakTypography.titleLarge,
+                                      ),
+                                      Text(
+                                        'Best Combo',
+                                        style: ComebakTypography.labelSmall
+                                            .copyWith(
+                                              color:
+                                                  ComebakColors.textSecondary,
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            // [SPACER: BOTTOM ANCHOR]
+                            const Spacer(flex: 3),
+
+                            // ACTION BUTTONS
+                            SizedBox(
+                              height: ComebakLayout.buttonHeight,
+                              width: double.infinity,
+                              child: TextButton(
+                                onPressed: () {
+                                  if (!_canNavigate()) return;
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(
+                                      builder: (_) => widget.gameBuilder(),
+                                    ),
+                                  );
+                                },
+                                style: TextButton.styleFrom(
+                                  backgroundColor: ComebakColors.neonGreen,
+                                  foregroundColor: ComebakColors.canvas,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      ComebakLayout.radiusMd,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Play Again',
+                                  style: ComebakTypography.titleMedium.copyWith(
+                                    color: ComebakColors.canvas,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: ComebakLayout.spaceMd),
+
+                            SizedBox(
+                              height: ComebakLayout.buttonHeight,
+                              width: double.infinity,
+                              child: TextButton(
+                                onPressed: () {
+                                  if (!_canNavigate()) return;
+                                  Navigator.of(
+                                    context,
+                                  ).popUntil((route) => route.isFirst);
+                                },
+                                style: TextButton.styleFrom(
+                                  backgroundColor:
+                                      ComebakColors.surfaceElevated,
+                                  foregroundColor: ComebakColors.textPrimary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      ComebakLayout.radiusMd,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Go Home',
+                                  style: ComebakTypography.titleMedium.copyWith(
+                                    color: ComebakColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // [UX IMPROVEMENT: THUMB ZONE]
+                            // Lifts the buttons up by exactly one button height.
+                            // The IntrinsicHeight absorbs this safely without breaking
+                            // the layout or pushing content off-screen.
+                            const SizedBox(height: ComebakLayout.buttonHeight),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-
-                SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      left: AppSpacing.space24,
-                      right: AppSpacing.space24,
-                      bottom: 100, 
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        ComebakButton(
-                          text: 'Play Again',
-                          variant: ComebakButtonVariant.primary,
-                          onPressed: () {
-                            if (!_canNavigate()) return;
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (_) => widget.gameBuilder()),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: AppSpacing.space16),
-                        ComebakButton(
-                          text: 'Go Home',
-                          variant: ComebakButtonVariant.ghost,
-                          onPressed: () {
-                            if (!_canNavigate()) return;
-                            Navigator.of(context).popUntil((route) => route.isFirst);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
-          
+
+          // [LAYER 2: GOLD OVERLAY]
           AnimatedBuilder(
             animation: _goldOverlayController,
             builder: (context, _) {
@@ -234,19 +354,19 @@ class _GameResultScreenState extends State<GameResultScreen>
               final opacity = 0.10 * (1 - _goldOverlayController.value);
               return Positioned.fill(
                 child: IgnorePointer(
-                  child: Container(color: AppColors.warning.withValues(alpha: opacity)),
+                  child: Container(
+                    color: ComebakColors.neonYellow.withValues(alpha: opacity),
+                  ),
                 ),
               );
             },
           ),
-          
-          // [ISSUE-30] Isolated confetti using RepaintBoundary so it doesn't block the route transition.
+
+          // [LAYER 3: CONFETTI]
           if (showCelebration)
             const Positioned.fill(
               child: IgnorePointer(
-                child: RepaintBoundary(
-                  child: _ConfettiOverlay(),
-                ),
+                child: RepaintBoundary(child: _ConfettiOverlay()),
               ),
             ),
         ],
@@ -255,9 +375,8 @@ class _GameResultScreenState extends State<GameResultScreen>
   }
 }
 
-// [ISSUE-30] Isolated score rollup. By isolating the TweenAnimationBuilder into its own 
-// widget, its 60fps rebuilds do not trigger layout recalculations for the entire screen. 
-// This allows the route slide-in animation to remain perfectly smooth.
+// [ISSUE-30] Isolated score rollup. By isolating the TweenAnimationBuilder into its own
+// widget, its 60fps rebuilds do not trigger layout recalculations for the entire screen.
 class _ScoreRollup extends StatelessWidget {
   final int score;
   final bool disableAnimations;
@@ -266,16 +385,26 @@ class _ScoreRollup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scoreColor = score > 0 ? AppColors.primaryAccent : AppColors.danger;
-    
+    final scoreColor = score > 0
+        ? ComebakColors.neonGreen
+        : ComebakColors.vibrantRed;
+
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: score.toDouble()),
-      duration: disableAnimations ? Duration.zero : AppMotion.durationRollup,
+      duration: disableAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 1200),
       curve: Curves.easeOutCubic,
       builder: (context, value, child) {
         return Text(
           value.toInt().toString(),
-          style: AppTextStyles.hudLarge.copyWith(color: scoreColor, fontWeight: FontWeight.w900),
+          style: ComebakTypography.greeting.copyWith(
+            fontSize: ComebakLayout.spaceXxl * 3.75, // 120
+            color: scoreColor,
+            fontWeight: FontWeight.w900,
+            height: 0.9,
+            letterSpacing: -ComebakLayout.spaceXs / 2,
+          ),
           textAlign: TextAlign.center,
         );
       },
@@ -301,7 +430,7 @@ class _ConfettiOverlayState extends State<_ConfettiOverlay>
     _particles = List.generate(120, (index) => _Particle(_random));
     _controller = AnimationController(
       vsync: this,
-      duration: AppMotion.durationCelebrationSlow,
+      duration: const Duration(seconds: 3),
     )..forward();
   }
 
@@ -316,7 +445,6 @@ class _ConfettiOverlayState extends State<_ConfettiOverlay>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        // [ISSUE-30] ClipRect prevents particles from bleeding into the previous screen during swipe-back gestures.
         return ClipRect(
           child: CustomPaint(
             painter: _ConfettiPainter(_particles, _controller.value),
@@ -332,17 +460,16 @@ class _Particle {
   final Color color;
 
   _Particle(Random random)
-      : x = random.nextDouble(),
-        y = 0.5,
-        angle = random.nextDouble() * 2 * pi,
-        speed = 0.5 + random.nextDouble(),
-        size = 4 + random.nextDouble() * 4,
-        color = [
-          AppColors.primaryAccent,
-          AppColors.warning,
-          AppColors.success,
-          AppColors.neon,
-        ][random.nextInt(4)];
+    : x = random.nextDouble(),
+      y = 0.5,
+      angle = random.nextDouble() * 2 * pi,
+      speed = 0.5 + random.nextDouble(),
+      size = 4 + random.nextDouble() * 4,
+      color = [
+        ComebakColors.neonGreen,
+        ComebakColors.neonYellow,
+        ComebakColors.vibrantRed,
+      ][random.nextInt(3)];
 }
 
 class _ConfettiPainter extends CustomPainter {
@@ -353,13 +480,13 @@ class _ConfettiPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // [ISSUE-30] Hard clip the canvas to the screen bounds.
     canvas.clipRect(Offset.zero & size);
 
     final paint = Paint()..style = PaintingStyle.fill;
     for (var p in particles) {
       final dx = cos(p.angle) * p.speed * progress * size.width * 0.8;
-      final dy = sin(p.angle) * p.speed * progress * size.height * 0.8 +
+      final dy =
+          sin(p.angle) * p.speed * progress * size.height * 0.8 +
           (progress * progress * 200);
       final center = Offset(size.width * p.x + dx, size.height * p.y + dy);
       paint.color = p.color.withValues(alpha: 1.0 - progress);

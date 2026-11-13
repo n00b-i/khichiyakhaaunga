@@ -415,7 +415,7 @@ class _MadBurstScreenState extends State<MadBurstScreen>
                         maxTime: widget.config.duration.inSeconds,
                         target: _target,
                         score: _score,
-                        operationPrefix: '×', // Mad Burst uses multiplication
+                        targetLabel: widget.config.hudTargetLabel,
                       );
                     },
                   ),

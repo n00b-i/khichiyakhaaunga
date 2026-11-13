@@ -5,15 +5,17 @@ import '../../../1_foundations/tokens/ui_lab_tokens.dart';
 // [WIDGET] ComebakGameHudWidget
 // ------------------------------------------------------------------------------
 // PURPOSE: The stateless, reusable gameplay HUD.
-// It accepts real game data (time, score, target) and renders the UI Lab design.
+// [DESIGN] The `operationPrefix` (e.g., '+', 'x') has been removed.
+// The target label ('SUM', 'PRODUCT') already provides the necessary context,
+// so showing the symbol before the number was redundant visual clutter.
 // ==============================================================================
 class ComebakGameHudWidget extends StatelessWidget {
   final double timeLeft;
   final int maxTime;
   final int score;
   final int target;
-  final String operationPrefix;
   final bool showTarget;
+  final String? targetLabel;
 
   const ComebakGameHudWidget({
     super.key,
@@ -21,8 +23,8 @@ class ComebakGameHudWidget extends StatelessWidget {
     required this.maxTime,
     required this.score,
     required this.target,
-    this.operationPrefix = '',
     this.showTarget = true,
+    this.targetLabel,
   });
 
   @override
@@ -48,7 +50,7 @@ class ComebakGameHudWidget extends StatelessWidget {
                   Text(
                     '${timeLeft.ceil()}s',
                     style: ComebakTypography.greeting.copyWith(
-                      fontSize: 32,
+                      fontSize: ComebakLayout.spaceXxl,
                       color: isLowTime
                           ? ComebakColors.vibrantRed
                           : ComebakColors.textPrimary,
@@ -59,7 +61,7 @@ class ComebakGameHudWidget extends StatelessWidget {
                     'TIME',
                     style: ComebakTypography.labelSmall.copyWith(
                       color: ComebakColors.textSecondary,
-                      letterSpacing: 1.5,
+                      letterSpacing: ComebakLayout.borderGradient,
                     ),
                   ),
                 ],
@@ -70,18 +72,18 @@ class ComebakGameHudWidget extends StatelessWidget {
                 Column(
                   children: [
                     Text(
-                      '$operationPrefix$target',
+                      '$target', // Just the number now
                       style: ComebakTypography.greeting.copyWith(
-                        fontSize: 48,
+                        fontSize: ComebakLayout.buttonHeight,
                         height: 1.0,
                         color: ComebakColors.neonGreen,
                       ),
                     ),
                     Text(
-                      'TARGET',
+                      (targetLabel ?? 'TARGET').toUpperCase(),
                       style: ComebakTypography.labelSmall.copyWith(
                         color: ComebakColors.textSecondary,
-                        letterSpacing: 1.5,
+                        letterSpacing: ComebakLayout.borderGradient,
                       ),
                     ),
                   ],
@@ -96,7 +98,7 @@ class ComebakGameHudWidget extends StatelessWidget {
                   Text(
                     '$score',
                     style: ComebakTypography.greeting.copyWith(
-                      fontSize: 32,
+                      fontSize: ComebakLayout.spaceXxl,
                       color: ComebakColors.textPrimary,
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),
@@ -105,7 +107,7 @@ class ComebakGameHudWidget extends StatelessWidget {
                     'SCORE',
                     style: ComebakTypography.labelSmall.copyWith(
                       color: ComebakColors.textSecondary,
-                      letterSpacing: 1.5,
+                      letterSpacing: ComebakLayout.borderGradient,
                     ),
                   ),
                 ],

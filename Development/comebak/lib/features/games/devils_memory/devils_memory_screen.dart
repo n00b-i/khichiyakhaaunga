@@ -465,7 +465,7 @@ class _DevilsMemoryScreenState extends State<DevilsMemoryScreen>
                         maxTime: widget.config.duration.inSeconds,
                         target: _target,
                         score: _score,
-                        operationPrefix: widget.isMultiplication ? '×' : '+',
+                        targetLabel: widget.config.hudTargetLabel,
                       ),
                     );
                   },

@@ -14,6 +14,11 @@ import '../4_organisms/comebak_header.dart';
 import '../4_organisms/comebak_milestone_banner.dart';
 import 'profile_flow/comebak_profile_page.dart';
 import 'stats_flow/comebak_stats_page.dart';
+
+// ==============================================================================
+// [GAME ENGINE IMPORTS]
+// These are the actual playable games. The Home screen routes to these.
+// ==============================================================================
 import '../../../games/add_burst/add_burst_screen.dart';
 import '../../../games/mad_burst/mad_burst_screen.dart';
 import '../../../games/bodmas_burst/bodmas_burst_screen.dart';
@@ -28,7 +33,7 @@ import '../../../games/devils_memory/devils_memory_screen.dart';
 // NAVIGATION:
 // - Header Profile Tap -> ComebakProfilePage
 // - Streak Card Tap -> ComebakStatsPage
-// - Game Card Tap -> Respective Game Screen
+// - Game Card Tap -> Actual Playable Game Screen
 // ==============================================================================
 class ComebakHomeFlow extends StatelessWidget {
   const ComebakHomeFlow({super.key});
@@ -145,7 +150,7 @@ class ComebakHomeFlow extends StatelessWidget {
                   const SizedBox(height: ComebakLayout.spaceLg),
 
                   // 5. [GRID] 2-Column Game Grid
-                  // ROW 1
+                  // ROW 1: Add & Mad
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -196,7 +201,7 @@ class ComebakHomeFlow extends StatelessWidget {
                   ),
                   const SizedBox(height: ComebakLayout.spaceLg),
 
-                  // ROW 2
+                  // ROW 2: BODMAS & Number Hunt
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -247,7 +252,7 @@ class ComebakHomeFlow extends StatelessWidget {
                   ),
                   const SizedBox(height: ComebakLayout.spaceLg),
 
-                  // ROW 3
+                  // ROW 3: Devil's Memory & Locked Game
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

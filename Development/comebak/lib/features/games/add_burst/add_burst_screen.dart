@@ -359,7 +359,7 @@ class _AddBurstScreenState extends State<AddBurstScreen>
                         maxTime: widget.config.duration.inSeconds,
                         target: _target,
                         score: _score,
-                        operationPrefix: widget.config.hudOperationPrefix,
+                        targetLabel: widget.config.hudTargetLabel,
                       );
                     },
                   ),
